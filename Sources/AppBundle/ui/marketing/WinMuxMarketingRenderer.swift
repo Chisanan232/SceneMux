@@ -190,7 +190,7 @@ private struct WinMuxSafariPlasticityProofCanvas: View {
     private let sidebarWidth: CGFloat = 280
     private let reservedSidebarWidth: CGFloat = 50
     private let topMargin: CGFloat = 48
-    private let sidebarTopMargin: CGFloat = 32
+    private let sidebarTopMargin: CGFloat = 27
     private let gutter: CGFloat = 8
     // Expansion overlays the tiles; only the collapsed rail reserves layout space.
     private var safariAspect: CGFloat { captureAspect("helium-current-retina.png") }
