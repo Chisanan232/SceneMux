@@ -451,15 +451,6 @@ private struct MarketingMenuBar: View {
         .foregroundStyle(Color.white.opacity(0.92))
         .padding(.horizontal, 16)
         .frame(height: 24)
-        .background {
-            ZStack {
-                Rectangle().fill(.ultraThinMaterial)
-                Rectangle().fill(Color(red: 0.015, green: 0.055, blue: 0.13).opacity(0.50))
-            }
-        }
-        .overlay(alignment: .bottom) {
-            Rectangle().fill(Color.white.opacity(0.10)).frame(height: 0.5)
-        }
     }
 }
 
