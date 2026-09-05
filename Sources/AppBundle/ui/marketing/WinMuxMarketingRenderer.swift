@@ -26,7 +26,7 @@ public func renderWinMuxSafariPlasticityProofImage(to outputURL: URL) throws {
     try renderMarketingView(
         WinMuxSafariPlasticityProofCanvas(),
         to: outputURL,
-        size: CGSize(width: 1_600, height: 1_000)
+        size: CGSize(width: 1_600, height: 920)
     )
 }
 
@@ -186,11 +186,11 @@ private struct WinMuxAppsProofCanvas: View {
 }
 
 private struct WinMuxSafariPlasticityProofCanvas: View {
-    private let canvasHeight: CGFloat = 1_000
+    private let canvasHeight: CGFloat = 920
     private let sidebarWidth: CGFloat = 280
     private let reservedSidebarWidth: CGFloat = 50
-    private let topMargin: CGFloat = 128
-    private let sidebarTopMargin: CGFloat = 112
+    private let topMargin: CGFloat = 48
+    private let sidebarTopMargin: CGFloat = 32
     private let gutter: CGFloat = 8
     // Expansion overlays the tiles; only the collapsed rail reserves layout space.
     private var safariAspect: CGFloat { captureAspect("helium-current-retina.png") }
@@ -223,7 +223,8 @@ private struct WinMuxSafariPlasticityProofCanvas: View {
         ZStack(alignment: .topLeading) {
             MarketingDesktopWallpaper(
                 imageName: "macos-blue-wallpaper.jpg",
-                darkeningOpacity: 0.46
+                darkeningOpacity: 0.46,
+                height: canvasHeight
             )
 
             LinearGradient(
@@ -384,6 +385,7 @@ private enum MarketingAsset {
 private struct MarketingDesktopWallpaper: View {
     var imageName = "macos-sonoma-wallpaper.png"
     var darkeningOpacity = 0.0
+    var height: CGFloat = 900
 
     var body: some View {
         ZStack {
@@ -414,7 +416,7 @@ private struct MarketingDesktopWallpaper: View {
                 endPoint: .trailing
             )
         }
-        .frame(width: 1_600, height: 900)
+        .frame(width: 1_600, height: height)
         .clipped()
     }
 }
