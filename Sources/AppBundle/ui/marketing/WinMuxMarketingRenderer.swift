@@ -223,9 +223,14 @@ private struct WinMuxSafariPlasticityProofCanvas: View {
         }
         .frame(width: 1_600, height: 900)
         .overlay(alignment: .topLeading) {
-            WorkspaceSidebarView(snapshot: MarketingFixtures.sidebarSnapshot)
+            let sidebar = WorkspaceSidebarView(snapshot: MarketingFixtures.sidebarSnapshot)
+            sidebar
                 .frame(width: sidebarWidth, height: 900 - sidebarTopMargin)
-                .background(Color(red: 0.012, green: 0.045, blue: 0.115).opacity(0.50))
+                .background(
+                    Color(red: 0.012, green: 0.045, blue: 0.115).opacity(0.50),
+                    in: sidebar.sidebarShape
+                )
+                .clipShape(sidebar.sidebarShape)
                 .offset(y: sidebarTopMargin)
         }
         .clipped()
