@@ -26,7 +26,7 @@ public func renderWinMuxSafariPlasticityProofImage(to outputURL: URL) throws {
     try renderMarketingView(
         WinMuxSafariPlasticityProofCanvas(),
         to: outputURL,
-        size: CGSize(width: 1_600, height: 930),
+        size: CGSize(width: 1_600, height: 928),
         renderScale: 2
     )
 }
@@ -194,11 +194,11 @@ private struct WinMuxAppsProofCanvas: View {
 }
 
 private struct WinMuxSafariPlasticityProofCanvas: View {
-    private let canvasHeight: CGFloat = 930
+    private let canvasHeight: CGFloat = 928
     private let sidebarWidth: CGFloat = 280
     private let reservedSidebarWidth: CGFloat = 50
-    private let topMargin: CGFloat = 58
-    private let sidebarTopMargin: CGFloat = 37
+    private let topMargin: CGFloat = 56
+    private let sidebarTopMargin: CGFloat = 35
     private let gutter: CGFloat = 8
     // Expansion overlays the tiles; only the collapsed rail reserves layout space.
     private var safariAspect: CGFloat { captureAspect("helium-current-retina.png") }
