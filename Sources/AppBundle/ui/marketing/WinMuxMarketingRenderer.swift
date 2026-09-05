@@ -185,9 +185,25 @@ private struct WinMuxSafariPlasticityProofCanvas: View {
     private let sidebarTopMargin: CGFloat = 12
     private let gutter: CGFloat = 8
     // Expansion overlays the tiles; only the collapsed rail reserves layout space.
-    private var safariWidth: CGFloat { (1_600 - reservedSidebarWidth - 3 * gutter - 12) * 758 / 1974 + 6 }
-    private var plasticityWidth: CGFloat { 1_600 - reservedSidebarWidth - 3 * gutter - safariWidth }
-    private let tileHeight: CGFloat = 864
+    private var safariAspect: CGFloat { captureAspect("safari-current-retina.png") }
+    private var plasticityAspect: CGFloat { captureAspect("plasticity-current-retina.png") }
+    private var contentHeight: CGFloat {
+        (1_600 - reservedSidebarWidth - 3 * gutter - 4 * windowTabGroupShellHorizontalInset())
+            / (safariAspect + plasticityAspect)
+    }
+    private var safariWidth: CGFloat { contentHeight * safariAspect + 2 * windowTabGroupShellHorizontalInset() }
+    private var plasticityWidth: CGFloat { contentHeight * plasticityAspect + 2 * windowTabGroupShellHorizontalInset() }
+    private var tileHeight: CGFloat {
+        contentHeight + MarketingFixtures.plasticityTabStrip.frame.height
+            + windowTabGroupShellTopInset() + windowTabGroupShellBottomInset()
+    }
+
+    private func captureAspect(_ name: String) -> CGFloat {
+        guard let image = MarketingAsset.image(named: name) else {
+            preconditionFailure("Missing marketing capture: \(name)")
+        }
+        return image.size.width / image.size.height
+    }
 
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -205,6 +221,7 @@ private struct WinMuxSafariPlasticityProofCanvas: View {
             MarketingCapturedTabWindow(
                 strip: MarketingFixtures.safariCurrentTabStrip,
                 imageName: "safari-current-retina.png",
+                contentMode: .fit,
                 imageAlignment: .top,
                 shadowOpacity: 0
             )
@@ -214,6 +231,7 @@ private struct WinMuxSafariPlasticityProofCanvas: View {
             MarketingCapturedTabWindow(
                 strip: MarketingFixtures.plasticityTabStrip,
                 imageName: "plasticity-current-retina.png",
+                contentMode: .fit,
                 imageAlignment: .top,
                 shadowOpacity: 0
             )
