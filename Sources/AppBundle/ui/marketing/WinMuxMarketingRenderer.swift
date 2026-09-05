@@ -26,7 +26,8 @@ public func renderWinMuxSafariPlasticityProofImage(to outputURL: URL) throws {
     try renderMarketingView(
         WinMuxSafariPlasticityProofCanvas(),
         to: outputURL,
-        size: CGSize(width: 1_600, height: 920)
+        size: CGSize(width: 1_600, height: 930),
+        renderScale: 2
     )
 }
 
@@ -34,10 +35,14 @@ public func renderWinMuxSafariPlasticityProofImage(to outputURL: URL) throws {
 private func renderMarketingView<Content: View>(
     _ rootView: Content,
     to outputURL: URL,
-    size: CGSize = CGSize(width: 1_600, height: 900)
+    size: CGSize = CGSize(width: 1_600, height: 900),
+    renderScale: CGFloat = 1
 ) throws {
+    let renderSize = CGSize(width: size.width * renderScale, height: size.height * renderScale)
     let content = rootView
         .frame(width: size.width, height: size.height)
+        .scaleEffect(renderScale, anchor: .topLeading)
+        .frame(width: renderSize.width, height: renderSize.height, alignment: .topLeading)
         .environment(\.colorScheme, .dark)
         .environment(\.workspaceSidebarClockDate, Calendar.current.date(
             from: DateComponents(year: 2026, month: 9, day: 5, hour: 10)
@@ -54,9 +59,9 @@ private func renderMarketingView<Content: View>(
     }
 
     let hostingView = NSHostingView(rootView: content)
-    hostingView.frame = CGRect(origin: .zero, size: size)
+    hostingView.frame = CGRect(origin: .zero, size: renderSize)
     let window = NSWindow(
-        contentRect: CGRect(origin: .zero, size: size),
+        contentRect: CGRect(origin: .zero, size: renderSize),
         styleMask: [.borderless],
         backing: .buffered,
         defer: false
@@ -71,8 +76,8 @@ private func renderMarketingView<Content: View>(
 
     if let screenFrame = NSScreen.main?.visibleFrame {
         window.setFrameOrigin(CGPoint(
-            x: screenFrame.midX - (size.width / 2),
-            y: screenFrame.midY - (size.height / 2)
+            x: screenFrame.midX - (renderSize.width / 2),
+            y: screenFrame.midY - (renderSize.height / 2)
         ))
     }
 
@@ -189,11 +194,11 @@ private struct WinMuxAppsProofCanvas: View {
 }
 
 private struct WinMuxSafariPlasticityProofCanvas: View {
-    private let canvasHeight: CGFloat = 920
+    private let canvasHeight: CGFloat = 930
     private let sidebarWidth: CGFloat = 280
     private let reservedSidebarWidth: CGFloat = 50
-    private let topMargin: CGFloat = 48
-    private let sidebarTopMargin: CGFloat = 27
+    private let topMargin: CGFloat = 58
+    private let sidebarTopMargin: CGFloat = 37
     private let gutter: CGFloat = 8
     // Expansion overlays the tiles; only the collapsed rail reserves layout space.
     private var safariAspect: CGFloat { captureAspect("helium-current-retina.png") }
