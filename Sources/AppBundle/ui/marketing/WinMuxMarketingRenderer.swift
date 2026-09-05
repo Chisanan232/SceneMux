@@ -266,6 +266,9 @@ private struct WinMuxSafariPlasticityProofCanvas: View {
                 .clipShape(sidebar.sidebarShape)
                 .offset(y: sidebarTopMargin)
         }
+        .overlay(alignment: .top) {
+            MarketingMenuBar()
+        }
         .clipped()
     }
 }
@@ -447,6 +450,7 @@ private struct MarketingMenuBar: View {
         .font(.system(size: 11.5, weight: .medium))
         .foregroundStyle(Color.white.opacity(0.92))
         .padding(.horizontal, 16)
+        .frame(height: 24)
         .background {
             ZStack {
                 Rectangle().fill(.ultraThinMaterial)
