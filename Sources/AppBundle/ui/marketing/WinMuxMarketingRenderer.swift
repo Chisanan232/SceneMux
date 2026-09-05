@@ -180,9 +180,13 @@ private struct WinMuxAppsProofCanvas: View {
 
 private struct WinMuxSafariPlasticityProofCanvas: View {
     private let sidebarWidth: CGFloat = 280
+    private let reservedSidebarWidth: CGFloat = 50
+    private let topMargin: CGFloat = 28
+    private let sidebarTopMargin: CGFloat = 12
     private let gutter: CGFloat = 8
-    private var safariWidth: CGFloat { (1_600 - sidebarWidth - 3 * gutter - 12) * 758 / 1974 + 6 }
-    private var plasticityWidth: CGFloat { 1_600 - sidebarWidth - 3 * gutter - safariWidth }
+    // Expansion overlays the tiles; only the collapsed rail reserves layout space.
+    private var safariWidth: CGFloat { (1_600 - reservedSidebarWidth - 3 * gutter - 12) * 758 / 1974 + 6 }
+    private var plasticityWidth: CGFloat { 1_600 - reservedSidebarWidth - 3 * gutter - safariWidth }
     private let tileHeight: CGFloat = 864
 
     var body: some View {
@@ -205,7 +209,7 @@ private struct WinMuxSafariPlasticityProofCanvas: View {
                 shadowOpacity: 0
             )
             .frame(width: safariWidth, height: tileHeight)
-            .offset(x: sidebarWidth + gutter, y: 28)
+            .offset(x: reservedSidebarWidth + gutter, y: topMargin)
 
             MarketingCapturedTabWindow(
                 strip: MarketingFixtures.plasticityTabStrip,
@@ -214,14 +218,15 @@ private struct WinMuxSafariPlasticityProofCanvas: View {
                 shadowOpacity: 0
             )
             .frame(width: plasticityWidth, height: tileHeight)
-            .offset(x: sidebarWidth + 2 * gutter + safariWidth, y: 28)
+            .offset(x: reservedSidebarWidth + 2 * gutter + safariWidth, y: topMargin)
 
         }
         .frame(width: 1_600, height: 900)
         .overlay(alignment: .topLeading) {
             WorkspaceSidebarView(snapshot: MarketingFixtures.sidebarSnapshot)
-                .frame(width: sidebarWidth, height: 900)
+                .frame(width: sidebarWidth, height: 900 - sidebarTopMargin)
                 .background(Color(red: 0.012, green: 0.045, blue: 0.115).opacity(0.50))
+                .offset(y: sidebarTopMargin)
         }
         .clipped()
     }
