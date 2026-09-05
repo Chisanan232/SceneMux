@@ -433,9 +433,9 @@ private struct MarketingMenuBar: View {
     }
 
     var body: some View {
-        HStack(spacing: 18) {
+        HStack(spacing: 21) {
             Image(systemName: "apple.logo")
-                .font(.system(size: 13, weight: .semibold))
+                .font(.system(size: 15, weight: .semibold))
             Text("WinMux").fontWeight(.semibold)
             Text("File")
             Text("Edit")
@@ -447,10 +447,10 @@ private struct MarketingMenuBar: View {
             Image(systemName: "battery.100percent")
             Text(clockText)
         }
-        .font(.system(size: 11.5, weight: .medium))
+        .font(.system(size: 13.25, weight: .medium))
         .foregroundStyle(Color.white.opacity(0.92))
-        .padding(.horizontal, 16)
-        .frame(height: 24)
+        .padding(.horizontal, 18)
+        .frame(height: 27)
     }
 }
 
