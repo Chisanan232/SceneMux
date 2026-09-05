@@ -39,6 +39,9 @@ private func renderMarketingView<Content: View>(
     let content = rootView
         .frame(width: size.width, height: size.height)
         .environment(\.colorScheme, .dark)
+        .environment(\.workspaceSidebarClockDate, Calendar.current.date(
+            from: DateComponents(year: 2026, month: 9, day: 5, hour: 10)
+        ))
 
     // Liquid Glass is composed by WindowServer. A detached NSHostingView cannot reproduce the
     // material: SwiftUI.ImageRenderer omits AppKit-backed surfaces, and cacheDisplay has no live
@@ -426,10 +429,7 @@ private struct MarketingDesktopWallpaper: View {
 
 private struct MarketingMenuBar: View {
     private var clockText: String {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.dateFormat = "EEE MMM d  h:mm a"
-        return formatter.string(from: Date())
+        "Sat Sep 5  10:00 AM"
     }
 
     var body: some View {
@@ -443,8 +443,6 @@ private struct MarketingMenuBar: View {
             Text("Window")
             Text("Help")
             Spacer()
-            Image(systemName: "wifi")
-            Image(systemName: "battery.100percent")
             Text(clockText)
         }
         .font(.system(size: 13.25, weight: .medium))
