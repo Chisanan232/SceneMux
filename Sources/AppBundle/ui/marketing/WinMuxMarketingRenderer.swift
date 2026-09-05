@@ -179,8 +179,10 @@ private struct WinMuxAppsProofCanvas: View {
 }
 
 private struct WinMuxSafariPlasticityProofCanvas: View {
-    private let safariWidth: CGFloat = 587.3637
-    private let plasticityWidth: CGFloat = 938.6363
+    private let sidebarWidth: CGFloat = 280
+    private let gutter: CGFloat = 8
+    private var safariWidth: CGFloat { (1_600 - sidebarWidth - 3 * gutter - 12) * 758 / 1974 + 6 }
+    private var plasticityWidth: CGFloat { 1_600 - sidebarWidth - 3 * gutter - safariWidth }
     private let tileHeight: CGFloat = 864
 
     var body: some View {
@@ -203,7 +205,7 @@ private struct WinMuxSafariPlasticityProofCanvas: View {
                 shadowOpacity: 0
             )
             .frame(width: safariWidth, height: tileHeight)
-            .offset(x: 58, y: 28)
+            .offset(x: sidebarWidth + gutter, y: 28)
 
             MarketingCapturedTabWindow(
                 strip: MarketingFixtures.plasticityTabStrip,
@@ -212,14 +214,14 @@ private struct WinMuxSafariPlasticityProofCanvas: View {
                 shadowOpacity: 0
             )
             .frame(width: plasticityWidth, height: tileHeight)
-            .offset(x: 653.3637, y: 28)
+            .offset(x: sidebarWidth + 2 * gutter + safariWidth, y: 28)
 
         }
         .frame(width: 1_600, height: 900)
         .overlay(alignment: .topLeading) {
-            if let sidebar = MarketingAsset.image(named: "winmux-retina.png") {
-                MarketingTranslucentCapturedSidebar(image: sidebar)
-            }
+            WorkspaceSidebarView(snapshot: MarketingFixtures.sidebarSnapshot)
+                .frame(width: sidebarWidth, height: 900)
+                .background(Color(red: 0.012, green: 0.045, blue: 0.115).opacity(0.50))
         }
         .clipped()
     }
@@ -969,8 +971,8 @@ private enum MarketingFixtures {
             WorkspaceSidebarWorkspaceViewModel(
                 name: "code",
                 projectId: defaultProject,
-                displayName: "Code",
-                sidebarLabel: "C",
+                displayName: "Design",
+                sidebarLabel: "D",
                 isGeneratedName: false,
                 monitorScopeId: "display-main",
                 monitorName: "Studio Display",
@@ -980,13 +982,24 @@ private enum MarketingFixtures {
                     .init(kind: .tabGroup(.init(
                         representativeWindowId: 101,
                         workspaceName: "code",
-                        title: "WinMux development",
+                        title: "5X.plasticity",
                         windowCount: 3,
                         isFocused: true,
                         tabs: [
-                            sidebarWindow(101, workspace: "code", app: "Xcode", bundle: "com.apple.dt.Xcode", title: "SidebarView.swift", focused: true),
-                            sidebarWindow(102, workspace: "code", app: "Safari", bundle: "com.apple.Safari", title: "SwiftUI docs"),
-                            sidebarWindow(103, workspace: "code", app: "Terminal", bundle: "com.apple.Terminal", title: "Build and test"),
+                            sidebarWindow(101, workspace: "code", app: "Plasticity", bundle: "com.electron.plasticity", title: "5X.plasticity", focused: true),
+                            sidebarWindow(102, workspace: "code", app: "Autodesk Fusion", bundle: "com.autodesk.dls.streamer.scriptapp.Autodesk-Fusion", title: "Fusion"),
+                            sidebarWindow(103, workspace: "code", app: "Finder", bundle: "com.apple.finder", title: "Finder"),
+                        ]
+                    ))),
+                    .init(kind: .tabGroup(.init(
+                        representativeWindowId: 104,
+                        workspaceName: "code",
+                        title: "alpaca engineering",
+                        windowCount: 2,
+                        isFocused: false,
+                        tabs: [
+                            sidebarWindow(104, workspace: "code", app: "Safari", bundle: "com.apple.Safari", title: "alpaca engineering"),
+                            sidebarWindow(105, workspace: "code", app: "Google Chrome", bundle: "com.google.Chrome", title: "Chrome"),
                         ]
                     ))),
                 ]
