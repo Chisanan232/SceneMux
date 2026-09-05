@@ -23,12 +23,19 @@ public func renderWinMuxAppsProofImage(to outputURL: URL) throws {
 /// Exports a tiled Safari and Plasticity workspace using their measured split ratio.
 @MainActor
 public func renderWinMuxSafariPlasticityProofImage(to outputURL: URL) throws {
-    try renderMarketingView(WinMuxSafariPlasticityProofCanvas(), to: outputURL)
+    try renderMarketingView(
+        WinMuxSafariPlasticityProofCanvas(),
+        to: outputURL,
+        size: CGSize(width: 1_600, height: 1_000)
+    )
 }
 
 @MainActor
-private func renderMarketingView<Content: View>(_ rootView: Content, to outputURL: URL) throws {
-    let size = CGSize(width: 1_600, height: 900)
+private func renderMarketingView<Content: View>(
+    _ rootView: Content,
+    to outputURL: URL,
+    size: CGSize = CGSize(width: 1_600, height: 900)
+) throws {
     let content = rootView
         .frame(width: size.width, height: size.height)
         .environment(\.colorScheme, .dark)
@@ -179,10 +186,11 @@ private struct WinMuxAppsProofCanvas: View {
 }
 
 private struct WinMuxSafariPlasticityProofCanvas: View {
+    private let canvasHeight: CGFloat = 1_000
     private let sidebarWidth: CGFloat = 280
     private let reservedSidebarWidth: CGFloat = 50
-    private let topMargin: CGFloat = 28
-    private let sidebarTopMargin: CGFloat = 12
+    private let topMargin: CGFloat = 128
+    private let sidebarTopMargin: CGFloat = 112
     private let gutter: CGFloat = 8
     // Expansion overlays the tiles; only the collapsed rail reserves layout space.
     private var safariAspect: CGFloat { captureAspect("helium-current-retina.png") }
@@ -191,7 +199,7 @@ private struct WinMuxSafariPlasticityProofCanvas: View {
         min(
             (1_600 - reservedSidebarWidth - 3 * gutter - 4 * windowTabGroupShellHorizontalInset())
                 / (safariAspect + plasticityAspect),
-            900 - topMargin - gutter - chromeHeight
+            canvasHeight - topMargin - gutter - chromeHeight
         )
     }
     private var safariWidth: CGFloat { contentHeight * safariAspect + 2 * windowTabGroupShellHorizontalInset() }
@@ -245,11 +253,11 @@ private struct WinMuxSafariPlasticityProofCanvas: View {
             .offset(x: tilesLeading + gutter + safariWidth, y: topMargin)
 
         }
-        .frame(width: 1_600, height: 900)
+        .frame(width: 1_600, height: canvasHeight)
         .overlay(alignment: .topLeading) {
             let sidebar = WorkspaceSidebarView(snapshot: MarketingFixtures.sidebarSnapshot)
             sidebar
-                .frame(width: sidebarWidth, height: 900 - sidebarTopMargin)
+                .frame(width: sidebarWidth, height: canvasHeight - sidebarTopMargin)
                 .background(
                     Color(red: 0.012, green: 0.045, blue: 0.115).opacity(0.50),
                     in: sidebar.sidebarShape
