@@ -185,18 +185,24 @@ private struct WinMuxSafariPlasticityProofCanvas: View {
     private let sidebarTopMargin: CGFloat = 12
     private let gutter: CGFloat = 8
     // Expansion overlays the tiles; only the collapsed rail reserves layout space.
-    private var safariAspect: CGFloat { captureAspect("safari-current-retina.png") }
+    private var safariAspect: CGFloat { captureAspect("helium-current-retina.png") }
     private var plasticityAspect: CGFloat { captureAspect("plasticity-current-retina.png") }
     private var contentHeight: CGFloat {
-        (1_600 - reservedSidebarWidth - 3 * gutter - 4 * windowTabGroupShellHorizontalInset())
-            / (safariAspect + plasticityAspect)
+        min(
+            (1_600 - reservedSidebarWidth - 3 * gutter - 4 * windowTabGroupShellHorizontalInset())
+                / (safariAspect + plasticityAspect),
+            900 - topMargin - gutter - chromeHeight
+        )
     }
     private var safariWidth: CGFloat { contentHeight * safariAspect + 2 * windowTabGroupShellHorizontalInset() }
     private var plasticityWidth: CGFloat { contentHeight * plasticityAspect + 2 * windowTabGroupShellHorizontalInset() }
-    private var tileHeight: CGFloat {
-        contentHeight + MarketingFixtures.plasticityTabStrip.frame.height
+    private var chromeHeight: CGFloat {
+        MarketingFixtures.plasticityTabStrip.frame.height
             + windowTabGroupShellTopInset() + windowTabGroupShellBottomInset()
     }
+    private var tileHeight: CGFloat { contentHeight + chromeHeight }
+    // Keep the right and inter-window gaps fixed. Extra space stays beneath the sidebar.
+    private var tilesLeading: CGFloat { 1_600 - 2 * gutter - safariWidth - plasticityWidth }
 
     private func captureAspect(_ name: String) -> CGFloat {
         guard let image = MarketingAsset.image(named: name) else {
@@ -220,13 +226,13 @@ private struct WinMuxSafariPlasticityProofCanvas: View {
 
             MarketingCapturedTabWindow(
                 strip: MarketingFixtures.safariCurrentTabStrip,
-                imageName: "safari-current-retina.png",
+                imageName: "helium-current-retina.png",
                 contentMode: .fit,
                 imageAlignment: .top,
                 shadowOpacity: 0
             )
             .frame(width: safariWidth, height: tileHeight)
-            .offset(x: reservedSidebarWidth + gutter, y: topMargin)
+            .offset(x: tilesLeading, y: topMargin)
 
             MarketingCapturedTabWindow(
                 strip: MarketingFixtures.plasticityTabStrip,
@@ -236,7 +242,7 @@ private struct WinMuxSafariPlasticityProofCanvas: View {
                 shadowOpacity: 0
             )
             .frame(width: plasticityWidth, height: tileHeight)
-            .offset(x: reservedSidebarWidth + 2 * gutter + safariWidth, y: topMargin)
+            .offset(x: tilesLeading + gutter + safariWidth, y: topMargin)
 
         }
         .frame(width: 1_600, height: 900)
@@ -1026,8 +1032,8 @@ private enum MarketingFixtures {
                         windowCount: 2,
                         isFocused: false,
                         tabs: [
-                            sidebarWindow(104, workspace: "code", app: "Safari", bundle: "com.apple.Safari", title: "alpaca engineering"),
-                            sidebarWindow(105, workspace: "code", app: "Google Chrome", bundle: "com.google.Chrome", title: "Chrome"),
+                            sidebarWindow(104, workspace: "code", app: "Helium", bundle: "net.imput.helium", title: "alpaca engineering"),
+                            sidebarWindow(105, workspace: "code", app: "Safari", bundle: "com.apple.Safari", title: "Safari"),
                         ]
                     ))),
                 ]
@@ -1123,19 +1129,19 @@ private enum MarketingFixtures {
             tab(
                 601,
                 workspace: "design",
-                app: "Safari",
-                bundle: "com.apple.Safari",
-                path: "/Applications/Safari.app",
+                app: "Helium",
+                bundle: "net.imput.helium",
+                path: "/Applications/Helium.app",
                 title: "alpaca engineering",
                 active: true
             ),
             tab(
                 602,
                 workspace: "design",
-                app: "Google Chrome",
-                bundle: "com.google.Chrome",
-                path: "/Applications/Google Chrome.app",
-                title: "Chrome"
+                app: "Safari",
+                bundle: "com.apple.Safari",
+                path: "/Applications/Safari.app",
+                title: "Safari"
             ),
         ],
         cornerRadius: 14
