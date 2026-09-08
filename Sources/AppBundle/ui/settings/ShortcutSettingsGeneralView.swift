@@ -5,7 +5,6 @@ import SwiftUI
 
 struct ShortcutGeneralView: View {
     @ObservedObject var model: ShortcutSettingsModel
-    @State private var doubleSidedWindows = ExperimentalUISettings().doubleSidedWindows
     @State private var displayStyle = ExperimentalUISettings().displayStyle
     @State private var iconAppearance = ExperimentalUISettings().iconAppearance
     @State private var workspaceSidebarMenuBarReserveHeight = config.workspaceSidebar.menuBarReserveHeight
@@ -37,26 +36,6 @@ struct ShortcutGeneralView: View {
                                 setProjectDeletionAction(newValue)
                             }
                         }
-                    }
-                }
-
-                GeneralSection(title: "Window pairs") {
-                    Toggle(isOn: $doubleSidedWindows) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Double-sided windows")
-                            Text("Replace two-window tab strips with two sides. Option-click the title bar to flip. Three or more windows use tabs. Requires window tabs to be enabled.")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                            Text("The rotating animation uses Screen Recording access. Reduce Motion switches sides without rotation.")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                    .onChange(of: doubleSidedWindows) { enabled in
-                        var settings = ExperimentalUISettings()
-                        settings.doubleSidedWindows = enabled
-                        if enabled { requestScreenRecordingPermissionsIfNeeded() }
-                        scheduleRefreshSession(.menuBarButton)
                     }
                 }
 
