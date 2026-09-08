@@ -74,11 +74,14 @@ enum GlobalObserver {
     }
 
     private static func onPointerActivity(_ event: NSEvent) {
-        let isLeftMouseDownEvent = event.type == .leftMouseDown
+        let type = event.type
+        let modifiers = event.modifierFlags
+        let isLeftMouseDownEvent = type == .leftMouseDown
         let timestamp = event.timestamp
         let screenPoint = NSEvent.mouseLocation
         let point = normalizeAppKitScreenPoint(screenPoint)
         runOnMainActor {
+            DoubleSidedWindowController.shared.note(type: type, modifiers: modifiers, point: point)
             MousePointerTracker.shared.note(point: point, timestamp: timestamp)
             WorkspaceSidebarPanel.trapCursorForVisiblePanelsIfNeeded()
             WorkspaceSidebarPanel.noteHoverPointerActivityForVisiblePanels(timestamp: timestamp)
@@ -106,7 +109,11 @@ enum GlobalObserver {
         notificationObserverTokens.append(nc.addObserver(forName: NSWorkspace.screensDidWakeNotification, object: nil, queue: .main, using: onNotif))
         notificationObserverTokens.append(nc.addObserver(forName: NSWorkspace.didTerminateApplicationNotification, object: nil, queue: .main, using: onNotif))
 
-        retainEventMonitor(NSEvent.addGlobalMonitorForEvents(matching: .leftMouseUp) { _ in
+        retainEventMonitor(NSEvent.addGlobalMonitorForEvents(matching: .leftMouseUp) { event in
+            let modifiers = event.modifierFlags
+            runOnMainActor {
+                DoubleSidedWindowController.shared.note(type: .leftMouseUp, modifiers: modifiers, point: mouseLocation)
+            }
             // todo reduce number of refreshSession in the callback
             //  resetManipulatedWithMouseIfPossible might call its own refreshSession
             //  The end of the callback calls refreshSession
