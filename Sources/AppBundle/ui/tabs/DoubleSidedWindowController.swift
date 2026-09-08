@@ -11,7 +11,7 @@ final class DoubleSidedWindowController {
     var isAnimating: Bool { animationPanel != nil }
 
     func flip(_ window: Window) {
-        guard TrayMenuModel.shared.isEnabled,
+        guard !isAnimating, TrayMenuModel.shared.isEnabled,
               let group = window.nearestWindowTabGroup,
               group.usesDoubleSidedWindows,
               group.tabActiveWindow === window,

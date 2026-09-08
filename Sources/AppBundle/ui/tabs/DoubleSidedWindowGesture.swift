@@ -17,11 +17,12 @@ final class DoubleSidedWindowGesture {
     static let shared = DoubleSidedWindowGesture()
     private var tap: CFMachPort?
     private var source: CFRunLoopSource?
+    private var isTabHeld = false
     private var pending: (windowId: UInt32, down: CGEvent)?
 
     func install() {
         guard tap == nil else { return }
-        let mask = [.leftMouseDown, .leftMouseDragged, .leftMouseUp].reduce(CGEventMask(0)) {
+        let mask = [.leftMouseDown, .leftMouseDragged, .leftMouseUp, .keyDown, .keyUp].reduce(CGEventMask(0)) {
             $0 | (1 << ($1 as CGEventType).rawValue)
         }
         guard let tap = CGEvent.tapCreate(
@@ -42,10 +43,13 @@ final class DoubleSidedWindowGesture {
         if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
             pending?.down.tapPostEvent(proxy)
             pending = nil
+            isTabHeld = false
             if let tap { CGEvent.tapEnable(tap: tap, enable: true) }
             return false
         }
         switch type {
+            case .keyDown, .keyUp:
+                return handleKeyboard(type: type, event: event)
             case .leftMouseDown:
                 pending = nil
                 guard TrayMenuModel.shared.isEnabled,
@@ -85,6 +89,44 @@ final class DoubleSidedWindowGesture {
         }
     }
 
+    private func handleKeyboard(type: CGEventType, event: CGEvent) -> Bool {
+        let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
+        guard keyCode == 48 else { return false } // macOS virtual key code for Tab.
+        if type == .keyUp {
+            let consumed = isTabHeld
+            isTabHeld = false
+            return consumed
+        }
+        if isTabHeld { return true }
+        guard isDoubleSidedFlipShortcut(keyCode: keyCode, flags: event.flags),
+              TrayMenuModel.shared.isEnabled,
+              ExperimentalUISettings().doubleSidedWindows,
+              let window = nativeFocusedPairWindow()
+        else { return false }
+        isTabHeld = true
+        if event.getIntegerValueField(.keyboardEventAutorepeat) == 0,
+           !DoubleSidedWindowController.shared.isAnimating {
+            Task { @MainActor in DoubleSidedWindowController.shared.flip(window) }
+        }
+        return true
+    }
+
+    private func nativeFocusedPairWindow() -> Window? {
+        guard let app = NSWorkspace.shared.frontmostApplication else { return nil }
+        // Read native focus so settings, dialogs, and other unpaired windows keep Option-Tab.
+        let element = AXUIElementCreateApplication(app.processIdentifier)
+        AXUIElementSetMessagingTimeout(element, 0.05)
+        var focused: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(element, kAXFocusedWindowAttribute as CFString, &focused) == .success,
+              let focused, CFGetTypeID(focused) == AXUIElementGetTypeID(),
+              let id = (focused as! AXUIElement).containingWindowId(),
+              let window = Window.get(byId: id),
+              let group = window.nearestWindowTabGroup,
+              group.usesDoubleSidedWindows, group.tabActiveWindow === window
+        else { return nil }
+        return window
+    }
+
     private func windowId(at point: CGPoint) -> UInt32? {
         guard let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID)
             as? [[String: Any]] else { return nil }
@@ -112,4 +154,9 @@ func doubleSidedWindowId(at point: CGPoint, in windows: [[String: Any]]) -> UInt
 
 func doubleSidedClickMoved(from start: CGPoint, to end: CGPoint) -> Bool {
     hypot(end.x - start.x, end.y - start.y) > 4
+}
+
+func isDoubleSidedFlipShortcut(keyCode: Int64, flags: CGEventFlags) -> Bool {
+    keyCode == 48 &&
+        flags.intersection([.maskAlternate, .maskCommand, .maskControl, .maskShift]) == .maskAlternate
 }

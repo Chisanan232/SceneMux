@@ -32,6 +32,17 @@ final class DoubleSidedWindowsTest: XCTestCase {
         XCTAssertEqual(doubleSidedWindowId(at: point, in: [coveringWindow, pair]), 1)
     }
 
+    func testOptionTabShortcutDoesNotClaimOtherTabCombinations() {
+        XCTAssertTrue(isDoubleSidedFlipShortcut(keyCode: 48, flags: .maskAlternate))
+        XCTAssertTrue(isDoubleSidedFlipShortcut(keyCode: 48, flags: [.maskAlternate, .maskAlphaShift]))
+        XCTAssertFalse(isDoubleSidedFlipShortcut(keyCode: 48, flags: []))
+        XCTAssertFalse(isDoubleSidedFlipShortcut(keyCode: 48, flags: .maskCommand))
+        XCTAssertFalse(isDoubleSidedFlipShortcut(keyCode: 48, flags: [.maskAlternate, .maskCommand]))
+        XCTAssertFalse(isDoubleSidedFlipShortcut(keyCode: 48, flags: [.maskAlternate, .maskControl]))
+        XCTAssertFalse(isDoubleSidedFlipShortcut(keyCode: 48, flags: [.maskAlternate, .maskShift]))
+        XCTAssertFalse(isDoubleSidedFlipShortcut(keyCode: 49, flags: .maskAlternate))
+    }
+
     func testClickTolerancePreservesDrags() {
         XCTAssertFalse(doubleSidedClickMoved(from: .zero, to: CGPoint(x: 4, y: 0)))
         XCTAssertTrue(doubleSidedClickMoved(from: .zero, to: CGPoint(x: 4, y: 1)))
