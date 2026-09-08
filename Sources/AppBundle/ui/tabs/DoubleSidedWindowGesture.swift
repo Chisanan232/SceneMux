@@ -40,6 +40,11 @@ final class DoubleSidedWindowGesture {
     }
 
     func handle(proxy: CGEventTapProxy, type: CGEventType, event: CGEvent) -> Bool {
+        // Consumed events never reach the NSEvent monitors that cancel modifier-only
+        // launchers. Cancel here before swallowing Option-Tab or an Option-click.
+        if type == .keyDown || type == .leftMouseDown {
+            noteTapBindingKeyDown()
+        }
         if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
             pending?.down.tapPostEvent(proxy)
             pending = nil
