@@ -24,13 +24,13 @@ struct ShortcutBehaviorSettingsView: View {
                 SettingsToggle("Unhide macOS-hidden apps", isOn: $automaticallyUnhideMacosHiddenApps, help: "Restore apps macOS has hidden when they receive focus.") { persistRootBool("automatically-unhide-macos-hidden-apps", automaticallyUnhideMacosHiddenApps) }
             }
             SettingsSection("Window pairs") {
-                SettingsToggle("Double-sided windows", isOn: $doubleSidedWindows, help: "Replace two-window tab strips with two sides. Option-click the title bar to flip.") {
+                SettingsToggle("Double-sided windows", isOn: $doubleSidedWindows, help: "Replace two-window tab strips with two sides. Option-click anywhere in the window to flip.") {
                     var settings = ExperimentalUISettings()
                     settings.doubleSidedWindows = doubleSidedWindows
                     if doubleSidedWindows { requestScreenRecordingPermissionsIfNeeded() }
                     scheduleRefreshSession(.menuBarButton)
                 }
-                Text("Option-click the title bar to flip between two windows. Three or more windows use tabs. Window tabs must be enabled. Rotation uses Screen Recording access and respects Reduce Motion.")
+                Text("Option-click anywhere in the window to flip between two windows. Three or more windows use tabs. Window tabs must be enabled. Rotation uses Screen Recording access and respects Reduce Motion.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)

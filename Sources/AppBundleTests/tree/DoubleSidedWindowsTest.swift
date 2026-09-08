@@ -4,6 +4,40 @@ import XCTest
 
 @MainActor
 final class DoubleSidedWindowsTest: XCTestCase {
+    func testBodyClickTargetsPairButDoesNotPassThroughOtherWindows() {
+        setUpWorkspacesForTests()
+        let saved = UserDefaults.standard.object(forKey: "doubleSidedWindows")
+        defer { UserDefaults.standard.set(saved, forKey: "doubleSidedWindows") }
+        var settings = ExperimentalUISettings()
+        settings.doubleSidedWindows = true
+        config.windowTabs.enabled = true
+        let group = Workspace.get(byName: "pair").rootTilingContainer
+        group.layout = .tabGroup
+        let front = TestWindow.new(id: 1, parent: group)
+        _ = TestWindow.new(id: 2, parent: group)
+        front.markAsMostRecentChild()
+        let rect = CGRect(x: 100, y: 100, width: 600, height: 400)
+        let pair: [String: Any] = [
+            kCGWindowNumber as String: UInt32(1),
+            kCGWindowBounds as String: rect.dictionaryRepresentation,
+            kCGWindowAlpha as String: 1.0,
+        ]
+        let point = CGPoint(x: 400, y: 300)
+        XCTAssertEqual(doubleSidedWindowId(at: point, in: [pair]), 1)
+        XCTAssertNil(doubleSidedWindowId(at: CGPoint(x: 50, y: 50), in: [pair]))
+        var coveringWindow = pair
+        coveringWindow[kCGWindowNumber as String] = UInt32(999)
+        XCTAssertNil(doubleSidedWindowId(at: point, in: [coveringWindow, pair]))
+        coveringWindow[kCGWindowAlpha as String] = 0.0
+        XCTAssertEqual(doubleSidedWindowId(at: point, in: [coveringWindow, pair]), 1)
+    }
+
+    func testClickTolerancePreservesDrags() {
+        XCTAssertFalse(doubleSidedClickMoved(from: .zero, to: CGPoint(x: 4, y: 0)))
+        XCTAssertTrue(doubleSidedClickMoved(from: .zero, to: CGPoint(x: 4, y: 1)))
+        XCTAssertTrue(doubleSidedClickMoved(from: .zero, to: CGPoint(x: -5, y: 0)))
+    }
+
     func testPairReturnsToTabsWhenThirdWindowJoins() {
         setUpWorkspacesForTests()
         let saved = UserDefaults.standard.object(forKey: "doubleSidedWindows")

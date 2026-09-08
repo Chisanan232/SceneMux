@@ -5,63 +5,12 @@ import QuartzCore
 @MainActor
 final class DoubleSidedWindowController {
     static let shared = DoubleSidedWindowController()
-    private var candidate: (windowId: UInt32, point: CGPoint)?
     private var animationPanel: NSPanel?
     private let backdropPadding: CGFloat = 64
 
-    func note(type: NSEvent.EventType, modifiers: NSEvent.ModifierFlags, point: CGPoint) {
-        switch type {
-            case .leftMouseDown:
-                candidate = nil
-                guard TrayMenuModel.shared.isEnabled,
-                      ExperimentalUISettings().doubleSidedWindows,
-                      modifiers.intersection([.option, .command, .control, .shift]) == .option,
-                      animationPanel == nil,
-                      let window = titleBarWindow(at: point),
-                      window.nearestWindowTabGroup?.usesDoubleSidedWindows == true
-                else { return }
-                candidate = (window.windowId, point)
-            case .leftMouseDragged:
-                if let candidate, hypot(point.x - candidate.point.x, point.y - candidate.point.y) > 4 {
-                    self.candidate = nil
-                }
-            case .leftMouseUp:
-                let pending = candidate
-                candidate = nil
-                guard let pending,
-                      hypot(point.x - pending.point.x, point.y - pending.point.y) <= 4,
-                      modifiers.contains(.option),
-                      let window = Window.get(byId: pending.windowId)
-                else { return }
-                flip(window)
-            default:
-                break
-        }
-    }
+    var isAnimating: Bool { animationPanel != nil }
 
-    private func titleBarWindow(at point: CGPoint) -> Window? {
-        let system = AXUIElementCreateSystemWide()
-        AXUIElementSetMessagingTimeout(system, 0.1)
-        var hit: AXUIElement?
-        guard AXUIElementCopyElementAtPosition(system, Float(point.x), Float(point.y), &hit) == .success,
-              let hit,
-              let id = hit.containingWindowId(),
-              let window = Window.get(byId: id),
-              let rect = window.lastAppliedLayoutPhysicalRect,
-              point.x >= rect.topLeftX, point.x <= rect.topLeftX + rect.width,
-              point.y >= rect.topLeftY, point.y <= rect.topLeftY + 28
-        else { return nil }
-        // Exclude traffic lights, tabs, text fields, and toolbar controls. Custom title bars
-        // that expose no window or static-text hit target retain their normal behavior.
-        var role: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(hit, kAXRoleAttribute as CFString, &role) == .success,
-              let role = role as? String,
-              role == kAXWindowRole as String || role == kAXStaticTextRole as String
-        else { return nil }
-        return window
-    }
-
-    private func flip(_ window: Window) {
+    func flip(_ window: Window) {
         guard TrayMenuModel.shared.isEnabled,
               let group = window.nearestWindowTabGroup,
               group.usesDoubleSidedWindows,
@@ -102,9 +51,12 @@ final class DoubleSidedWindowController {
         panel.isOpaque = false
         panel.backgroundColor = .clear
         panel.hasShadow = false
+        panel.animationBehavior = .none
         panel.ignoresMouseEvents = true
         panel.level = .floating
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
         let view = NSView(frame: CGRect(origin: .zero, size: frame.size))
         view.wantsLayer = true
         let root = CALayer()
@@ -134,6 +86,7 @@ final class DoubleSidedWindowController {
             face.add(rotation, forKey: "flip")
         }
         animationPanel = panel
+        CATransaction.commit()
         panel.orderFrontRegardless()
         Task { @MainActor in
             try? await Task.sleep(for: .seconds(duration))
