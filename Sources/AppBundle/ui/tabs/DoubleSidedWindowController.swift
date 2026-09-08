@@ -71,8 +71,12 @@ final class DoubleSidedWindowController {
         let canAnimate = !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion && CGPreflightScreenCaptureAccess()
         let front = canAnimate ? snapshot(window.windowId) : nil
         let back = canAnimate ? snapshot(other.windowId) : nil
-        if let front, let back {
-            animate(front: front, back: back, rect: rect)
+        if let front, let back,
+           let background = CGWindowListCreateImage(
+               CGRect(x: rect.topLeftX, y: rect.topLeftY, width: rect.width, height: rect.height),
+               .optionOnScreenBelowWindow, window.windowId, [.nominalResolution]
+           ) {
+            animate(front: front, back: back, background: background, rect: rect)
         }
         focusWindowFromTabStrip(other.windowId, fallbackWorkspace: focus.workspace.name)
     }
@@ -81,7 +85,7 @@ final class DoubleSidedWindowController {
         CGWindowListCreateImage(.null, .optionIncludingWindow, id, [.boundsIgnoreFraming, .nominalResolution])
     }
 
-    private func animate(front: CGImage, back: CGImage, rect: Rect) {
+    private func animate(front: CGImage, back: CGImage, background: CGImage, rect: Rect) {
         let frame = CGRect(x: rect.topLeftX, y: mainMonitor.height - rect.topLeftY - rect.height,
                            width: rect.width, height: rect.height)
         let panel = NSPanel(contentRect: frame, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
@@ -94,6 +98,9 @@ final class DoubleSidedWindowController {
         let view = NSView(frame: CGRect(origin: .zero, size: frame.size))
         view.wantsLayer = true
         let root = CALayer()
+        // Cover the real windows during rotation with the scene beneath the front window.
+        root.contents = background
+        root.contentsGravity = .resize
         view.layer = root
         panel.contentView = view
         var perspective = CATransform3DIdentity
