@@ -110,12 +110,19 @@ release:
 	    CODE_SIGN_STYLE=Automatic \
 	    archive; \
 	test -d "$$app_path"; \
+	test "$$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" "$$app_path/Contents/Info.plist")" = "$(VERSION)"; \
+	test "$$(/usr/libexec/PlistBuddy -c "Print CFBundleVersion" "$$app_path/Contents/Info.plist")" = "$(VERSION)"; \
 	codesign --verify --deep --strict --verbose=2 "$$app_path"; \
 	codesign -dv --verbose=4 "$$app_path" 2>&1 | grep -F "$(EXPECTED_CODESIGN_AUTHORITY_PREFIX)" >/dev/null; \
 	ditto -c -k --sequesterRsrc --keepParent "$$app_path" "$$zip_path"; \
 	sparkle_appcast="$$(find "$$derived_data_path/SourcePackages/artifacts" -type f -name generate_appcast -print -quit)"; \
 	test -n "$$sparkle_appcast"; \
-	"$$sparkle_appcast" --download-url-prefix "https://github.com/ZimengXiong/winmux/releases/download/$(RELEASE_TAG)/" "$$release_dir"; \
+	appcast_stage="$$(mktemp -d "$$release_dir/appcast-stage.XXXXXX")"; \
+	trap "rm -rf \"$$appcast_stage\"" EXIT; \
+	cp "$$zip_path" "$$appcast_stage/"; \
+	"$$sparkle_appcast" --download-url-prefix "https://github.com/ZimengXiong/winmux/releases/download/$(RELEASE_TAG)/" "$$appcast_stage"; \
+	python3 script/validate-appcast.py "$$appcast_stage/appcast.xml" "$(VERSION)" "https://github.com/ZimengXiong/winmux/releases/download/$(RELEASE_TAG)/$$app_name-$(VERSION).zip"; \
+	cp "$$appcast_stage/appcast.xml" "$$appcast_path"; \
 	test -f "$$appcast_path"; \
 	if [ "$(NOTARIZE)" = "1" ]; then \
 	    test -n "$(NOTARYTOOL_PROFILE)"; \

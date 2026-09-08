@@ -292,7 +292,7 @@ private struct SettingsStepper: View {
         HStack(spacing: 10) {
             Text(title)
                 .frame(maxWidth: .infinity, alignment: .leading)
-            Slider(value: Binding(get: { Double(value) }, set: { value = Int($0.rounded()) }), in: Double(range.lowerBound)...Double(range.upperBound), step: 1)
+            Slider(value: Binding(get: { Double(value) }, set: { value = Int($0.rounded()) }), in: Double(range.lowerBound)...Double(range.upperBound))
                 .frame(width: 96)
             TextField("", value: $value, format: .number)
                 .textFieldStyle(.roundedBorder)
