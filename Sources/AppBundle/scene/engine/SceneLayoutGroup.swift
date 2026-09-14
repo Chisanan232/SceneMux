@@ -42,6 +42,13 @@ extension SceneCore {
         /// gets them laid out beside each other, which is what the user asked for.
         var needsContainer: Bool { windows.count > 1 && composition != .single }
 
+        /// The composition this Slot can actually have, given what is in it.
+        ///
+        /// One window is a single window whatever the Slot asked for, because there is nothing to compose it
+        /// with. That is not the engine overruling the Scene, and a report that called it an adjustment would
+        /// tell the user their configuration had been ignored when nothing of the kind happened.
+        var realisableComposition: SlotComposition { windows.count > 1 ? composition : .single }
+
         var description: String { "\(role)#\(order) [\(windows.count)]" }
     }
 }
