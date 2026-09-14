@@ -33,6 +33,21 @@ final class SceneOperationsTest: XCTestCase {
         XCTAssertEqual(scene.attachments.count, 1)
     }
 
+    func testDetachingAWindowTheSceneNeverHeldChangesNothing() throws {
+        // Detach is what teardown and "the window closed while we were not looking" both call, and neither
+        // knows whether the attachment is still there. Idempotence is what lets both call it unconditionally.
+        let slot = SceneCoreFixtures.slot()
+        let scene = try SceneCoreFixtures.scene(slots: [slot])
+            .attaching(SceneCoreFixtures.attachment(
+                windowRef: try SceneCoreFixtures.windowRef(),
+                slotId: slot.id,
+            ))
+
+        let unchanged = try scene.detaching(try SceneCoreFixtures.windowRef("com.apple.Safari"))
+
+        XCTAssertEqual(unchanged, scene)
+    }
+
     func testASlotThatHasEmptiedStillExists() throws {
         // Invariant I13. The engine prunes a workspace when its last window leaves; a Scene must not, because
         // an empty `terminal` Slot is a statement about the task rather than an absence to tidy away.
