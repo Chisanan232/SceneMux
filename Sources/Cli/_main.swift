@@ -34,7 +34,7 @@ struct Main {
             }
             print(
                 """
-                winmux CLI client version: \(cliClientVersionAndHash)
+                scenemux CLI client version: \(cliClientVersionAndHash)
                 WinMux.app server version: \(serverVersionAndHash ?? "Unknown. The server is not running")
                 """,
             )
@@ -111,7 +111,7 @@ struct Main {
             eprint(
                 """
                 Warning: WinMux client/server versions don't match
-                  - winmux CLI client version: \(cliClientVersionAndHash)
+                  - scenemux CLI client version: \(cliClientVersionAndHash)
                   - WinMux.app server version: \(ans.serverVersionAndHash)
                   Possible fixes:
                   - Restart WinMux.app (server restart is required after each update)
