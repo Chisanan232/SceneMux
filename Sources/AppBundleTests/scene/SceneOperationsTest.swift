@@ -3,6 +3,20 @@ import Foundation
 import XCTest
 
 final class SceneOperationsTest: XCTestCase {
+    func testAddedSlotsKeepTheirOrderAndCannotReuseAnIdentity() throws {
+        // Adding a Slot goes through the same validation as constructing the Scene, so the duplicate-identity
+        // rule cannot be avoided by building a valid Scene first and then growing it.
+        let editor = SceneCoreFixtures.slot(role: .editor, order: 0)
+        let terminal = SceneCoreFixtures.slot(role: .terminal, order: 1)
+
+        let scene = try SceneCoreFixtures.scene(slots: [editor]).addingSlot(terminal)
+
+        XCTAssertEqual(scene.slots.map(\.id), [editor.id, terminal.id])
+        XCTAssertThrowsError(try scene.addingSlot(SceneCoreFixtures.slot(id: editor.id))) { error in
+            XCTAssertEqual(error as? SceneCore.SceneCoreError, .duplicateSlotId(editor.id))
+        }
+    }
+
     func testRemovingASlotTheSceneNeverHadIsNotSilentlyForgiven() throws {
         // Removing an empty Slot succeeds, so a caller that passes the wrong id would otherwise see the same
         // "nothing left to do" answer as a caller that succeeded.
