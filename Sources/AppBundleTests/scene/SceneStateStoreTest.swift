@@ -1,4 +1,5 @@
 @testable import AppBundle
+import Common
 import Foundation
 import XCTest
 
@@ -92,5 +93,18 @@ final class SceneStateStoreTest: XCTestCase {
             try FileManager.default.contentsOfDirectory(atPath: directory.path),
             ["scene-state.json"],
         )
+    }
+
+    func testTheRealStateFileIsSceneMuxOwnedAndNowhereNearSomeonesConfig() throws {
+        let store = try SceneCore.SceneStateStore.inApplicationSupport()
+
+        XCTAssertEqual(store.url.lastPathComponent, "scene-state.json")
+        // `sceneMuxAppName` is `SceneMux-Debug` in a debug build, which is why developing SceneMux cannot
+        // corrupt the Scenes of the SceneMux being used to develop it.
+        XCTAssertEqual(store.url.deletingLastPathComponent().lastPathComponent, sceneMuxAppName)
+        XCTAssertTrue(store.url.path.contains("Application Support"), store.url.path)
+        // Never the user's hand-written, version-controlled config file. Different lifetime, different risk.
+        XCTAssertFalse(store.url.path.contains(".config"), store.url.path)
+        XCTAssertFalse(store.url.path.hasSuffix(".toml"), store.url.path)
     }
 }
