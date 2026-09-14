@@ -19,9 +19,13 @@ extension SceneCore {
         /// The oldest version this build can read.
         static let oldestReadable = 1
 
+        /// Every version this build can read. Told to the user verbatim when a file falls outside it, because
+        /// "this build reads 1 to 2" is the sentence that makes "a newer SceneMux wrote it" believable.
+        static let readable = oldestReadable ... current
+
         /// Whether this build can read a state file written with this version.
         static func canRead(_ version: Int) -> Bool {
-            (oldestReadable ... current).contains(version)
+            readable.contains(version)
         }
     }
 }
