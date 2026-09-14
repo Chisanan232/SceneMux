@@ -101,7 +101,10 @@ extension SceneCore {
             _ group: SceneLayoutGroup,
             _ slot: String,
         ) {
-            guard composition != group.composition else { return }
+            // Against what the Slot could have become, not what it asked for: a split Slot holding one window
+            // came out a single window because it holds one window, and blaming normalization for that would
+            // send the user off to change a setting that had nothing to do with it.
+            guard composition != group.realisableComposition else { return }
             lines.append("SceneMux composed \(slot) as \(composition) instead of \(group.composition), "
                 + "because the window engine normalized it.")
         }
