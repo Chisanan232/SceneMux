@@ -508,3 +508,79 @@ only. Requirements, each verifiable:
 | Menu bar | The menu bar item shows the active Scene's title, truncated in the middle, and *No Scene* when none is active. It is the one always-visible piece of Scene state |
 | System conventions | `⏎` to rename, `⌘⌫` to delete a selection, `⇥` to traverse, double-click to edit in place, and context menus on every row — because a macOS user already knows these |
 | Permissions | No new permission is requested. Scene Core needs exactly the Accessibility grant the engine already requires, and asks for nothing else |
+
+## The Debug golden journey, on screen
+
+The same journey as
+[the architecture document's walkthrough](scene-core-architecture.md#the-debug-golden-journey), in screen
+terms. This is what HORO-1109 exercises on a real Mac and what the `v0.1.0` release evidence shows.
+
+**Step 3–5, the composed Scene.** One monitor, one workspace, four Slots. The engine computes every
+rectangle; the diagram shows the *shape*, which is the `join-with right` geometry already measured in
+`baseline-verification.md`:
+
+```
+┌──────┬───────────────────────────────┬───────────────────────────────┐
+│ ▓▓   │  Editor slot                  │  Observability slot           │
+│ ░░   │                               │                               │
+│ ··   │  IDE                          │  Grafana                      │
+│      │  (Development, scene)         │  (Observability, scene)       │
+│  +   │                               ├───────────────────────────────┤
+│      │                               │  Preview slot                 │
+│      │                               │  Browser (Personal, scene)    │
+│      ├───────────────────────────────┼───────────────────────────────┤
+│      │  Terminal slot                │ ┌ LINE ┬ Slack ┐  ← tab strip │
+│      │  Terminal                     │ │ Communication slot          │
+│      │  (Development, scene)         │ │ mounted · borrowed          │
+└──────┴───────────────────────────────┴─┴─────────────────────────────┘
+  rail        split (join-with)            tabbed (layout tab-group)
+```
+
+The five things the release gate must show are all in one frame: an **active Scene** (the filled badge on
+the rail, the menu bar title), **multiple semantic Slots** (four, each labelled by role), **Home versus
+mounted** (LINE and Slack read `Communication · mounted` in the sidebar while the IDE reads
+`Development`), **split and tab composition** (the `join-with` shape and the tab strip), and — in the next
+step — **lifecycle restore state**.
+
+**Step 7, closing the Scene.** The confirmation panel from [Close](#close), then the restore HUD:
+
+```
+┌────────────────────────────────────────────────────┐
+│  2 windows went back to Communication              │
+│      LINE · Slack                                  │
+│  4 windows left in place                           │
+└────────────────────────────────────────────────────┘
+```
+
+and the sidebar afterwards, which is the assertion the whole journey exists to make:
+
+```
+│ SHARED                                             │
+│   Music                              persistent    │
+│                                                    │
+│ (no active scene)                                  │
+│   Debug PROD-123                     closed        │
+```
+
+LINE and Slack are back among communication windows, and if the user opens the Home rules in Settings, both
+still read **Communication**. Nothing about borrowing them changed what they are for.
+
+### Screenshot discipline for this evidence
+
+Per [`../development/ui-verification.md`](../development/ui-verification.md), and non-negotiable on this
+machine: capture **window-scoped or region-scoped** images only, never the whole screen; look at every image
+before attaching it; and never publish a window title. That constrains the evidence — a full-desktop shot of
+the composed Scene is not permitted — so the composition evidence is assembled from per-window captures plus
+the sidebar panel, and the sidebar rows are the primary evidence for Home-versus-mounted because they are
+the surface that shows the claim without showing anyone's content.
+
+## Open questions for the implementation tickets
+
+Not blockers, and each has a stated default so no ticket stalls waiting for an answer:
+
+| Question | Default if nobody decides | Ticket that decides |
+| --- | --- | --- |
+| Does the Scene sidebar replace the inherited workspace sidebar, or sit beside it? | **Beside it**, as a separate section in the same panel — replacing an inherited surface in Phase 1 removes a working feature | The Scene UI ticket |
+| Do Scene rows carry a user-chosen colour? | Yes, reusing `WorkspaceSidebarColor`, decorative only | The Scene UI ticket |
+| Where do Home rules live in Settings — a new pane or the existing General pane? | **A new pane**, because per-application rules are a list that will grow | The Semantic Home ticket |
+| Is `scene` one CLI command with subcommands or several top-level commands? | **One command with subcommands** (`scene new`, `scene close`), matching the inherited `project` command's shape | The Scene command ticket |
