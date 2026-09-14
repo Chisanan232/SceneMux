@@ -38,7 +38,7 @@ build:
 	swift build --target AppBundleTests && \
 	rm -rf .debug && \
 	mkdir .debug && \
-	cp -r .build/debug/winmux .debug && \
+	cp -r .build/debug/scenemux .debug && \
 	cp -r .build/debug/WinMuxApp .debug'
 
 build-clean:
@@ -79,7 +79,7 @@ run-clean:
 
 cli:
 	$(MAKE) build VERSION="$(VERSION)"
-	/bin/bash -lc 'cd "$(CURDIR)" && exec ./.debug/winmux $(ARGS)'
+	/bin/bash -lc 'cd "$(CURDIR)" && exec ./.debug/scenemux $(ARGS)'
 
 release:
 	$(MAKE) xcodeproj VERSION="$(VERSION)" CODESIGN_IDENTITY="$(CODESIGN_IDENTITY)"
