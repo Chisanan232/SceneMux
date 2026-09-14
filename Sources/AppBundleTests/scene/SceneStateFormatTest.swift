@@ -3,6 +3,8 @@ import Foundation
 import XCTest
 
 final class SceneStateFormatTest: XCTestCase {
+    /// A path to *name* in a diagnostic, not a file. The format never touches a disk — that is the whole
+    /// reason it is separate from the store — so nothing here creates, reads or deletes this.
     private let path = "/tmp/scene-state.json"
 
     /// One Scene as JSON, so that a test can then write something into it that the domain would never have
