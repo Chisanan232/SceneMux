@@ -578,6 +578,31 @@ are dropped, their windows are left untouched, and the reason is surfaced once i
 and forgotten. A user must be able to tell that SceneMux declined to act, or "it did nothing" is
 indistinguishable from "it is broken".
 
+The granularity is the **attachment**, never the Scene. An attachment is only ever *permission* to move a
+window that is already on screen, so leaving one out can never move, resize or close anything — it can only
+make SceneMux do less. Losing a whole Scene over one stale entry would throw away the Slots and the ownership
+records of every other window in it, which is strictly more destructive than the problem. So:
+
+| The file says | What happens |
+| --- | --- |
+| The bytes are not JSON, or the version is unreadable | Refusal. Zero Scenes, one diagnostic |
+| A Scene cannot exist at all — no title, two Slots claiming one identity | Refusal (`impossibleScene`). Nothing to leave out would repair it |
+| An attachment names a Slot the Scene does not have | The Scene loads without it; quarantine record |
+| One window is attached twice | The first attachment is kept, later ones quarantined (I4) |
+| An `ended` Scene still holds attachments | The Scene loads with none; quarantine records |
+| An attachment entry is not readable at all | The Scene loads without it; quarantine record naming the coding *path* |
+| `ownership` is a value this build does not know | Degraded to `.sharedPersistent` by `Ownership.init(from:)` — the attachment is kept and SceneMux may not touch that window |
+
+A refused file is **copied** aside to `scene-state.unreadable.json` before anything else happens. Not moved:
+the original stays where the user — and a newer SceneMux that wrote a version this build cannot read — expects
+to find it. The copy exists for the other direction, because the next save legitimately replaces the original,
+and without a copy that save is the moment the state stopped existing.
+
+Diagnostics carry coding *paths* and never values. `DecodingError.debugDescription` quotes what it choked on,
+Scene state contains application bundle ids, and a diagnostic is the one thing here meant to be screenshotted
+and pasted into an issue — so `SceneStateCodingPath` keeps `scenes[2].attachments[1].slotId` and drops the
+rest.
+
 ## Layering and the engine seam
 
 ```
