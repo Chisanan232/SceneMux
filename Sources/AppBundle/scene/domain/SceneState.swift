@@ -20,5 +20,27 @@ extension SceneCore {
         case ending
         /// Closed. Kept in state as a record, with no attachments left.
         case ended
+
+        /// A `SceneState` with its payload dropped: the name of the state, for the parts of the product that
+        /// need to *say* which state a Scene is in — a sidebar badge, a log line, a transition rule — without
+        /// caring where it is drawn.
+        enum Label: String, Codable, Sendable, Hashable, CaseIterable, CustomStringConvertible {
+            case defined
+            case active
+            case ending
+            case ended
+
+            var description: String { rawValue }
+        }
+
+        /// This state's name.
+        var label: Label {
+            switch self {
+                case .defined: .defined
+                case .active: .active
+                case .ending: .ending
+                case .ended: .ended
+            }
+        }
     }
 }
