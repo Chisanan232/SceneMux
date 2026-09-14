@@ -122,4 +122,26 @@ final class SceneSwitcherModelTest: XCTestCase {
         XCTAssertEqual(model.results, [], "an ended Scene is not a row")
         XCTAssertNil(model.errorText)
     }
+
+    /// Composing a Slot from the panel cycles its shape and re-draws the Scene, so the chip in the row and the
+    /// windows on screen cannot disagree.
+    func testComposingASlotFromThePanelCyclesItsShape() throws {
+        let scene = try model.runtime.createScene(title: "Debug PROD-123", template: .empty)
+        try model.runtime.enter(scene.id)
+        model.addSlot(role: .communication, label: "Chat")
+        let slot = try XCTUnwrap(model.selectedScene?.slots.first)
+
+        model.cycleComposition(of: slot.id)
+        XCTAssertEqual(model.selectedScene?.slots.first?.compositionChip, "split ⬍")
+        model.cycleComposition(of: slot.id)
+        XCTAssertEqual(model.selectedScene?.slots.first?.compositionChip, "split ⬌")
+        model.cycleComposition(of: slot.id)
+        XCTAssertEqual(model.selectedScene?.slots.first?.compositionChip, "tabs")
+        model.cycleComposition(of: slot.id)
+        XCTAssertNil(model.selectedScene?.slots.first?.compositionChip, "back to a single window")
+
+        model.removeSlot(slot.id)
+        XCTAssertEqual(model.selectedScene?.slots, [])
+        XCTAssertNil(model.errorText)
+    }
 }
