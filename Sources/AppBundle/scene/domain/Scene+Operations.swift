@@ -58,4 +58,14 @@ extension SceneCore.Scene {
         }
         return try with(slots: slots.filter { $0.id != id })
     }
+
+    /// This Scene with one more window participating.
+    ///
+    /// Throws if the Slot is not this Scene's, or if the window is already attached here — an attachment
+    /// carries permission, so a second one would mean two answers to "what may ending this Scene do to that
+    /// window?" and no way to choose between them. Re-placing an attached window is a detach and an attach,
+    /// which is two visible decisions rather than one silent overwrite.
+    func attaching(_ attachment: SceneCore.Attachment) throws -> Self {
+        try with(attachments: attachments + [attachment])
+    }
 }
