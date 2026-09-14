@@ -181,6 +181,21 @@ final class SceneSwitcherModelTest: XCTestCase {
         XCTAssertEqual(model.mode, .browsing)
     }
 
+    /// Esc on a narrowed list widens the search first and only closes the panel on the second press. Searching is
+    /// part-way through something as much as naming is, and one key that did both would make the user reopen the
+    /// panel to see the Scenes their own typing had hidden.
+    func testEscapeWidensTheSearchBeforeItDismisses() throws {
+        _ = try model.runtime.createScene(title: "Debug PROD-123", template: .empty)
+        _ = try model.runtime.createScene(title: "Review release notes", template: .empty)
+        model.query = "debug"
+
+        XCTAssertFalse(model.escape(), "the panel stays up while there is a filter to clear")
+        XCTAssertEqual(model.query, "")
+        XCTAssertEqual(model.results.count, 2)
+
+        XCTAssertTrue(model.escape(), "a second Esc, with the whole list showing, dismisses")
+    }
+
     /// A refusal is shown rather than swallowed, and the panel stays up carrying it: the user pressed a key
     /// expecting the screen to change, so silence would leave them with no idea why it did not.
     func testARefusalIsShownOnThePanelAndNothingIsEntered() throws {
