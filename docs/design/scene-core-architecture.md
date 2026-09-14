@@ -273,3 +273,50 @@ never as a silent divergence. The recorded value is evidence, not a destination.
 >    except for `.sharedPersistent` windows, which are not attached to any Scene at all.
 > 3. **Ending a Scene resolves every attachment.** No attachment survives its Scene, and the resolution
 >    is determined by ownership alone — never by what is convenient, and never by a guess.
+
+## Ownership
+
+Ownership answers one question: **when this Scene ends, what may SceneMux do to this window?** Three
+answers, and the differences between them are the whole point.
+
+| Ownership | Means | On Scene end | May SceneMux ever close it? |
+| --- | --- | --- | --- |
+| `.borrowed` | Home is elsewhere; lent to this Scene | Restored to its Home surface | **Never** |
+| `.sceneOwned` | Exists because of this Scene | Left in place; cleanup is offered explicitly | Only on an explicit user confirmation, per window |
+| `.sharedPersistent` | Belongs to the desktop, not to any task | **Untouched.** Not moved, not focused, not resized | **Never** |
+
+Assignment rules, in order:
+
+1. an explicit user choice on that attachment wins;
+2. a window whose Home differs from the Slot's serving Home is `.borrowed`;
+3. a window the user placed into a Slot of its own Home, inside a Scene, is `.sceneOwned`;
+4. a window the user has pinned as shared, or that is not attached to any Scene, is `.sharedPersistent`;
+5. **anything else is `.sharedPersistent`.**
+
+Rule 5 is the fail-safe, and it is chosen because of what the three classes permit: the most conservative
+class is the one SceneMux may not touch at all. So an attachment whose ownership cannot be determined —
+corrupt state, an unrecognised persisted value, a window that vanished and came back — degrades to "leave
+it completely alone". The failure mode of a bug in this area is therefore *SceneMux does nothing*, which
+is recoverable, rather than *SceneMux closes a window*, which is not.
+
+`.sceneOwned` deliberately does **not** mean "closed when the Scene ends", even though the name invites
+it. v0.1.0 never closes a window as a *consequence* of a lifecycle transition. Ending a Scene may offer
+cleanup, listing the scene-owned windows, and each close requires the user to say so. This is a security
+boundary as much as a UX one: `AGENTS.md` requires that corrupted state cannot cause destructive close or
+move behaviour, and the cheapest way to guarantee that is for no automatic path to a close to exist.
+
+### Worked example: LINE and Slack borrowed from Communication
+
+The example the Phase 1 acceptance criteria name, traced through the model:
+
+| | LINE | Slack | Grafana | IDE | Music |
+| --- | --- | --- | --- | --- | --- |
+| Home | `communication` | `communication` | `observability` | `development` | `personal` |
+| In the Debug Scene | Mounted into the `communication` Slot | Mounted into the same Slot, `.tabbed` | Attached to the `observability` Slot | Attached to the `editor` Slot | Not attached |
+| Ownership | `.borrowed` | `.borrowed` | `.sceneOwned` | `.sceneOwned` | `.sharedPersistent` |
+| Home after mounting | `communication` — **unchanged** | `communication` — **unchanged** | `observability` | `development` | `personal` |
+| When the Scene ends | Restored to the `communication` Home surface | Restored likewise | Left in place; cleanup offered | Left in place; cleanup offered | Untouched, never even read |
+
+The row that matters is the fourth: after LINE has spent a day inside a debugging Scene, LINE is still a
+communication window. Phase 1 acceptance asserts exactly that, and the UX spec renders it — the sidebar
+row for LINE reads `Communication · mounted`, not `Development`.
