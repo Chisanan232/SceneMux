@@ -144,4 +144,25 @@ final class SceneSwitcherModelTest: XCTestCase {
         XCTAssertEqual(model.selectedScene?.slots, [])
         XCTAssertNil(model.errorText)
     }
+
+    /// A command and a keystroke reach the panel as the same request, and one that names a Scene opens looking
+    /// at that Scene rather than at whatever was selected last.
+    func testACommandRequestOpensThePanelOnWhatItWasAbout() throws {
+        _ = try model.runtime.createScene(title: "First", template: .empty)
+        let second = try model.runtime.createScene(title: "Second", template: .empty)
+        model.query = "First"
+
+        model.apply(.confirmClose(second.id))
+
+        XCTAssertEqual(model.query, "", "a filter that hid the Scene is cleared rather than left to lie")
+        XCTAssertEqual(model.selectedScene?.id, second.id)
+        guard case .confirmingClose(let id, _) = model.mode else {
+            return XCTFail("expected the confirmation, got \(model.mode)")
+        }
+        XCTAssertEqual(id, second.id)
+
+        model.apply(.newScene)
+        XCTAssertEqual(model.mode, .creating)
+        XCTAssertEqual(model.nameField, "")
+    }
 }
