@@ -65,4 +65,29 @@ final class SceneProjectorTest: XCTestCase {
         )
         XCTAssertFalse(report.isFullyRealised)
     }
+
+    /// The engine gets the last word on shape, and the user gets told. Reporting the requested composition
+    /// while the screen shows another one would make the report worthless.
+    func testTheCompositionTheEngineSettledOnIsWhatGetsReported() throws {
+        let port = RecordingSceneEnginePort()
+        let comms = SceneCoreFixtures.slot(role: .communication, composition: .split(.horizontal), order: 0)
+        let scene = try SceneCoreFixtures.scene(slots: [comms])
+            .attaching(SceneCoreFixtures.attachment(windowRef: try .init(bundleId: App.line, ordinalWithinApp: 0),
+                                                    slotId: comms.id))
+            .attaching(SceneCoreFixtures.attachment(windowRef: try .init(bundleId: App.slack, ordinalWithinApp: 0),
+                                                    slotId: comms.id))
+        port.settledCompositions = [comms.id: .split(.vertical)]
+
+        let report = SceneCore.SceneProjector(port: port)
+            .project(SceneCore.SceneLayoutPlan(scene, on: substrate))
+
+        XCTAssertEqual(report.placement(for: comms.id), .realised(.split(.vertical)))
+        XCTAssertEqual(report.adjustedSlots, [comms.id])
+        XCTAssertFalse(report.isFullyRealised)
+        XCTAssertEqual(
+            report.diagnostics,
+            ["SceneMux composed the communication Slot of \"Debug PROD-123\" as a vertical split instead of "
+                + "a horizontal split, because the window engine normalized it."],
+        )
+    }
 }
