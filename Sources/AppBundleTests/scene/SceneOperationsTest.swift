@@ -17,6 +17,26 @@ final class SceneOperationsTest: XCTestCase {
         }
     }
 
+    func testReplacingASlotKeepsItsWindowsAndRefusesAnUnknownSlot() throws {
+        // Recomposing a Slot that holds windows is the ordinary case, so replacement must not behave like the
+        // remove-then-add it would otherwise be — that one refuses a Slot with windows in it.
+        let comms = SceneCoreFixtures.slot(role: .communication, order: 0)
+        let scene = try SceneCoreFixtures.scene(slots: [comms])
+            .attaching(SceneCoreFixtures.attachment(
+                windowRef: try SceneCoreFixtures.windowRef(SceneCoreFixtures.App.line),
+                slotId: comms.id,
+            ))
+
+        let recomposed = try scene.replacingSlot(comms.composed(as: .tabbed))
+
+        XCTAssertEqual(recomposed.slots.map(\.composition), [.tabbed])
+        XCTAssertEqual(recomposed.attachments, scene.attachments)
+        let elsewhere = SceneCoreFixtures.slot(role: .editor)
+        XCTAssertThrowsError(try scene.replacingSlot(elsewhere)) { error in
+            XCTAssertEqual(error as? SceneCore.SceneCoreError, .unknownSlot(elsewhere.id))
+        }
+    }
+
     func testRemovingASlotTheSceneNeverHadIsNotSilentlyForgiven() throws {
         // Removing an empty Slot succeeds, so a caller that passes the wrong id would otherwise see the same
         // "nothing left to do" answer as a caller that succeeded.
