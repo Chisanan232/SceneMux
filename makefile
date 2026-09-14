@@ -7,6 +7,11 @@ CODE_SIGN_STYLE ?= Automatic
 DEVELOPMENT_TEAM ?=
 NOTARIZE ?= 0
 NOTARYTOOL_PROFILE ?=
+# SceneMux ships no Sparkle feed until it owns a signed release channel, so a release generates no
+# appcast by default. Generating one requires a Sparkle ed25519 private key, and that key is the
+# power to replace the application on users' machines — it is created deliberately, never as a side
+# effect of a release. See the update-feed section of docs/development/release.md.
+APPCAST ?= 0
 RELEASE_DIR ?= .release
 RELEASE_TAG ?= v$(VERSION)
 RELEASE_NOTES ?= auto
