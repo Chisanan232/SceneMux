@@ -188,4 +188,28 @@ final class SceneStateFormatTest: XCTestCase {
         XCTAssertEqual(refusal.reason, .impossibleScene("the Scene has no title"))
         XCTAssertEqual(read.scenes, [])
     }
+
+    func testASceneInterruptedPartWayThroughClosingComesBackStillClosing() throws {
+        let slot = SceneCoreFixtures.slot()
+        let borrowed = SceneCoreFixtures.attachment(
+            windowRef: try SceneCoreFixtures.windowRef("com.linecorp.LINE"),
+            slotId: slot.id,
+            ownership: .borrowed,
+            homeAtAttachTime: .communication,
+        )
+        let closing = try SceneCoreFixtures.scene(
+            slots: [slot],
+            attachments: [borrowed],
+            state: .ending,
+        )
+
+        let read = SceneCore.SceneStateFormat.read(try SceneCore.SceneStateFormat.encoded([closing]), from: path)
+
+        // This is the reason `ending` is a persisted state and not a function call. Quitting mid-teardown
+        // must not leave a borrowed window stranded in a Scene that no longer exists: the intent to send it
+        // home survives the restart, so the restore is re-attempted rather than forgotten.
+        XCTAssertEqual(read.scenes.map(\.state), [.ending])
+        XCTAssertEqual(read.scenes.flatMap(\.attachments), [borrowed])
+        XCTAssertEqual(read.diagnostics, [])
+    }
 }
