@@ -14,6 +14,11 @@ extension SceneCore.Scene {
         attachments.filter { $0.slotId == slotId }
     }
 
+    /// This window's attachment to this Scene, if it has one.
+    func attachment(for windowRef: SceneCore.WindowRef) -> SceneCore.Attachment? {
+        attachments.first { $0.windowRef == windowRef }
+    }
+
     /// A copy of this Scene with some parts replaced, re-validated on the way through.
     ///
     /// Every operation below funnels through here, which is why none of them can produce a Scene the
