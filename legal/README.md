@@ -1,4 +1,11 @@
 # LICENSE
+
+> SceneMux is a derivative work of WinMux and is licensed under [MIT](./LICENSE.txt).
+> The text below is WinMux's own notice, retained unchanged, and remains accurate
+> for the inherited code. The authoritative and complete notice inventory for what
+> SceneMux ships today is [`THIRD_PARTY_NOTICES.md`](../THIRD_PARTY_NOTICES.md);
+> the derivation baseline is recorded in [`docs/legal/ORIGIN.md`](../docs/legal/ORIGIN.md).
+
 WinMux is a derivative work of Aerospace, and is licensed under [MIT](./LICENSE.txt).
 
 [AeroSpace](https://github.com/nikitabobko/AeroSpace) itself is licensed under [MIT](third-party-license/LICENSE-Aerospace.txt).
