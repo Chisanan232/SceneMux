@@ -73,6 +73,23 @@ final class SceneOrchestratorTest: XCTestCase {
         XCTAssertEqual(renamed.slots, scene.slots)
     }
 
+    func testAnAddedSlotGoesAfterTheOnesTheSceneAlreadyHas() throws {
+        // A new Slot is a new place, so it takes the next order rather than renumbering the Scene's existing
+        // Slots — which are the layout the user is looking at.
+        let orchestrator = SceneCore.SceneOrchestrator(store: store(in: try temporaryDirectory()))
+        let scene = try orchestrator.createScene(title: "Debug PROD-123",
+                                                 slots: SceneCore.SlotTemplate.development.slots())
+
+        let added = try orchestrator.addSlot(role: .communication, label: "chat", to: scene.id)
+
+        XCTAssertEqual(added.order, 4)
+        XCTAssertEqual(added.composition, .single)
+        XCTAssertEqual(added.displayName, "chat")
+        let grown = try XCTUnwrap(orchestrator.world.scene(scene.id))
+        XCTAssertEqual(grown.slots.map(\.role), [.terminal, .editor, .preview, .observability, .communication])
+        XCTAssertEqual(grown.attachments, [])
+    }
+
     func testRenamingASceneTheWorldDoesNotHaveIsRefused() throws {
         // The shell addresses Scenes by index, and an index can name a Scene a restart has already forgotten.
         let orchestrator = SceneCore.SceneOrchestrator(store: store(in: try temporaryDirectory()))
