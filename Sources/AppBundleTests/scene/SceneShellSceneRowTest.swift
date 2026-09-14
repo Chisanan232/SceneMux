@@ -58,4 +58,16 @@ final class SceneShellSceneRowTest: XCTestCase {
             state: .active(SceneCore.SubstrateBinding(workspaceName: "3")),
         )).invitation)
     }
+
+    /// A Scene row carries its Slots in the order the Scene defines, numbered from one — the numbers `⌃⌥3` and
+    /// `scene 3` are addressed to — and describes itself to a screen reader without ever naming a window.
+    func testTheRowNumbersItsSlotsInOrderAndDescribesItselfWithoutWindowTitles() throws {
+        let scene = row(try SceneCoreFixtures.debugScene(), index: 3)
+
+        XCTAssertEqual(scene.index, 3)
+        XCTAssertEqual(scene.slots.map(\.index), [1, 2, 3, 4, 5])
+        XCTAssertEqual(scene.slots.map(\.role),
+                       [.terminal, .editor, .preview, .observability, .communication])
+        XCTAssertEqual(scene.accessibilityLabel, "Debug PROD-123, scene, inactive, 6 windows")
+    }
 }
