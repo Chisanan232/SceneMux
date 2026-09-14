@@ -149,5 +149,16 @@ class SceneDomainLayeringTest(unittest.TestCase):
             )
 
 
+    def test_the_engine_layer_imports_foundation_only_apart_from_the_adapter(self):
+        for path in self.engine_files:
+            for module in IMPORT.findall(path.read_text()):
+                self.assertEqual(
+                    module,
+                    "Foundation",
+                    f"{path.relative_to(REPO)} imports {module}; only "
+                    f"{ADAPTER.name} reaches across the seam",
+                )
+
+
 if __name__ == "__main__":
     unittest.main()
