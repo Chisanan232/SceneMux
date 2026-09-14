@@ -115,4 +115,30 @@ final class SceneProjectorTest: XCTestCase {
                 + "\"Debug PROD-123\", and composed what remained as a tab group."],
         )
     }
+
+    /// A Slot whose windows have all gone is left empty and said so. Nothing is substituted into it, and the
+    /// Slots that still have their windows are unaffected.
+    func testASlotThatLostEveryWindowIsLeftEmptyAndTheOthersAreStillPlaced() throws {
+        let port = RecordingSceneEnginePort()
+        let editor = SceneCoreFixtures.slot(role: .editor, order: 0)
+        let observability = SceneCoreFixtures.slot(role: .observability, order: 1)
+        let grafana = try SceneCore.WindowRef(bundleId: App.grafana, ordinalWithinApp: 0)
+        let scene = try SceneCoreFixtures.scene(slots: [editor, observability])
+            .attaching(SceneCoreFixtures.attachment(windowRef: try .init(bundleId: App.ide, ordinalWithinApp: 0),
+                                                    slotId: editor.id))
+            .attaching(SceneCoreFixtures.attachment(windowRef: grafana, slotId: observability.id))
+        port.invisibleWindows = [grafana]
+
+        let report = SceneCore.SceneProjector(port: port)
+            .project(SceneCore.SceneLayoutPlan(scene, on: substrate))
+
+        XCTAssertEqual(report.placement(for: observability.id), .windowsMissing([grafana]))
+        XCTAssertEqual(report.placement(for: editor.id), .realised(.single))
+        XCTAssertEqual(
+            report.diagnostics,
+            ["SceneMux found none of the windows for the observability Slot of \"Debug PROD-123\" "
+                + "(com.grafana.grafana#0), and left it empty."],
+        )
+    }
+
 }
