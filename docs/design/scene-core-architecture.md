@@ -768,7 +768,7 @@ the test.
 | I9 | Unreadable or unrecognised persisted state yields zero Scenes and zero window operations |
 | I10 | An unrecognised window receives `ignore`; SceneMux leaves it exactly where the inherited engine put it |
 | I11 | No Scene state contains a window title, a window frame, a monitor id or a `CGWindowID` |
-| I12 | `scene/domain/` imports `Foundation` only; no engine type is named outside `scene/engine/` |
+| I12 | `scene/domain/` and `scene/lifecycle/` import `Foundation` only; no engine type is named outside `scene/engine/` |
 | I13 | A Slot with no attachments still exists in Scene state and is still shown |
 | I14 | `ended` is reachable from `ending` even when every window involved has disappeared |
 
