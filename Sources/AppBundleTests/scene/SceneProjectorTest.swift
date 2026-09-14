@@ -25,4 +25,23 @@ final class SceneProjectorTest: XCTestCase {
         XCTAssertTrue(report.isFullyRealised)
         XCTAssertEqual(report.diagnostics, [])
     }
+
+    /// Invariant I13, at the seam: the empty Slot is in the report, so a shell can draw it, and was never
+    /// offered to the engine, so it cannot take a place in the tiling.
+    func testAnEmptySlotIsReportedEmptyAndNeverOfferedToTheEngine() throws {
+        let port = RecordingSceneEnginePort()
+        let editor = SceneCoreFixtures.slot(role: .editor, order: 0)
+        let empty = SceneCoreFixtures.slot(role: .observability, order: 1)
+        let scene = try SceneCoreFixtures.scene(slots: [editor, empty])
+            .attaching(SceneCoreFixtures.attachment(windowRef: try .init(bundleId: App.ide, ordinalWithinApp: 0),
+                                                    slotId: editor.id))
+
+        let report = SceneCore.SceneProjector(port: port)
+            .project(SceneCore.SceneLayoutPlan(scene, on: substrate))
+
+        XCTAssertEqual(port.placedGroups.map(\.slotId), [editor.id])
+        XCTAssertEqual(report.placement(for: empty.id), .empty)
+        XCTAssertTrue(report.isFullyRealised)
+        XCTAssertEqual(report.diagnostics, [])
+    }
 }
