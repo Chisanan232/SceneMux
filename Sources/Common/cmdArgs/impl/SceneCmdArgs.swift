@@ -4,7 +4,7 @@ private let scene_help = """
        OR: scene [-h|--help] rename --title <title> [--scene <scene-number>]
        OR: scene [-h|--help] (<scene-number>|next|prev)
        OR: scene [-h|--help] leave
-       OR: scene [-h|--help] close [--scene <scene-number>]
+       OR: scene [-h|--help] close [--scene <scene-number>] [--yes]
        OR: scene [-h|--help] switcher
 
     A Scene is one task: "Debug PROD-123", "Review the release notes". Entering one puts its Slots on
@@ -16,6 +16,8 @@ private let scene_help = """
                          Defaults to the Scene on screen
       --template <name>  Which Slots a new Scene starts with. Defaults to 'development'
       --title <title>    The Scene's name. 'new' without a title opens the switcher so it can be typed
+      --yes              Close without the confirmation panel. Only for 'close', and only for scripts:
+                         closing is the one Scene operation that moves windows
     """
 
 public struct SceneCmdArgs: CmdArgs {
@@ -30,6 +32,7 @@ public struct SceneCmdArgs: CmdArgs {
             "--scene": singleValueSubArgParser(\.sceneNumber, "<scene-number>") { Int($0) },
             "--template": singleValueSubArgParser(\.template, "(development|empty)") { $0 },
             "--title": singleValueSubArgParser(\.title, "<title>") { $0 },
+            "--yes": trueBoolFlag(\.yes),
         ],
         posArgs: [newMandatoryPosArgParser(\.target, parseSceneTarget, placeholder: sceneTargetPlaceholder)],
     )
@@ -39,6 +42,7 @@ public struct SceneCmdArgs: CmdArgs {
     public var sceneNumber: Int? = nil
     public var template: String? = nil
     public var title: String? = nil
+    public var yes: Bool = false
 }
 
 /// What `scene` was asked to do. A bare number enters that Scene, which is what `ctrl-alt-1…9` sends.
@@ -76,6 +80,9 @@ func parseSceneCmdArgs(_ args: StrArrSlice) -> ParsedCmd<SceneCmdArgs> {
         }
         .filter("--json is only allowed for 'list'") {
             !$0.json || $0.target.val == .list
+        }
+        .filter("--yes is only allowed for 'close'") {
+            !$0.yes || $0.target.val == .close
         }
         .filter("--scene is only allowed for 'rename' and 'close'") {
             $0.sceneNumber == nil || $0.target.val == .rename || $0.target.val == .close
