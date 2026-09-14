@@ -15,10 +15,12 @@ struct CmdEnv: ConvenienceCopyable {
     var asMap: [String: String] {
         var result = [String: String]()
         if let windowId {
-            result[WINMUX_WINDOW_ID] = windowId.description
+            result[SCENEMUX_WINDOW_ID] = windowId.description
+            result[WINMUX_WINDOW_ID] = windowId.description // Inherited alias
         }
         if let workspaceName {
-            result[WINMUX_WORKSPACE] = workspaceName.description
+            result[SCENEMUX_WORKSPACE] = workspaceName.description
+            result[WINMUX_WORKSPACE] = workspaceName.description // Inherited alias
         }
         return result
     }
