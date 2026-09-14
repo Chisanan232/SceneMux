@@ -115,16 +115,17 @@ application on every user's machine" into a prerequisite for building a release 
 
 When SceneMux does own a signed release channel, that ordering is what changes:
 
-1. add `SUFeedURL` (pointing at `https://github.com/Chisanan232/SceneMux/releases/`) and
+1. create the ed25519 key pair with Sparkle's `generate_keys`, which stores the private half in the
+   keychain and prints the public half — this is the step that requires human authorization, because
+   it is the moment the signing power comes into existence;
+2. add `SUFeedURL` (pointing at `https://github.com/Chisanan232/SceneMux/releases/`) and the printed
    `SUPublicEDKey` under their own reviewed change, not during a release;
-2. create the ed25519 key pair with Sparkle's `generate_keys`, which stores the private half in the
-   keychain — this is the step that requires human authorization;
 3. release with `APPCAST=1`, which generates `appcast.xml`, validates it with
    `script/validate-appcast.py`, and attaches it to the GitHub Release.
 
-Step 2 is what `APPCAST=1` technically depends on: without the private key in the keychain,
+Step 1 is what `APPCAST=1` technically depends on: without the private key in the keychain,
 `generate_appcast` reports `Private key for account ed25519 not found in the Keychain (-25300)`, and
-`script/validate-appcast.py` then rejects the unsigned archive. Steps 1 and 3 are not enforced by the
+`script/validate-appcast.py` then rejects the unsigned archive. Steps 2 and 3 are not enforced by the
 build, which is exactly why they are written down here: a signed appcast that no shipped build points
 at is a feed nobody consumes, and a feed key created ahead of the reviewed decision to have one is
 the thing this default exists to prevent.
