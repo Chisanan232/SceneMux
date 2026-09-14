@@ -171,5 +171,15 @@ class SceneDomainLayeringTest(unittest.TestCase):
                 f"{ADAPTER.name} and nothing else, so that it stays narrow enough to reason about",
             )
 
+    def test_the_adapter_really_is_the_seam(self):
+        # If the adapter stopped naming engine types, the exemption above would be
+        # protecting nothing, and this file would have quietly become decoration.
+        named = set(IDENTIFIER.findall(strip_comments(ADAPTER.read_text())))
+        self.assertTrue(
+            named & self.engine_types_beyond_scene_core,
+            f"{ADAPTER.relative_to(REPO)} names no engine type; the seam has moved somewhere unguarded",
+        )
+
+
 if __name__ == "__main__":
     unittest.main()
