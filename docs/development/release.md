@@ -113,7 +113,7 @@ project with no feed — Sparkle's `generate_appcast` needs an ed25519 private k
 sign the archive, so an unconditional appcast step turns "create the key that can replace the
 application on every user's machine" into a prerequisite for building a release at all.
 
-When SceneMux does own a signed release channel, that ordering is what changes:
+When SceneMux does own a signed release channel, three things happen, in this order:
 
 1. create the ed25519 key pair with Sparkle's `generate_keys`, which stores the private half in the
    keychain and prints the public half — this is the step that requires human authorization, because
