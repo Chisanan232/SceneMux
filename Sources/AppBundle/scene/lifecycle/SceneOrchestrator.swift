@@ -70,6 +70,14 @@ extension SceneCore {
             try apply(try world.entering(id, on: substrate))
         }
 
+        /// Take a Scene off screen and leave every window exactly where it is.
+        ///
+        /// The cheap, common operation: switching away from a task and back again must not drag windows across
+        /// the desktop and back. Nothing is restored, nothing is closed, and the Scene keeps every attachment.
+        func leave(_ id: SceneId) throws {
+            try apply(try world.leaving(id))
+        }
+
         /// Write this world, and only then believe in it.
         ///
         /// The order is the safety property. If the save fails, the change never happened as far as the rest of
