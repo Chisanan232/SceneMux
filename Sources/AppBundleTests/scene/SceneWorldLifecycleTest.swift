@@ -209,4 +209,19 @@ final class SceneWorldLifecycleTest: XCTestCase {
         // finish closing.
         XCTAssertEqual(world.scene(scene.id)?.state, .ended)
     }
+
+    func testAWindowDeliberatelyLeftBehindStillEndsTheScene() throws {
+        let scene = try SceneCoreFixtures.debugScene(state: .active(substrate))
+        let closed = try SceneCore.SceneWorld(scenes: [scene]).closing(scene.id)
+        let noHome = SceneCore.SceneTeardownOutcome.leftInPlace(reason: "its Home has no workspace any more")
+
+        let world = try closed.world
+            .resolving(noHome, for: try SceneCoreFixtures.windowRef(App.line), in: scene.id)
+            .resolving(noHome, for: try SceneCoreFixtures.windowRef(App.slack), in: scene.id)
+
+        // The explicit fallback: a window whose Home cannot be resolved is left where it is rather than moved
+        // somewhere invented for it, and it does not hold its Scene open forever either.
+        XCTAssertEqual(world.scene(scene.id)?.state, .ended)
+        XCTAssertEqual(world.scene(scene.id)?.attachments, [])
+    }
 }
