@@ -29,4 +29,20 @@ extension SceneCore.SceneWorld {
         )
         return (try SceneCore.SceneWorld(scenes: scenes + [scene]), scene)
     }
+
+    /// Take this Scene off screen, and do nothing else whatsoever.
+    ///
+    /// No window is moved, restored or closed — that is the whole design of `leave`. Someone switching away
+    /// from a task and back again would otherwise watch their chat window be dragged across the desktop and
+    /// back, twice, for nothing. The Scene keeps every attachment: it is still *about* those windows, it is
+    /// simply not being drawn.
+    ///
+    /// Leaving a Scene that is not on screen is the state the caller asked for, so it is a no-op.
+    func leaving(_ id: SceneCore.SceneId) throws -> Self {
+        guard let scene = scene(id) else {
+            throw SceneCore.SceneLifecycleError.unknownScene(id)
+        }
+        guard scene.state.label == .active else { return self }
+        return try replacing(try scene.transitioning(to: .defined))
+    }
 }
