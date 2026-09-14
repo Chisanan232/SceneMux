@@ -91,6 +91,12 @@ Silence is not an acceptable answer for a UI change. Neither is "verified" with 
 interactive pass could not be performed, say exactly that and name the follow-up ticket — a stated
 gap can be closed, an implied one cannot.
 
+Captures worth keeping go in `docs/design/evidence/<ticket>/`, with a `README.md` saying what each one
+proves — one place, so the next ticket does not invent a second. An attachment reachable only from a
+pull request is gone as soon as somebody wants to know what the surface used to look like, and a
+capture with no caption is not evidence of anything a year later. `docs/design/evidence/horo-1106/`
+is the worked example.
+
 ## Phase 1 evidence bar
 
 The `v0.1.0` release gate requires evidence that shows, on a real Mac:
