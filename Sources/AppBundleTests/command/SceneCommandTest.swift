@@ -77,4 +77,21 @@ final class SceneCommandTest: XCTestCase {
         XCTAssertEqual(asked, [.confirmClose(SceneCore.SceneRuntime.shared.snapshot.scenes[0].id)])
         XCTAssertEqual(SceneCore.SceneRuntime.shared.snapshot.scenes.map(\.state), [.active])
     }
+
+    /// `scene next` walks the list and wraps, and it starts at the first Scene when none is on screen — so the
+    /// binding is useful on a fresh desktop instead of refusing until a Scene has been entered by other means.
+    func testNextAndPreviousWalkTheListAndWrap() async throws {
+        try await parseCommand("scene new --title First --template empty").cmdOrDie.run(.defaultEnv, .emptyStdin)
+        try await parseCommand("scene new --title Second --template empty").cmdOrDie.run(.defaultEnv, .emptyStdin)
+
+        var entered: [String] = []
+        for step in ["next", "next", "next", "prev"] {
+            entered += try await parseCommand("scene \(step)").cmdOrDie.run(.defaultEnv, .emptyStdin).stdout
+        }
+        XCTAssertEqual(entered, ["Entered First", "Entered Second", "Entered First", "Entered Second"])
+
+        let left = try await parseCommand("scene leave").cmdOrDie.run(.defaultEnv, .emptyStdin)
+        XCTAssertEqual(left.stdout, ["Left Second. Nothing moved."])
+        XCTAssertEqual(port.invisibleWindows, [])
+    }
 }
