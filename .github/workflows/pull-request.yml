@@ -28,3 +28,25 @@ jobs:
         run: python3 script/test_validate_appcast.py
       - name: License inventory
         run: python3 script/license-inventory.py
+
+  # The Swift build and the unit tests. The toolchain is pinned by .swift-version and installed
+  # with swiftly, the same way script/setup.sh resolves it locally, so CI and a developer machine
+  # compile with the same compiler.
+  build-and-test:
+    name: build-and-test
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install swiftly
+        run: brew install swiftly
+      - name: Install the pinned Swift toolchain
+        run: |
+          swiftly init --skip-install --assume-yes --verbose
+          swiftly install
+      - name: Build
+        run: make build VERSION=0.0.0
+      - name: Test
+        run: |
+          set -euo pipefail
+          source ./script/setup.sh
+          swift test
