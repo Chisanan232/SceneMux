@@ -31,6 +31,17 @@ extension SceneCore {
 
         init() {}
 
+        /// The focused workspace, which is where a Scene entered now would appear.
+        ///
+        /// The focused one rather than a Scene-specific one on purpose: entering a Scene lays its windows out
+        /// in front of the person who asked, not on a workspace they would then have to go and find. A blank
+        /// name is refused for the same reason `prepareSubstrate` refuses one.
+        func currentSubstrate() -> SubstrateBinding? {
+            let name = focus.workspace.name
+            guard !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
+            return SubstrateBinding(workspaceName: name)
+        }
+
         /// Resolves the Scene's workspace, creating it if the user has not used it yet.
         ///
         /// A blank name is refused rather than normalized into something plausible: the engine would happily

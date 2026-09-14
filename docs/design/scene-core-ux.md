@@ -592,3 +592,46 @@ Not blockers, and each has a stated default so no ticket stalls waiting for an a
 | Do Scene rows carry a user-chosen colour? | Yes, reusing `WorkspaceSidebarColor`, decorative only | The Scene UI ticket |
 | Where do Home rules live in Settings — a new pane or the existing General pane? | **A new pane**, because per-application rules are a list that will grow | The Semantic Home ticket |
 | Is `scene` one CLI command with subcommands or several top-level commands? | **One command with subcommands** (`scene new`, `scene close`), matching the inherited `project` command's shape | The Scene command ticket |
+
+## What HORO-1106 shipped, and where it deviates
+
+This specification was written before the shell existed. HORO-1106 built it, and the differences below are
+deliberate. They are recorded here because an undocumented deviation reads as a defect to the next person,
+and because a deviation that is really a *not yet* needs a ticket rather than somebody's memory.
+
+| Surface | In this build |
+| --- | --- |
+| Scene switcher | `ui/scene/SceneSwitcherPanel.swift` — the non-activating floating panel, type-to-filter, inline naming and renaming, Slot chips, composition chip, close confirmation |
+| Menu bar item | `ui/scene/SceneMenuBarSection.swift` and `SceneMenuBarLabel.swift` — the active Scene's title, a quick switch, *Leave* and *Close…* |
+| Transient HUD | `ui/scene/SceneMessageHud.swift` — one message at a time, queued rather than stacked |
+| Global bindings | The Scene half of the `ctrl-alt` namespace, in `resources/default-config.toml` |
+| Scene sidebar | Not built — HORO-1216 |
+| Settings pane | Not built — Home rules are HORO-1107, and the unreadable-state diagnostic appears in the switcher's empty state and on the HUD instead of behind a pane |
+
+Almost every deviation has one cause: **nothing in this build attaches a window to a Slot.** Mounting
+arrives with HORO-1107 and admission with HORO-1108, so anything above that describes a window *inside* a
+Slot describes a shipped, tested presentation model with nothing yet to present.
+
+| Specified above | In this build | Why |
+| --- | --- | --- |
+| A hover-expanding Scene rail beside the workspace sidebar | The switcher carries the Scene → Slot → window outline; there is no rail | A rail's value is the *persistent* view of windows in Slots. Until one can be attached, the rail would take 44pt of every screen to say nothing. HORO-1216 |
+| A `SHARED` section, last | Not shown | `.sharedPersistent` reaches an attachment only by degradation (`Ownership.failSafe`), so there is currently nothing truthful to list. `SceneShellCloseSummary` already words the shared group and will show it the moment one exists |
+| Window rows beneath Slot rows | `SceneShellWindowRow` and `SceneSwitcherWindowRow.swift` exist and are tested, and no Slot has a window to render | Shipped now so the layer is guarded before the ticket that fills it |
+| `ctrl-alt-shift-1…5` → `slot <n>` | Unbound | There is no `slot <n>` command: *the focused window* → Slot needs the mapping attachments provide. A binding that silently does nothing is worse than an absent one. HORO-1217 |
+| `ctrl-alt-shift-m` → `slot move` | Unbound | No move-to-slot mode, for the same reason. HORO-1217 |
+| `ctrl-alt-shift-n` → `slot new` | Unbound; *Add slot* chips on the active Scene's row instead | `slot new` requires `--role`, so a default binding would have to choose a role on the user's behalf. HORO-1217 |
+| `ctrl-alt-shift-c` → cycle *the focused window's* Slot | Unbound; `slot compose --slot <n>` addresses a Slot by number, and the Slot row's chip does it by pointer | The focused window's Slot is not knowable yet. HORO-1217 |
+| `⌥↑` / `⌥↓` move a window row between Slots | Not implemented | Moves an attachment. HORO-1217 |
+| `→` / `←` to disclose, `⇥` between sections | Not implemented | The switcher expands the selected Scene and has one section, so there is nothing yet to disclose or traverse |
+| A second `⏎` on a selected row renames it | `⏎` always enters; `F2`, a double-click or the row's *Rename…* renames | The two things this specification asks `⏎` for cannot both be true of the same key: the row that is selected is the row the user is about to enter, and a key whose meaning depends on how recently it was last pressed would rename a task at the moment somebody meant to start one. `F2` is unambiguous, and both pointer paths remain |
+| Drag and drop: window onto Slot, Slot reorder, drop-to-tab, detach | Not implemented | Every one of them moves an attachment. HORO-1216 |
+| `☐ also close these (asks for each)` in the close confirmation | The ownership grouping ships; the checkbox does not | With no scene-owned windows the checkbox would govern nothing, and per-window asking belongs with `SceneOrchestrator.resolve` in HORO-1107 |
+| Menu bar reads *No Scene* when none is active | The always-visible label is the icon alone; *No Scene* is the menu's first line | A permanent *No Scene* in the menu bar of somebody who has never made one is noise, and the menu answers the question the moment it is asked |
+| HUD for about 2.5 seconds | 2.5 seconds, except a message carrying *Show details* — only `stateUnreadable` — which stays until dismissed | A disclosure that vanishes two seconds after being opened cannot be read |
+| HUD dismissible with `esc` | `esc` reaches it through a local event monitor, so while SceneMux is the active application | The alternative is a HUD that takes the keyboard away from the user's application, which a window manager must never do. The dwell covers every other case |
+| Nine lifecycle HUD lines | Three: Scene entered, attachments dropped on load, state unreadable | The other six report what happened to an attached window. `SceneShellMessage` is where they go |
+| — | `scene close --yes`, which is not in this specification | The CLI needs a close that does not wait for a panel; without it a script would hang or be refused. The interactive paths still confirm |
+
+None of this relaxes the architecture: `scene/shell/` remains Foundation-only and names no engine type, which
+`script/test_scene_domain_layering.py` now checks in the guards job — a row that cannot reach a window cannot
+put a window title on screen.

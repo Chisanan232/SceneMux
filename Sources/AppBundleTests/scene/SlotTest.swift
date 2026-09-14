@@ -17,4 +17,18 @@ final class SlotTest: XCTestCase {
         XCTAssertEqual(unlabelled.displayName, "observability")
         XCTAssertEqual(blank.displayName, "observability")
     }
+
+    /// Recomposing is the *same* Slot shaped differently. If it produced a new identity the attachments
+    /// pointing at it would all be dangling, and the Scene would refuse to exist.
+    func testRecomposingASlotChangesOnlyItsComposition() {
+        let slot = SceneCoreFixtures.slot(role: .communication, label: "chat", composition: .single, order: 4)
+
+        let tabbed = slot.composed(as: .tabbed)
+
+        XCTAssertEqual(tabbed.composition, .tabbed)
+        XCTAssertEqual(tabbed.id, slot.id)
+        XCTAssertEqual(tabbed.role, .communication)
+        XCTAssertEqual(tabbed.label, "chat")
+        XCTAssertEqual(tabbed.order, 4)
+    }
 }

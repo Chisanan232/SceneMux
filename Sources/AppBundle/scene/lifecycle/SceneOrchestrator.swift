@@ -25,6 +25,18 @@ extension SceneCore {
         /// indistinguishable from "SceneMux is broken".
         private(set) var diagnostics: [String]
 
+        /// Why this run started with no Scenes, when that is why it did.
+        ///
+        /// The same fact as the first diagnostic line, kept as a value as well, because a surface has to *do*
+        /// different things for the two causes: a refusal offers to reveal the preserved file and says no
+        /// windows were changed, where a first run invites the user to create a Scene. Recovering that
+        /// distinction by reading English back out of a string is how a UI ends up inviting someone to build a
+        /// new Scene on top of state SceneMux deliberately refused to touch.
+        private(set) var stateRefusal: SceneStateRefusal?
+
+        /// The attachments the load set aside, so a surface can say which Scene came back smaller.
+        private(set) var quarantined: [SceneStateQuarantine]
+
         /// Start from whatever is on disk, and start safe when that cannot be trusted.
         ///
         /// Three outcomes, and only one of them has Scenes in it. A file that cannot be read yields no Scenes
@@ -35,21 +47,31 @@ extension SceneCore {
         init(store: SceneStateStore) {
             let load = store.load()
             var diagnostics = load.diagnostics
+            var stateRefusal: SceneStateRefusal? = switch load {
+                case .refused(let refusal): refusal
+                case .noStateFile, .loaded: nil
+            }
             let world: SceneWorld
             do {
                 world = try SceneWorld(scenes: load.scenes)
             } catch {
                 world = .empty
-                let refusal = SceneStateRefusal(
+                let refusal = store.preserving(SceneStateRefusal(
                     reason: .impossibleWorld("\(error)"),
                     path: store.url.path,
                     preservedAt: nil,
-                )
-                diagnostics.append(store.preserving(refusal).diagnostic)
+                ))
+                stateRefusal = refusal
+                diagnostics.append(refusal.diagnostic)
             }
             self.store = store
             self.world = world
             self.diagnostics = diagnostics
+            self.stateRefusal = stateRefusal
+            quarantined = switch load {
+                case .loaded(_, let quarantined): quarantined
+                case .noStateFile, .refused: []
+            }
         }
 
         /// The teardowns a previous run did not finish, to be carried out again at startup.
@@ -69,6 +91,61 @@ extension SceneCore {
             let created = try world.creating(title: title, slots: slots)
             try apply(created.world)
             return created.scene
+        }
+
+        /// Give a Scene a different name.
+        ///
+        /// Available in every state, including while the Scene is on screen: the title is what a person reads
+        /// and a task that turned out to be something else should be callable by its real name straight away.
+        /// Nothing else changes — not the identity, not the Slots, and no window.
+        func rename(_ id: SceneId, to title: String) throws {
+            guard let scene = world.scene(id) else { throw SceneLifecycleError.unknownScene(id) }
+            try apply(try world.replacing(try scene.renamed(to: title)))
+        }
+
+        /// Add a Slot to a Scene, and hand it back.
+        ///
+        /// Ordered last, because a Slot is added to the end of what the Scene already has — a new Slot is a
+        /// new place, not a re-plan of the existing ones. It starts empty and `.single`: there is no geometry
+        /// to ask for, and inventing a composition for a Slot with nothing in it would be a shape nobody
+        /// chose. Adding a Slot moves no window, even while the Scene is on screen; what it changes is where
+        /// the next window *can* go.
+        func addSlot(role: SlotRole, label: String? = nil, to id: SceneId) throws -> Slot {
+            guard let scene = world.scene(id) else { throw SceneLifecycleError.unknownScene(id) }
+            let slot = Slot(
+                id: .generate(),
+                role: role,
+                label: label,
+                composition: .single,
+                order: (scene.slots.map(\.order).max() ?? -1) + 1,
+            )
+            try apply(try world.replacing(try scene.addingSlot(slot)))
+            return slot
+        }
+
+        /// Take an empty Slot out of a Scene.
+        ///
+        /// The undo for a Slot added by mistake, and no more than that: a Slot that still holds windows is
+        /// refused by the domain rather than removed with their attachments, because an attachment is the
+        /// record of what SceneMux may do to that window — including the promise to send a borrowed one home.
+        /// Move the windows out first, which is a visible decision.
+        func removeSlot(_ slotId: SlotId, from id: SceneId) throws {
+            guard let scene = world.scene(id) else { throw SceneLifecycleError.unknownScene(id) }
+            try apply(try world.replacing(try scene.removingSlot(slotId)))
+        }
+
+        /// Move a Slot on to the next shape it can have, and hand back the Slot as it now is.
+        ///
+        /// One operation rather than a setter, because that is what the shell offers: a single key that cycles
+        /// a Slot through side by side, the other way round, stacked and plain. The returned Slot is what the
+        /// caller tells the user about — and it is what the Scene asked for, not necessarily what the engine
+        /// will settle on, which only a projection can report (`SceneLayoutReport`).
+        func cycleComposition(of slotId: SlotId, in id: SceneId) throws -> Slot {
+            guard let scene = world.scene(id) else { throw SceneLifecycleError.unknownScene(id) }
+            guard let slot = scene.slot(slotId) else { throw SceneCoreError.unknownSlot(slotId) }
+            let recomposed = slot.composed(as: slot.composition.cycled)
+            try apply(try world.replacing(try scene.replacingSlot(recomposed)))
+            return recomposed
         }
 
         /// Put a Scene on screen, projected onto this substrate.

@@ -17,6 +17,8 @@ private let sceneMuxNewIssueURL = "https://github.com/Chisanan232/SceneMux/issue
         Button("Copy to clipboard") { identification.copyToClipboard() }
             .keyboardShortcut("C", modifiers: .command)
         Divider()
+        SceneMenuBarSection(runtime: SceneCore.SceneRuntime.shared)
+        Divider()
         Button(viewModel.isEnabled ? "Disable" : "Enable") {
             Task {
                 try await runLightSession(.menuBarButton, .forceRun) { () throws in
@@ -45,7 +47,9 @@ private let sceneMuxNewIssueURL = "https://github.com/Chisanan232/SceneMux/issue
         }.keyboardShortcut("Q", modifiers: .command)
     } label: {
         if viewModel.isEnabled {
-            MenuBarAppIcon().environmentObject(viewModel)
+            SceneMenuBarLabel(runtime: SceneCore.SceneRuntime.shared) {
+                MenuBarAppIcon().environmentObject(viewModel)
+            }
         } else {
             Image(systemName: "pause.circle.fill")
                 .resizable()
