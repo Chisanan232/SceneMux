@@ -47,4 +47,15 @@ final class SceneShellSlotRowTest: XCTestCase {
         XCTAssertEqual(empty.trailing, "empty")
         XCTAssertEqual(empty.accessibilityLabel, "terminal slot, empty")
     }
+
+    /// A screen reader hears role, count and shape — the same three facts the row shows, in the same order and
+    /// never encoded in a glyph alone.
+    func testTheAccessibilityLabelCarriesTheSameThreeFactsAsTheRow() throws {
+        let labelled = try row(composition: .tabbed, windows: 2, label: "chat")
+
+        XCTAssertEqual(labelled.title, "chat")
+        XCTAssertEqual(labelled.accessibilityLabel, "chat slot, 2 windows, tabs")
+        XCTAssertEqual(try row(composition: .single, windows: 2, label: "chat").accessibilityLabel,
+                       "chat slot, 2 windows")
+    }
 }
