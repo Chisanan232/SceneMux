@@ -3,6 +3,23 @@ import Foundation
 import XCTest
 
 final class SceneOperationsTest: XCTestCase {
+    func testRemovingASlotThatStillHoldsWindowsIsRefused() throws {
+        let slot = SceneCoreFixtures.slot(role: .communication)
+        let scene = try SceneCoreFixtures.scene(slots: [slot])
+            .attaching(SceneCoreFixtures.attachment(
+                windowRef: try SceneCoreFixtures.windowRef("com.linecorp.LINE"),
+                slotId: slot.id,
+                ownership: .borrowed,
+            ))
+
+        XCTAssertThrowsError(try scene.removingSlot(slot.id)) { error in
+            XCTAssertEqual(error as? SceneCore.SceneCoreError, .slotNotEmpty(slot.id))
+        }
+        // The promise to send that borrowed window home is recorded in its attachment, so dropping the Slot
+        // would drop the promise.
+        XCTAssertEqual(scene.attachments.count, 1)
+    }
+
     func testASlotThatHasEmptiedStillExists() throws {
         // Invariant I13. The engine prunes a workspace when its last window leaves; a Scene must not, because
         // an empty `terminal` Slot is a statement about the task rather than an absence to tidy away.
