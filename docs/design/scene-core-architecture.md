@@ -517,11 +517,28 @@ finishes what it started. The mechanism copies the inherited precedent in
 `tree/frozen/persistedFrozenWorld.swift` — it is already proven in this codebase, and copying it means one
 persistence idiom to review instead of two:
 
-- `~/Library/Application Support/SceneMux/scene-state.json`, beside the inherited `window-state.json`;
+- `~/Library/Application Support/SceneMux/scene-state.json`, beside the inherited `window-state.json`.
+  The directory is `sceneMuxAppName`, so a debug build writes `SceneMux-Debug/` and developing SceneMux
+  cannot corrupt the Scenes of the SceneMux being used to develop it;
 - a `Codable` envelope `{ version: Int, scenes: [...] }` with an explicit integer version;
 - written with `Data.write(to:options: .atomic)`;
 - an unknown version, a decode failure or a missing file all resolve to **no Scenes**, never to a partial
   read.
+
+The implementation splits *what the bytes mean* from *where they live*: `SceneStateFormat` turns `Data` into
+a `SceneStateLoad`, and `SceneStateStore` owns the file. Every corruption case is then reachable from a
+`Data` literal in a test, with no directory to create and no disk to leave dirty.
+
+`SceneStateLoad` has three cases — `noStateFile`, `refused`, `loaded(scenes:quarantined:)` — because a first
+run and an unreadable file are different answers, and the bug worth designing out is the one that treats
+"I could not read your Scenes" as "you have no Scenes" and then saves an empty file over them. Reading also
+never throws: a thrown error invites a `try?`, and a `try?` here is invariant I9's failure mode with the
+diagnostic dropped on the way past.
+
+The version is probed on its own, before the payload. That is what lets a future build say "this file is
+version 3 and I read 1 to 2" instead of reporting a missing field that did not exist when the file was
+written. The migration seam is `SceneStateSchema.oldestReadable`: version 2 means writing `current = 2`,
+leaving `oldestReadable` at 1, and reading the older shape where the envelope decodes its Scenes.
 
 ### Never in the user's config file
 
