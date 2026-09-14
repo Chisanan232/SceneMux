@@ -43,4 +43,19 @@ final class SceneShellSceneRowTest: XCTestCase {
         XCTAssertEqual(ending.badge, .restoring)
         XCTAssertEqual(ending.trailing, "restoring…")
     }
+
+    /// Entering a Scene you just created shows an empty one, which is correct and must not read as a failure.
+    /// The invitation belongs to that case alone: a Scene nobody is looking at has nothing to invite.
+    func testAnEmptyActiveSceneInvitesInsteadOfLookingBroken() throws {
+        let entered = row(try SceneCoreFixtures.scene(
+            slots: [SceneCoreFixtures.slot()],
+            state: .active(SceneCore.SubstrateBinding(workspaceName: "3")),
+        ))
+
+        XCTAssertNotNil(entered.invitation)
+        XCTAssertNil(row(try SceneCoreFixtures.scene(slots: [SceneCoreFixtures.slot()])).invitation)
+        XCTAssertNil(row(try SceneCoreFixtures.debugScene(
+            state: .active(SceneCore.SubstrateBinding(workspaceName: "3")),
+        )).invitation)
+    }
 }
