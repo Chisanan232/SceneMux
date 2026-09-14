@@ -13,6 +13,8 @@
 /SceneMux.xcodeproj
 # Python bytecode cache, created by running the script/ tests
 __pycache__/
+# Per-developer Claude Code settings. The tracked .claude/skills are shared on purpose.
+/.claude/settings.local.json
 # Swift package manager
 /.build
 /.swiftpm

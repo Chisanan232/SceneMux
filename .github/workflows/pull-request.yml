@@ -1,0 +1,57 @@
+name: pull-request
+
+# Every change reaches main through a pull request (docs/development/workflow.md), so this is the
+# gate that has to be green before a merge commit is created.
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  # Provenance, licensing and update-feed guards. They are pure-stdlib Python and read only
+  # repository files, so they run on the cheapest runner and report in seconds — a broken
+  # legal record or a leaked Sparkle feed key fails the pull request before the Swift build
+  # has finished starting.
+  guards:
+    name: guards
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Update feed isolation
+        run: python3 script/test_update_feed_isolation.py
+      - name: Appcast validator self-tests
+        run: python3 script/test_validate_appcast.py
+      - name: License inventory
+        run: python3 script/license-inventory.py
+
+  # The Swift build and the unit tests. The toolchain is pinned by .swift-version and installed
+  # with swiftly, the same way script/setup.sh resolves it locally, so CI and a developer machine
+  # compile with the same compiler.
+  #
+  # macos-26, not macos-15: the inherited UI calls the Liquid Glass API `glassEffect` behind a
+  # runtime `if #available(macOS 26.0, *)` check (Sources/AppBundle/ui/core/DesignTokens.swift).
+  # A runtime check still needs the symbol at compile time, so the macOS 26 SDK is required — the
+  # macos-15 image tops out at Xcode 16.4 and cannot build this repository at all.
+  build-and-test:
+    name: build-and-test
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install swiftly
+        run: brew install swiftly
+      - name: Install the pinned Swift toolchain
+        run: |
+          swiftly init --skip-install --assume-yes --verbose
+          swiftly install
+      - name: Build
+        run: make build VERSION=0.0.0
+      - name: Test
+        run: |
+          set -euo pipefail
+          source ./script/setup.sh
+          swift test
