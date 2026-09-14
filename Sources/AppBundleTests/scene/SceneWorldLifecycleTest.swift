@@ -39,4 +39,14 @@ final class SceneWorldLifecycleTest: XCTestCase {
         // nothing here is a desktop rearranging itself for no reason.
         XCTAssertEqual(try world.entering(scene.id, on: substrate), world)
     }
+
+    func testMovingAnActiveSceneToAnotherSubstrateKeepsEveryAttachment() throws {
+        let scene = try SceneCoreFixtures.debugScene(state: .active(substrate))
+        let world = try SceneCore.SceneWorld(scenes: [scene])
+
+        let moved = try world.entering(scene.id, on: elsewhere)
+
+        XCTAssertEqual(moved.scene(scene.id)?.state, .active(elsewhere))
+        XCTAssertEqual(moved.scene(scene.id)?.attachments, scene.attachments)
+    }
 }
