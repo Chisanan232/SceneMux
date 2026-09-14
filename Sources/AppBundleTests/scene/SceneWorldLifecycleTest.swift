@@ -30,4 +30,13 @@ final class SceneWorldLifecycleTest: XCTestCase {
         XCTAssertEqual(world.activeScene?.id, created.scene.id)
         XCTAssertEqual(world.scene(created.scene.id)?.state, .active(substrate))
     }
+
+    func testEnteringTheSceneAlreadyOnScreenChangesNothing() throws {
+        let scene = try SceneCoreFixtures.debugScene(state: .active(substrate))
+        let world = try SceneCore.SceneWorld(scenes: [scene])
+
+        // The same shortcut pressed twice, or a click on the Scene already showing. Anything other than
+        // nothing here is a desktop rearranging itself for no reason.
+        XCTAssertEqual(try world.entering(scene.id, on: substrate), world)
+    }
 }
