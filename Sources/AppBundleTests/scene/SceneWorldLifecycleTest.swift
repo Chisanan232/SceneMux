@@ -49,4 +49,16 @@ final class SceneWorldLifecycleTest: XCTestCase {
         XCTAssertEqual(moved.scene(scene.id)?.state, .active(elsewhere))
         XCTAssertEqual(moved.scene(scene.id)?.attachments, scene.attachments)
     }
+
+    func testASecondSceneCannotBeEnteredWhileOneIsOnScreen() throws {
+        let showing = try SceneCoreFixtures.scene(title: "Debug PROD-123", state: .active(substrate))
+        let other = try SceneCoreFixtures.scene(title: "Review the release")
+        let world = try SceneCore.SceneWorld(scenes: [showing, other])
+
+        // Refused rather than swapped. Quietly leaving somebody's current task as a side effect is a decision
+        // they should make and see.
+        XCTAssertThrowsError(try world.entering(other.id, on: elsewhere)) { error in
+            XCTAssertEqual(error as? SceneCore.SceneLifecycleError, .anotherSceneIsActive(showing.id))
+        }
+    }
 }
