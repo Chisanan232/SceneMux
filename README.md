@@ -3,7 +3,7 @@
   <img src="resources/scenemux-logo.svg" width="80" alt="SceneMux logo">
 </p>
 
-# WinMux
+# SceneMux
 
 <p align="left">A powerful sidebar-first window manager for macOS.</p>
 
