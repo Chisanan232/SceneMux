@@ -134,6 +134,31 @@ final class SceneSwitcherModel: ObservableObject {
         }
     }
 
+    /// `⌘⌫` on a row, or `⌃⌥⌫` for the Scene on screen: show what closing would do, and stop there.
+    ///
+    /// Nothing is closed by this call, and that is the point — the summary the panel then shows is the model's
+    /// own reasoning about ownership, which is what lets the user predict the outcome instead of clicking
+    /// through a warning.
+    func beginClose(_ id: SceneCore.SceneId? = nil) {
+        errorText = nil
+        guard let target = id ?? selectedScene?.id else { return }
+        var summary: SceneCore.SceneShellCloseSummary?
+        guard act({ summary = try runtime.closeSummary(for: target) }), let summary else { return }
+        mode = .confirmingClose(target, summary)
+    }
+
+    /// The confirmation's *Close Scene* button. The only call in this model that ends a task.
+    ///
+    /// The design's *also close these* checkbox is deliberately absent rather than present and inert. Closing
+    /// another application's windows means asking that application, per window, and this build has no
+    /// attachments to ask about — a checkbox that changed nothing would be worse than one that is not there.
+    func confirmClose() {
+        guard case .confirmingClose(let id, _) = mode else { return }
+        guard act({ try runtime.close(id) }) else { return }
+        mode = .browsing
+        selection = min(selection, max(results.count - 1, 0))
+    }
+
     /// Esc in an editing state: back to the list, with nothing changed. Reverting, not committing.
     func cancelEditing() {
         nameField = ""
