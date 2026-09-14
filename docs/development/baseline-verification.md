@@ -24,6 +24,10 @@ The macOS 26 SDK is not optional: `Sources/AppBundle/ui/core/DesignTokens.swift`
 needs the symbol at compile time. Xcode 26 on macOS 15 is enough — the *SDK* is what matters, not the
 running OS.
 
+The measurements come from two contained passes. The multi-monitor row was taken with both displays
+attached; the focus rows are from a second pass after a machine restart, with the built-in display
+alone.
+
 ## The Accessibility permission path
 
 `checkAccessibilityPermissions()` (`Sources/AppBundle/util/accessibility.swift`) runs at startup. If
