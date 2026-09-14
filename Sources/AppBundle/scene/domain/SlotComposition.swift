@@ -22,5 +22,20 @@ extension SceneCore {
                 case .tabbed: "a tab group"
             }
         }
+
+        /// The next composition when someone cycles a Slot through the shapes it can have.
+        ///
+        /// One key, four stops, back to the start: side by side, the other way round, stacked, plain. The
+        /// order is the one the design spec cycles through (`docs/design/scene-core-ux.md`), and it is a total
+        /// cycle rather than a menu because a Slot has only these shapes and reaching any of them in at most
+        /// three presses is faster than reading a list.
+        var cycled: Self {
+            switch self {
+                case .single: .split(.vertical)
+                case .split(.vertical): .split(.horizontal)
+                case .split(.horizontal): .tabbed
+                case .tabbed: .single
+            }
+        }
     }
 }
