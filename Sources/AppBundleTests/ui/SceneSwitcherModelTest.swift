@@ -165,4 +165,17 @@ final class SceneSwitcherModelTest: XCTestCase {
         XCTAssertEqual(model.mode, .creating)
         XCTAssertEqual(model.nameField, "")
     }
+
+    /// A refusal is shown rather than swallowed, and the panel stays up carrying it: the user pressed a key
+    /// expecting the screen to change, so silence would leave them with no idea why it did not.
+    func testARefusalIsShownOnThePanelAndNothingIsEntered() throws {
+        let scene = try model.runtime.createScene(title: "Debug PROD-123", template: .empty)
+        port.substrate = nil
+
+        XCTAssertFalse(model.enter(scene.id))
+
+        XCTAssertEqual(model.errorText, "There is nowhere to put a Scene right now, so nothing was changed.")
+        XCTAssertNil(model.snapshot.activeScene)
+        XCTAssertEqual(port.preparedSubstrates, [])
+    }
 }
