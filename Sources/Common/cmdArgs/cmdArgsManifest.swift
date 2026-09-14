@@ -38,6 +38,7 @@ public enum CmdKind: String, CaseIterable, Equatable, Sendable {
     case reloadConfig = "reload-config"
     case resize
     case scene
+    case slot
     case split
     case stackWith = "stack-with"
     case subscribe
@@ -131,6 +132,8 @@ func initSubcommands() -> [String: any SubCommandParserProtocol] {
                 result[kind.rawValue] = SubCommandParser(parseResizeCmdArgs)
             case .scene:
                 result[kind.rawValue] = SubCommandParser(parseSceneCmdArgs)
+            case .slot:
+                result[kind.rawValue] = SubCommandParser(parseSlotCmdArgs)
             case .split:
                 result[kind.rawValue] = SubCommandParser(parseSplitCmdArgs)
             case .stackWith:
