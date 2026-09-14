@@ -30,6 +30,29 @@ extension SceneCore.SceneWorld {
         return (try SceneCore.SceneWorld(scenes: scenes + [scene]), scene)
     }
 
+    /// Put this Scene on screen, projected onto `substrate`.
+    ///
+    /// Entering the Scene that is already there is a no-op, not an error — the same hotkey pressed twice, or
+    /// a click on the Scene already showing, must not disturb anything. Entering it onto a *different*
+    /// substrate is a re-projection, expressed as a leave and an enter because that is exactly what it is:
+    /// the old binding is dropped before the new one is made, and every attachment survives untouched.
+    ///
+    /// While another Scene is active this refuses rather than swapping them. v0.1.0 shows one task at a
+    /// time, and quietly leaving somebody's current Scene as a side effect of entering another is a decision
+    /// the user should make and see.
+    func entering(_ id: SceneCore.SceneId, on substrate: SceneCore.SubstrateBinding) throws -> Self {
+        guard let scene = scene(id) else {
+            throw SceneCore.SceneLifecycleError.unknownScene(id)
+        }
+        if case .active(let current) = scene.state {
+            return current == substrate ? self : try leaving(id).entering(id, on: substrate)
+        }
+        if let active = activeScene {
+            throw SceneCore.SceneLifecycleError.anotherSceneIsActive(active.id)
+        }
+        return try replacing(try scene.transitioning(to: .active(substrate)))
+    }
+
     /// Take this Scene off screen, and do nothing else whatsoever.
     ///
     /// No window is moved, restored or closed — that is the whole design of `leave`. Someone switching away
