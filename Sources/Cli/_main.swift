@@ -63,7 +63,7 @@ struct Main {
         let connection = NWConnection(to: NWEndpoint.unix(path: socketPath), using: .tcp)
 
         if let e = await connection.startBlocking().error {
-            exit(1, err: "Can't connect to WinMux server. Is WinMux.app running?\n\(e.localizedDescription)")
+            exit(1, err: "Can't connect to SceneMux server. Is SceneMux.app running?\n\(e.localizedDescription)")
         }
 
         var stdin = ""
