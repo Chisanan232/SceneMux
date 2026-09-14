@@ -320,3 +320,72 @@ The example the Phase 1 acceptance criteria name, traced through the model:
 The row that matters is the fourth: after LINE has spent a day inside a debugging Scene, LINE is still a
 communication window. Phase 1 acceptance asserts exactly that, and the UX spec renders it — the sidebar
 row for LINE reads `Communication · mounted`, not `Development`.
+
+## Lifecycle
+
+```
+                 create
+                   │
+                   ▼
+            ┌──────────────┐   enter    ┌──────────────┐
+            │   defined    │───────────▶│    active    │
+            │ (no windows  │◀───────────│ (projected   │
+            │  projected)  │   leave    │  onto a      │
+            └──────┬───────┘            │  workspace)  │
+                   │                    └──────┬───────┘
+                   │  close                    │  close
+                   │                           ▼
+                   │                    ┌──────────────┐
+                   │                    │    ending    │ ◀─┐ resumed after a
+                   │                    │ (restoring   │   │ restart or a crash
+                   │                    │  borrowed    │───┘
+                   │                    │  windows)    │
+                   │                    └──────┬───────┘
+                   │                           │ every attachment resolved
+                   ▼                           ▼
+            ┌──────────────────────────────────────────┐
+            │                  ended                   │
+            │      (kept in state; no attachments)     │
+            └──────────────────────────────────────────┘
+```
+
+| Transition | Guard | Effects |
+| --- | --- | --- |
+| `create` → `defined` | Title is non-empty after trimming | A `SceneId` is generated; default Slots are created from the chosen template, or none |
+| `enter` (`defined` → `active`) | No other Scene is `active` (v0.1.0); a workspace can be resolved | A `substrate` binding is made; Slot membership is projected onto the tree; focus moves to the highest-ordered non-empty Slot |
+| `leave` (`active` → `defined`) | — | The `substrate` binding is dropped. **Attachments are kept.** No window is moved, restored or closed |
+| `close` (`defined`/`active` → `ending`) | — | Every attachment is resolved by ownership: `.borrowed` restored, `.sceneOwned` left with cleanup offered, `.sharedPersistent` untouched |
+| `ending` → `ended` | Every attachment resolved or provably unresolvable | Attachments are cleared; the Scene stays in state as a record |
+| `ending` → `ending` | The app restarted mid-close | The remaining restores are re-attempted; already-restored windows are no-ops |
+
+### Why `leave` moves nothing
+
+Leaving an active Scene is the common case — a person switches to something else and comes back. If
+leaving restored borrowed windows, then switching Scenes twice would drag someone's chat window across
+the desktop four times. So `leave` is cheap and non-destructive by construction: it drops the projection
+and keeps every attachment. The Scene is still *about* those windows; it is simply not on screen.
+
+The visible consequence is that a borrowed window stays where it was until either the Scene is entered
+again or the Scene is closed. That is deliberate, it is what makes switching fast, and the UX spec makes
+it legible: a `defined` Scene that still holds attachments is drawn differently from an empty one.
+
+### Why `ending` is a state and not a function call
+
+Restoring a borrowed window is asynchronous Accessibility work against other applications' processes, and
+any of it can fail: the app is busy, the window was closed by its owner, the machine went to sleep, or
+SceneMux itself was quit halfway through. If `close` were a synchronous function, a crash in the middle
+would leave borrowed windows stranded in a Scene that no longer exists, with nothing on disk saying they
+should go home.
+
+Making `ending` an explicit, persisted state fixes that: the intent to restore is durable, it survives a
+restart, and it is re-attempted. A restore whose window cannot be found is a no-op and the Scene still
+reaches `ended` — never a close, never a "clean up by closing what I cannot find".
+
+### Deliberately not in v0.1.0
+
+- **`suspend` / `resume` as states distinct from `leave` / `enter`.** They would have no observable
+  difference in v0.1.0 — `defined` already is "not on screen, attachments intact". Adding two states
+  with identical behaviour buys nothing and doubles the transition table. The names remain available.
+- **`save-template`.** A Scene can be created with default Slots; deriving a reusable template from an
+  existing Scene is a separate feature with its own persistence surface. Deferred to Phase 2.
+- **Automatic close of anything, ever.** See [Ownership](#ownership).
