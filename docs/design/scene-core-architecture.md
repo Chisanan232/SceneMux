@@ -235,6 +235,20 @@ SceneMux Slot. Inherited names stay as they are — Phase 0's rule against blind
 too — so SceneMux types carry their own unambiguous names: `Slot`, `SlotId`, `SlotRole`,
 `SlotComposition`, in the SceneMux layer. When prose could be read either way, write "Scene Slot".
 
+There is a second collision, and it is a hard one: **`SwiftUI.Scene`**. Three inherited files in
+`Sources/AppBundle/ui/` already return `some Scene` from SwiftUI window builders
+(`ui/settings/ShortcutSettingsView.swift`, `ui/menubar/MenuBar.swift`, `ui/hud/MessageView.swift`), and a
+module-scope `struct Scene` in `AppBundle` would shadow the protocol they mean — turning `some Scene` into
+`some` applied to a non-protocol type. Qualifying those inherited files as `some SwiftUI.Scene` would fix
+the build by editing inherited UI code, which rule 3 below exists to prevent.
+
+So the domain types live in a namespace: **`enum SceneCore`**, with the types nested inside it and written
+`SceneCore.Scene`, `SceneCore.Slot`, `SceneCore.Attachment` at every use site. This is what the Phase 1
+tickets mean by "a SceneMux-owned namespace". It costs a prefix and buys three things: `SwiftUI.Scene`
+keeps meaning `SwiftUI.Scene` with no inherited file touched, any future collision between product
+vocabulary and Apple's (`Slot`, `Attachment`) is pre-empted, and the SceneMux layer is visible at every
+call site in a codebase where everything around it is inherited.
+
 ## Attachment and Mount
 
 An **Attachment** is the record that a window is participating in a Scene, and on what terms. It is the
