@@ -70,7 +70,7 @@ extension SceneCore {
             self.diagnostics = diagnostics
         }
 
-        /// `Debug the release candidate now` at a budget of 20 → `Debug the r…date now`.
+        /// `Debug the release candidate now` at a budget of 20 → `Debug the …idate now`.
         private static func middleTruncated(_ title: String, to budget: Int) -> String {
             guard title.count > budget, budget > 1 else { return title }
             let keep = budget - 1
