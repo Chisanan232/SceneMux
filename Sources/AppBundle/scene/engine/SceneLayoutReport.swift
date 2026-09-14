@@ -29,8 +29,12 @@ extension SceneCore {
         var missingWindows: [WindowRef] { outcomes.flatMap(\.placement.missingWindows) }
 
         /// The Slots that ended up composed differently from the way they asked.
+        ///
+        /// Measured against what each Slot could actually have become: a split Slot holding one window is a
+        /// single window, and counting that as an adjustment would report a Scene as imperfectly laid out for
+        /// having done exactly what was asked of it.
         var adjustedSlots: [SlotId] {
-            outcomes.filter { !$0.placement.isAsRequested($0.group.composition) }.map(\.group.slotId)
+            outcomes.filter { !$0.placement.isAsRequested($0.group.realisableComposition) }.map(\.group.slotId)
         }
 
         /// Whether the screen now matches the Scene exactly. False is a normal, reportable outcome.
