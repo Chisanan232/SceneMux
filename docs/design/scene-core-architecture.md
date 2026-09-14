@@ -553,6 +553,12 @@ The one thing that does belong in the config file is user *intent* about Scene C
 and per-application overrides. Those are declarative, hand-editable, and reviewed like every other config
 key.
 
+Home therefore has an owner on each side of that line, and mixing them up is the mistake to avoid. Which
+Home an application *belongs to* is policy: it comes from the config file, the user changes it there, and
+the resolution rules are HORO-1107's. `homeAtAttachTime` is not a second copy of that policy — it is
+evidence, a record of what the policy said at the moment this window was attached, which is why Scene state
+owns it and why re-homing an application later does not rewrite it.
+
 ### What is persisted, and what is refused
 
 | Persisted | Not persisted | Why not |
