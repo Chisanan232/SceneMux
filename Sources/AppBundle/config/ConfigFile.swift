@@ -2,7 +2,10 @@ import Common
 import Foundation
 import TOMLKit
 
-let legacyConfigDotfileName = ".winmux.toml"
+let legacyConfigDotfileName = ".scenemux.toml"
+let winMuxConfigDirectoryName = "winmux"
+let winMuxConfigFileName = "winmux.toml"
+let winMuxLegacyConfigDotfileName = ".winmux.toml"
 let generatedConfigDirectoryName = "scenemux"
 let generatedConfigFileName = "scenemux.toml"
 let aerospaceLegacyConfigDotfileName = ".aerospace.toml"
@@ -20,10 +23,19 @@ func generatedConfigUrl() -> URL {
         .appending(path: generatedConfigFileName)
 }
 
+/// Config files SceneMux may import from, in priority order.
+///
+/// These are read-only import sources. SceneMux copies the first one that exists into
+/// its own config path and never writes to, moves, or deletes any of them, so an
+/// installed WinMux keeps working off its own file afterwards.
 func legacyConfigCandidateUrls() -> [URL] {
     [
-        xdgConfigHomeUrl().appending(path: "winmux").appending(path: "winmux.toml"),
+        xdgConfigHomeUrl().appending(path: generatedConfigDirectoryName).appending(path: generatedConfigFileName),
         FileManager.default.homeDirectoryForCurrentUser.appending(path: legacyConfigDotfileName),
+        // Inherited WinMux locations. Kept so a WinMux user is not dropped onto starter
+        // defaults, but ranked below SceneMux's own paths.
+        xdgConfigHomeUrl().appending(path: winMuxConfigDirectoryName).appending(path: winMuxConfigFileName),
+        FileManager.default.homeDirectoryForCurrentUser.appending(path: winMuxLegacyConfigDotfileName),
     ]
 }
 
