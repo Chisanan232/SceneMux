@@ -46,7 +46,7 @@ struct ReloadConfigCommand: Command {
             stdout.append(msg)
             if !args.noGui {
                 Task { @MainActor in
-                    MessageModel.shared.message = Message(description: "WinMux Config Error", body: msg)
+                    MessageModel.shared.message = Message(description: "SceneMux Config Error", body: msg)
                 }
             }
             result = false
