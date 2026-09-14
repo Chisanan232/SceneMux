@@ -101,6 +101,17 @@ extension SceneCore {
             return slot
         }
 
+        /// Take an empty Slot out of a Scene.
+        ///
+        /// The undo for a Slot added by mistake, and no more than that: a Slot that still holds windows is
+        /// refused by the domain rather than removed with their attachments, because an attachment is the
+        /// record of what SceneMux may do to that window — including the promise to send a borrowed one home.
+        /// Move the windows out first, which is a visible decision.
+        func removeSlot(_ slotId: SlotId, from id: SceneId) throws {
+            guard let scene = world.scene(id) else { throw SceneLifecycleError.unknownScene(id) }
+            try apply(try world.replacing(try scene.removingSlot(slotId)))
+        }
+
         /// Put a Scene on screen, projected onto this substrate.
         ///
         /// Pressing the same shortcut twice is not an error and does nothing the second time. Entering while a
