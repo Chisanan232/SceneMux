@@ -114,6 +114,15 @@ Slot composition in Phase 1 must be built on `join-with`, not on `split`.
 with `layout tab-group` on the destination. A Scene that mounts a tab group across workspaces cannot
 assume the grouping survives the move.
 
+**Hiding a workspace is a real window move, and it is not undone on shutdown.** A window on a
+workspace that is not visible is not hidden by macOS; it is moved out of the visible area — to a
+negative x, or to the bottom-right corner of the visible rect. This became concrete when the external
+display was disconnected mid-session: the windows that had lived on it were parked at x = 1727 on the
+built-in, and making their workspace visible again brought them back. But nothing unwinds a park if
+the process stops first, so quitting, killing or crashing SceneMux while a workspace is hidden leaves
+those windows off-screen for the user to recover by hand. Phase 1 lifecycle restore therefore has to
+treat "parked" as a state to unwind at shutdown, not only at the end of a Scene.
+
 **Directional focus is not contained by default.** `focus --window-id` is exact, but `focus right`
 and `focus left` from a tiled window did not stay among its tiling siblings — they landed on unrelated
 floating windows belonging to other applications, and the app's own focus-debug log showed the engine
