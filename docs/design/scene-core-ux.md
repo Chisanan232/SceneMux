@@ -619,7 +619,7 @@ Slot describes a shipped, tested presentation model with nothing yet to present.
 | Window rows beneath Slot rows | `SceneShellWindowRow` and `SceneSwitcherWindowRow.swift` exist and are tested, and no Slot has a window to render | Shipped now so the layer is guarded before the ticket that fills it |
 | `ctrl-alt-shift-1…5` → `slot <n>` | Unbound | There is no `slot <n>` command: *the focused window* → Slot needs the mapping attachments provide. A binding that silently does nothing is worse than an absent one. HORO-1217 |
 | `ctrl-alt-shift-m` → `slot move` | Unbound | No move-to-slot mode, for the same reason. HORO-1217 |
-| `ctrl-alt-shift-n` → `slot new` | Unbound; *Add slot* chips on the active Scene's row instead | `slot add` requires `--role`, so a default binding would have to choose a role on the user's behalf. HORO-1217 |
+| `ctrl-alt-shift-n` → `slot new` | Unbound; *Add slot* chips on the active Scene's row instead | `slot new` requires `--role`, so a default binding would have to choose a role on the user's behalf. HORO-1217 |
 | `ctrl-alt-shift-c` → cycle *the focused window's* Slot | Unbound; `slot compose --slot <n>` addresses a Slot by number, and the Slot row's chip does it by pointer | The focused window's Slot is not knowable yet. HORO-1217 |
 | `⌥↑` / `⌥↓` move a window row between Slots | Not implemented | Moves an attachment. HORO-1217 |
 | `→` / `←` to disclose, `⇥` between sections | Not implemented | The switcher expands the selected Scene and has one section, so there is nothing yet to disclose or traverse |
