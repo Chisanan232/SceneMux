@@ -31,4 +31,18 @@ final class SceneOrchestratorTest: XCTestCase {
         XCTAssertEqual(orchestrator.diagnostics, [])
         XCTAssertEqual(orchestrator.unfinishedTeardowns, [])
     }
+
+    func testEveryChangeIsOnDiskBeforeItIsBelieved() throws {
+        let store = store(in: try temporaryDirectory())
+        let orchestrator = SceneCore.SceneOrchestrator(store: store)
+
+        let scene = try orchestrator.createScene(title: "Debug PROD-123")
+        try orchestrator.enter(scene.id, on: substrate)
+
+        // A second orchestrator over the same file is what the next launch is.
+        let relaunched = SceneCore.SceneOrchestrator(store: store)
+        XCTAssertEqual(relaunched.world, orchestrator.world)
+        XCTAssertEqual(relaunched.world.activeScene?.state, .active(substrate))
+        XCTAssertEqual(relaunched.diagnostics, [])
+    }
 }
