@@ -81,4 +81,32 @@ final class SceneWorldLifecycleTest: XCTestCase {
 
         XCTAssertEqual(try world.leaving(id), world)
     }
+
+    func testClosingTheGoldenJourneyOwesOnlyTheBorrowedWindows() throws {
+        let scene = try SceneCoreFixtures.debugScene(state: .active(substrate))
+        let world = try SceneCore.SceneWorld(scenes: [scene])
+
+        let closed = try world.closing(scene.id)
+
+        // The plan is the whole sentence, including the windows nothing happens to.
+        XCTAssertEqual(closed.plan.sceneTitle, "Debug PROD-123")
+        XCTAssertEqual(closed.plan.steps.count, 6)
+        XCTAssertEqual(
+            closed.plan.pending.map(\.windowRef),
+            [try SceneCoreFixtures.windowRef(App.line), try SceneCoreFixtures.windowRef(App.slack)],
+        )
+        XCTAssertEqual(closed.plan.pending.map(\.recordedHome), [.communication, .communication])
+        XCTAssertEqual(
+            closed.plan.cleanupCandidates.map(\.windowRef),
+            [
+                try SceneCoreFixtures.windowRef(App.terminal),
+                try SceneCoreFixtures.windowRef(App.ide),
+                try SceneCoreFixtures.windowRef(App.browser),
+                try SceneCoreFixtures.windowRef(App.grafana),
+            ],
+        )
+        // What is left attached is what is left owed: the two borrowed windows, and nothing else.
+        XCTAssertEqual(closed.world.scene(scene.id)?.state, .ending)
+        XCTAssertEqual(closed.world.scene(scene.id)?.attachments.map(\.ownership), [.borrowed, .borrowed])
+    }
 }
