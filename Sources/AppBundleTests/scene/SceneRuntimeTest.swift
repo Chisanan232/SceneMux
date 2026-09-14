@@ -91,4 +91,26 @@ final class SceneRuntimeTest: XCTestCase {
         XCTAssertEqual(port.preparedSubstrates, [])
         XCTAssertNil(runtime.message)
     }
+
+    /// Nine number keys and one Scene: most of those keys name nothing, and each refusal says which number was
+    /// meant. A Slot number is only ever read against the Scene on screen, so asking for one with no Scene up is
+    /// a different refusal from asking for one that does not exist.
+    func testANumberThatNamesNothingIsRefusedByThatNumber() throws {
+        let runtime = try runtime()
+        let scene = try runtime.createScene(title: "Debug PROD-123")
+
+        XCTAssertEqual(try runtime.scene(numbered: 1).id, scene.id)
+        XCTAssertThrowsError(try runtime.scene(numbered: 4)) { error in
+            XCTAssertEqual(error as? SceneCore.SceneRuntimeError, .noSceneNumbered(4))
+        }
+        XCTAssertThrowsError(try runtime.slot(numbered: 1)) { error in
+            XCTAssertEqual(error as? SceneCore.SceneRuntimeError, .noActiveScene)
+        }
+
+        try runtime.enter(scene.id)
+        XCTAssertEqual(try runtime.slot(numbered: 2).role, .editor)
+        XCTAssertThrowsError(try runtime.slot(numbered: 9)) { error in
+            XCTAssertEqual(error as? SceneCore.SceneRuntimeError, .noSlotNumbered(9))
+        }
+    }
 }
