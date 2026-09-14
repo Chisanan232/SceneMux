@@ -197,6 +197,27 @@ final class AgentCommandTest: XCTestCase {
         XCTAssertTrue(editor.noOuterGapsInFullscreen)
     }
 
+    func testSetSceneMuxFullscreenIsAcceptedAlongsideInheritedSpelling() async throws {
+        let root = Workspace.get(byName: "a").rootTilingContainer
+        let editor = TestWindow.new(id: 1, parent: root)
+
+        let path = try writeAgentJson("""
+            {
+              "schemaVersion": 1,
+              "edit": {
+                "operations": [
+                  { "type": "setSceneMuxFullscreen", "windowId": 1, "value": true }
+                ]
+              }
+            }
+            """)
+
+        let result = try await parseCommand("agent apply --path \(path.path)").cmdOrDie.run(.defaultEnv, .emptyStdin)
+
+        XCTAssertEqual(result.exitCode, 0)
+        XCTAssertTrue(editor.isFullscreen)
+    }
+
     func testCreateTabGroupAcceptsWindowsAliasAndInfersWorkspace() async throws {
         let root = Workspace.get(byName: "a").rootTilingContainer
         _ = TestWindow.new(id: 1, parent: root)
