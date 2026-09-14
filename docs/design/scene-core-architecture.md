@@ -197,7 +197,7 @@ A Slot holds:
 | `id: SlotId` | Stable identity, generated once, unique within the Scene |
 | `role: SlotRole` | One of the five above. Two Slots may share a role — "two terminals" is legitimate |
 | `label: String?` | Optional user text, shown instead of the role name when set |
-| `composition: SlotComposition` | `.single`, `.split(Orientation)` or `.tabbed` — how *several* windows share this Slot |
+| `composition: SlotComposition` | `.single`, `.split(SlotOrientation)` or `.tabbed` — how *several* windows share this Slot |
 | `order: Int` | Where the Slot sits relative to its siblings. An ordering, not a coordinate |
 
 There is no frame, no origin, no size, no monitor id anywhere in a Slot. Geometry is the engine's
@@ -228,7 +228,7 @@ Scene state follows the user rather than fighting them.
 | `SlotComposition` | Engine realisation |
 | --- | --- |
 | `.single` | The window is bound into the workspace's tiling tree at the Slot's ordinal position |
-| `.split(.h / .v)` | Sibling windows joined with `join-with` in that orientation — never `split`, which is a no-op in this engine |
+| `.split(.horizontal / .vertical)` | Sibling windows joined with `join-with` in that orientation — never `split`, which is a no-op in this engine |
 | `.tabbed` | A `TilingContainer` with `Layout.tabGroup`, the shape `baseline-verification.md` measured |
 
 The nested case the golden journey needs — one window filling the left half, two stacked on the right —
@@ -242,7 +242,10 @@ calls a deliberately-kept empty workspace a "retained empty slot", and `Workspac
 means "an empty workspace nobody pinned". That is a *spare screenful*, and it has nothing to do with a
 SceneMux Slot. Inherited names stay as they are — Phase 0's rule against blind renaming applies to this
 too — so SceneMux types carry their own unambiguous names: `Slot`, `SlotId`, `SlotRole`,
-`SlotComposition`, in the SceneMux layer. When prose could be read either way, write "Scene Slot".
+`SlotComposition`, `SlotOrientation`, in the SceneMux layer. When prose could be read either way, write
+"Scene Slot". `SlotOrientation` is the domain's own `.horizontal` / `.vertical`, deliberately not the
+engine's `Orientation` with its `.h` / `.v`: the domain names no engine type at all, which is invariant
+I12 and is checked by `script/test_scene_domain_layering.py`.
 
 There is a second collision, and it is a hard one: **`SwiftUI.Scene`**. Three inherited files in
 `Sources/AppBundle/ui/` already return `some Scene` from SwiftUI window builders
