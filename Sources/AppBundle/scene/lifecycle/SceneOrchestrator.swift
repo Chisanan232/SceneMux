@@ -52,6 +52,16 @@ extension SceneCore {
             self.diagnostics = diagnostics
         }
 
+        /// Define a new Scene: named, off screen, holding no windows.
+        ///
+        /// Returns the Scene rather than only its identity, so a caller that has just made one does not have to
+        /// go looking in the world for it and cannot look in the wrong one.
+        func createScene(title: String, slots: [Slot] = []) throws -> Scene {
+            let created = try world.creating(title: title, slots: slots)
+            try apply(created.world)
+            return created.scene
+        }
+
         /// Write this world, and only then believe in it.
         ///
         /// The order is the safety property. If the save fails, the change never happened as far as the rest of
