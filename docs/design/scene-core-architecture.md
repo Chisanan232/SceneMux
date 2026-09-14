@@ -173,3 +173,64 @@ correctness: because the surface is resolved late, a Home never holds a stale wo
 a Scene ending months after it started still restores a window somewhere real. It matters for the UX
 too — the companion spec shows the Home *category* on a row, never the workspace number, because the
 category is the part that is stable and meaningful.
+
+## Slot
+
+A **Slot** is a named role inside a Scene — *the place where the editor goes*, not *the rectangle at
+x=848*. v0.1.0 ships five roles:
+
+`editor` · `terminal` · `preview` · `observability` · `communication`
+
+A Slot holds:
+
+| Field | Meaning |
+| --- | --- |
+| `id: SlotId` | Stable identity, generated once, unique within the Scene |
+| `role: SlotRole` | One of the five above. Two Slots may share a role — "two terminals" is legitimate |
+| `label: String?` | Optional user text, shown instead of the role name when set |
+| `composition: SlotComposition` | `.single`, `.split(Orientation)` or `.tabbed` — how *several* windows share this Slot |
+| `order: Int` | Where the Slot sits relative to its siblings. An ordering, not a coordinate |
+
+There is no frame, no origin, no size, no monitor id anywhere in a Slot. Geometry is the engine's
+business: the tiling engine already computes rectangles from weights and orientations, on whatever
+monitor the workspace is on, and it does it better than a stored rectangle would survive a display
+change. A Slot says *what goes where relative to what*; the engine says *how big*.
+
+### Slot identity lives in Scene state, not in the tree
+
+This is the second load-bearing consequence of the engine survey. The obvious implementation — "a Slot
+*is* a `TilingContainer`" — cannot work:
+
+- `normalizeContainers.swift` flattens a container down to its single child, so a Slot holding one
+  window would evaporate the moment normalization ran;
+- an empty Slot has no container at all to be, yet an empty `terminal` Slot is meaningful — it is where
+  the terminal *will* go, and the UX draws it;
+- containers are rebuilt when windows move, so any identity stored in one is lost on the first drag.
+
+So: **Scene state is the source of truth. Each attachment records which `SlotId` it belongs to, and the
+engine tree is projected from that.** A Slot with no attachments exists in Scene state and simply
+contributes nothing to the tree. Reconciliation is one-directional — Scene state → engine tree — with
+one exception, described in [Reconciliation](#reconciliation-and-the-engine-adapter): when the user
+rearranges windows *with the engine's own commands*, the resulting slot membership is read back so that
+Scene state follows the user rather than fighting them.
+
+### How composition is realised
+
+| `SlotComposition` | Engine realisation |
+| --- | --- |
+| `.single` | The window is bound into the workspace's tiling tree at the Slot's ordinal position |
+| `.split(.h / .v)` | Sibling windows joined with `join-with` in that orientation — never `split`, which is a no-op in this engine |
+| `.tabbed` | A `TilingContainer` with `Layout.tabGroup`, the shape `baseline-verification.md` measured |
+
+The nested case the golden journey needs — one window filling the left half, two stacked on the right —
+is exactly the `join-with right` shape recorded in the baseline document, so it is known to work on real
+geometry rather than assumed.
+
+### A naming collision, stated so nobody trips on it
+
+The inherited engine already uses the word "slot" for something else: `WorkspaceRetainedEmptySlot.swift`
+calls a deliberately-kept empty workspace a "retained empty slot", and `Workspace.isOrdinaryEmptySlot`
+means "an empty workspace nobody pinned". That is a *spare screenful*, and it has nothing to do with a
+SceneMux Slot. Inherited names stay as they are — Phase 0's rule against blind renaming applies to this
+too — so SceneMux types carry their own unambiguous names: `Slot`, `SlotId`, `SlotRole`,
+`SlotComposition`, in the SceneMux layer. When prose could be read either way, write "Scene Slot".
