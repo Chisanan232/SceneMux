@@ -81,6 +81,26 @@ extension SceneCore {
             try apply(try world.replacing(try scene.renamed(to: title)))
         }
 
+        /// Add a Slot to a Scene, and hand it back.
+        ///
+        /// Ordered last, because a Slot is added to the end of what the Scene already has — a new Slot is a
+        /// new place, not a re-plan of the existing ones. It starts empty and `.single`: there is no geometry
+        /// to ask for, and inventing a composition for a Slot with nothing in it would be a shape nobody
+        /// chose. Adding a Slot moves no window, even while the Scene is on screen; what it changes is where
+        /// the next window *can* go.
+        func addSlot(role: SlotRole, label: String? = nil, to id: SceneId) throws -> Slot {
+            guard let scene = world.scene(id) else { throw SceneLifecycleError.unknownScene(id) }
+            let slot = Slot(
+                id: .generate(),
+                role: role,
+                label: label,
+                composition: .single,
+                order: (scene.slots.map(\.order).max() ?? -1) + 1,
+            )
+            try apply(try world.replacing(try scene.addingSlot(slot)))
+            return slot
+        }
+
         /// Put a Scene on screen, projected onto this substrate.
         ///
         /// Pressing the same shortcut twice is not an error and does nothing the second time. Entering while a
