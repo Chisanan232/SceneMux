@@ -114,6 +114,14 @@ Slot composition in Phase 1 must be built on `join-with`, not on `split`.
 with `layout tab-group` on the destination. A Scene that mounts a tab group across workspaces cannot
 assume the grouping survives the move.
 
+**Directional focus is not contained by default.** `focus --window-id` is exact, but `focus right`
+and `focus left` from a tiled window did not stay among its tiling siblings — they landed on unrelated
+floating windows belonging to other applications, and the app's own focus-debug log showed the engine
+choosing them deliberately rather than failing. Adding `--ignore-floating` made both directions
+deterministic between the siblings. Phase 1 must not move between Slots with a bare directional
+focus: on a display that also carries unmanaged windows it can hand focus to something the Scene does
+not own.
+
 **Translucent chrome samples whatever is behind it.** The tab strip is drawn with
 `.ultraThinMaterial` and an inactive tab adds only a faint white fill, so the backdrop reads straight
 through. An early capture showed what looked like a saturated pink pill on an inactive tab; nothing
