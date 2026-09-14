@@ -31,4 +31,20 @@ final class SceneStateFormatTest: XCTestCase {
         XCTAssertEqual(Set(json.keys), ["version", "scenes"])
         XCTAssertEqual(json["version"] as? Int, SceneCore.SceneStateSchema.current)
     }
+
+    func testAFileFromANewerSceneMuxIsRefusedByItsVersionAndNotByItsFields() {
+        let fromTheFuture = Data(#"{ "version": 99, "scenes": [{ "unheardOf": true }] }"#.utf8)
+
+        let read = SceneCore.SceneStateFormat.read(fromTheFuture, from: path)
+
+        // The refusal has to name the version, not a field. "scenes[0] is missing 'title'" would send
+        // someone hunting for a corrupt file when what they have is a working file and an old build.
+        guard case .refused(let refusal) = read else { return XCTFail("Expected a refusal: \(read)") }
+        XCTAssertEqual(
+            refusal.reason,
+            .unsupportedVersion(found: 99, readable: SceneCore.SceneStateSchema.readable),
+        )
+        XCTAssertTrue(refusal.diagnostic.contains("is version 99"), refusal.diagnostic)
+        XCTAssertEqual(read.scenes, [])
+    }
 }
