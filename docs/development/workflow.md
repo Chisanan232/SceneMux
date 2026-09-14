@@ -6,7 +6,7 @@ Humans and agents follow the same rules. If any other file disagrees with this o
 
 ## One ticket, one worktree
 
-Every change belongs to a ticket in the [AAASM/HORO Jira project](https://lightning-dust-mite.atlassian.net).
+Every change belongs to a ticket in the [`HORO` Jira project](https://lightning-dust-mite.atlassian.net).
 Work happens in a dedicated git worktree created from the latest `main`, never in the primary
 working tree and never directly on `main`.
 
