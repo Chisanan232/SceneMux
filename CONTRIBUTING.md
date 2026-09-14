@@ -22,7 +22,7 @@ SceneMux is developed ticket by ticket, and the same rules apply to humans and t
 4. Verify before opening a pull request:
    ```shell
    make build VERSION=0.0.0                       # zero errors, zero warnings
-   swift test                                     # zero failures
+   source ./script/setup.sh && swift test         # zero failures, pinned toolchain
    python3 script/test_update_feed_isolation.py
    python3 script/test_validate_appcast.py
    python3 script/license-inventory.py
