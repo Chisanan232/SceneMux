@@ -16,6 +16,30 @@ final class ShortcutSettingsConfigEditsTest: XCTestCase {
         XCTAssertNil(canonicalConfigCommandScript("focus --help"))
     }
 
+    /// HORO-1175. This call is what crashed the Release build — and only the Release build — while
+    /// writing the starter config on first launch: every existing binding line is canonicalized, and
+    /// the canonicalizer read `args` out of a temporary the optimizer had already destroyed. It earns
+    /// its own test as the plainest contract of this function too: canonicalizing a config in which
+    /// nothing is managed and nothing is assigned must leave it exactly as it was.
+    func testUpdateModeBindingConfigLeavesConfigUntouchedWhenNothingIsManagedOrAssigned() {
+        let config = """
+            config-version = 2
+
+            [mode.main.binding]
+            alt-h = 'focus left'
+            """
+
+        let updated = updateModeBindingConfig(
+            in: config,
+            modeName: "main",
+            tableKey: "binding",
+            managedCommands: [],
+            assignments: [:]
+        )
+
+        XCTAssertEqual(updated, config)
+    }
+
     func testUpdateModeBindingConfigAddsMissingSection() {
         let updated = updateModeBindingConfig(
             in: """
