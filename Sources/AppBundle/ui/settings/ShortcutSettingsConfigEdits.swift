@@ -102,7 +102,8 @@ func persistMainModeBindings(assignments: [String: String], managedCommands: Set
     return targetUrl
 }
 
-/// The command string as the CLI would print it back, or `nil` if `raw` does not parse.
+/// The command string as the CLI would print it back, or `nil` if `raw` is not a runnable command —
+/// which includes a `--help` request, since that parses but is not something a binding can run.
 ///
 /// The parsed value is bound to a local and `args` copied out of it deliberately. Written as a
 /// `switch parseCommand(raw)` in expression position — the shape inherited from the derivation
