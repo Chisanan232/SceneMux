@@ -3,6 +3,12 @@ import Foundation
 import XCTest
 
 final class OwnershipTest: XCTestCase {
+    func testEachOwnershipPermitsExactlyTheTeardownItsTableRowNames() {
+        XCTAssertEqual(SceneCore.Ownership.borrowed.teardownEffect, .restoreToHome)
+        XCTAssertEqual(SceneCore.Ownership.sceneOwned.teardownEffect, .leaveInPlace)
+        XCTAssertEqual(SceneCore.Ownership.sharedPersistent.teardownEffect, .untouched)
+    }
+
     func testAnUnrecognisedPersistedOwnershipDegradesToTheUntouchableOne() throws {
         let fromTheFuture = Data(#""quarantinedPendingReview""#.utf8)
 
