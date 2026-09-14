@@ -32,4 +32,22 @@ final class SceneShellWindowRowTest: XCTestCase {
         )
         XCTAssertEqual(row.accessibilityLabel, "LINE, Communication, mounted")
     }
+
+    func testASceneOwnedWindowHasNoBorrowSignalsAtAll() throws {
+        let row = SceneCore.SceneShellWindowRow(
+            attachment: SceneCoreFixtures.attachment(
+                windowRef: try SceneCoreFixtures.windowRef(App.ide),
+                slotId: .generate(),
+                ownership: .sceneOwned,
+                homeAtAttachTime: .development,
+            ),
+            naming: naming,
+        )
+
+        XCTAssertEqual(row.trailing, "Development")
+        XCTAssertNil(row.borrowGlyph)
+        XCTAssertFalse(row.hasDashedLeadingEdge)
+        XCTAssertNil(row.reversibility)
+        XCTAssertEqual(row.accessibilityLabel, "IDE, Development")
+    }
 }
