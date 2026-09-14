@@ -61,3 +61,12 @@ jobs:
           set -euo pipefail
           source ./script/setup.sh
           swift test
+      # The same suite again, compiled the way a release is compiled. HORO-1175 was a crash that
+      # existed only under `-O`: the debug suite passed, CI was green, and the Release app died on
+      # first launch. A suite that only ever runs unoptimized cannot catch that class of defect, and
+      # the shipped artifact is the optimized one.
+      - name: Test (release configuration)
+        run: |
+          set -euo pipefail
+          source ./script/setup.sh
+          swift test -c release

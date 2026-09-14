@@ -2,6 +2,44 @@
 import XCTest
 
 final class ShortcutSettingsConfigEditsTest: XCTestCase {
+    func testCanonicalConfigCommandScriptNormalizesParsableCommandsAndRejectsOthers() {
+        XCTAssertEqual(canonicalConfigCommandScript("focus left"), "focus left")
+        XCTAssertEqual(canonicalConfigCommandScript("focus    left"), "focus left")
+        // exec-and-forget takes the rest of the line verbatim, so it never reaches the arg parser.
+        // The doubled space is inherited: the script keeps the separator that follows the subcommand,
+        // and the string representation adds its own. Pinned as-is — a canonical form that differs
+        // from what is written in the config decides which bindings this file treats as managed, so
+        // changing it is a behaviour change and not this fix's business.
+        XCTAssertEqual(canonicalConfigCommandScript("exec-and-forget open -a Xcode"), "exec-and-forget  open -a Xcode")
+        XCTAssertNil(canonicalConfigCommandScript("not-a-command"))
+        XCTAssertNil(canonicalConfigCommandScript(""))
+        XCTAssertNil(canonicalConfigCommandScript("focus --help"))
+    }
+
+    /// HORO-1175. This call is what crashed the Release build — and only the Release build — while
+    /// writing the starter config on first launch: every existing binding line is canonicalized, and
+    /// the canonicalizer read `args` out of a temporary the optimizer had already destroyed. It earns
+    /// its own test as the plainest contract of this function too: canonicalizing a config in which
+    /// nothing is managed and nothing is assigned must leave it exactly as it was.
+    func testUpdateModeBindingConfigLeavesConfigUntouchedWhenNothingIsManagedOrAssigned() {
+        let config = """
+            config-version = 2
+
+            [mode.main.binding]
+            alt-h = 'focus left'
+            """
+
+        let updated = updateModeBindingConfig(
+            in: config,
+            modeName: "main",
+            tableKey: "binding",
+            managedCommands: [],
+            assignments: [:]
+        )
+
+        XCTAssertEqual(updated, config)
+    }
+
     func testUpdateModeBindingConfigAddsMissingSection() {
         let updated = updateModeBindingConfig(
             in: """

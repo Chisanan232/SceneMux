@@ -27,7 +27,7 @@ Every one of these must hold before anything is tagged. Each is checkable; none 
 | 8 | The update feed is still isolated. | `python3 script/test_update_feed_isolation.py` |
 | 9 | The appcast validator still passes its own tests. | `python3 script/test_validate_appcast.py` |
 | 10 | The build is clean. | `make build VERSION=<version>` — exit 0, zero errors, zero warnings |
-| 11 | Tests pass. | `swift test` — zero failures |
+| 11 | Tests pass in both configurations. | `swift test` **and** `swift test -c release` — zero failures in each |
 | 12 | CI on the release commit is green, or every non-green check is explained in the release ticket. | `gh pr checks` / `gh api repos/Chisanan232/SceneMux/commits/<sha>/check-runs` |
 | 13 | A Release build succeeds and the app launches. | `make release VERSION=<version> PUBLISH=0`, then run the binary |
 | 14 | Screenshot or artifact evidence for the release gate exists. | see [`ui-verification.md`](ui-verification.md) |
@@ -35,6 +35,11 @@ Every one of these must hold before anything is tagged. Each is checkable; none 
 | 16 | Release notes are written and distinguish SceneMux-owned work from the inherited foundation, and state what is **not** included. | review the drafted notes |
 
 If a precondition cannot be met, stop and record why on the release ticket. Do not tag around it.
+
+Precondition 11 names both configurations because what this procedure ships is the optimized build.
+HORO-1175 was a crash that existed only under `-O`: the debug suite passed, CI was green, and the
+Release app died on first launch — see
+[`baseline-verification.md`](baseline-verification.md#the-release-build-crashed-writing-the-starter-config--horo-1175).
 
 ## Signing
 
