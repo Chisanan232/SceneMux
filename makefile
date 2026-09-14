@@ -9,7 +9,6 @@ RELEASE_TAG ?= v$(VERSION)
 RELEASE_NOTES ?= auto
 PUBLISH ?= 1
 APP_INSTALL_DIR ?= /Applications
-SPARKLE_PUBLIC_KEY ?= kcc3956V3+Yo8GtwFJ8Odb9sphIr09/9dsuoYBNtxf0=
 ARGS ?=
 
 .PHONY: generate xcodeproj build build-clean run run-clean cli release install installed clean
@@ -28,7 +27,6 @@ xcodeproj:
 	export XCODEGEN_WINMUX_VERSION="$(VERSION)" && \
 	export XCODEGEN_WINMUX_CODE_SIGN_IDENTITY="$(CODESIGN_IDENTITY)" && \
 	export XCODEGEN_WINMUX_DEVELOPMENT_TEAM="$(DEVELOPMENT_TEAM)" && \
-	export XCODEGEN_WINMUX_SPARKLE_PUBLIC_KEY="$(SPARKLE_PUBLIC_KEY)" && \
 	./script/install-dep.sh --xcodegen && \
 	./.deps/xcodegen/xcodegen'
 
