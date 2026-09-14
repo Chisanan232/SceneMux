@@ -41,3 +41,8 @@ ISSoundAdditions is used as a convenient API to change system volume.
 [Sparkle GitHub link](https://github.com/sparkle-project/Sparkle).
 [Sparkle license](./third-party-license/LICENSE-Sparkle.txt).
 Sparkle is used as the application auto-update framework, including EdDSA signature verification of update archives. Its license is MIT for Sparkle itself, plus BSD-2-Clause, MIT and Zlib terms for the bundled bsdiff, sais-lite and Ed25519 C components.
+
+**MASShortcut**.
+[MASShortcut GitHub link](https://github.com/rxhanson/MASShortcut).
+[MASShortcut BSD-2-Clause license](./third-party-license/LICENSE-MASShortcut.txt).
+MASShortcut is used as the keyboard-shortcut recorder control in the settings UI.
