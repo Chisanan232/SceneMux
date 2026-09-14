@@ -30,9 +30,9 @@ func dumpAxRecursive(_ ax: AXUIElement, _ kind: AxKind, recursionDepth: Int = 0)
             if isWritable.boolValue { writable.append(key) }
         }
     }
-    if !writable.isEmpty { result["WinMux.AxWritable"] = .string(writable.joined(separator: ", ")) }
-    if !failedAxRequest.isEmpty { result["WinMux.AxFailed"] = .string(failedAxRequest.joined(separator: ", ")) }
-    if !ignored.isEmpty { result["WinMux.AxIgnored"] = .string(ignored.joined(separator: ", ")) }
+    if !writable.isEmpty { result["SceneMux.AxWritable"] = .string(writable.joined(separator: ", ")) }
+    if !failedAxRequest.isEmpty { result["SceneMux.AxFailed"] = .string(failedAxRequest.joined(separator: ", ")) }
+    if !ignored.isEmpty { result["SceneMux.AxIgnored"] = .string(ignored.joined(separator: ", ")) }
     return result
 }
 
