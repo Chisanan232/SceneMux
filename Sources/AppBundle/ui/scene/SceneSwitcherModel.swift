@@ -71,6 +71,44 @@ final class SceneSwitcherModel: ObservableObject {
         selection = index
     }
 
+    /// `⏎`, a click on a row, or `⌘1…9`: put the selected Scene on screen.
+    ///
+    /// Returns whether the panel is finished — true when the Scene was entered, so the caller can dismiss.
+    /// A refusal keeps the panel up with the reason on it: the user pressed a key expecting their screen to
+    /// change, and a panel that vanished silently would leave them with no idea why it did not.
+    @discardableResult
+    func enterSelected() -> Bool {
+        guard let row = selectedScene else { return false }
+        return enter(row.id)
+    }
+
+    @discardableResult
+    func enter(_ id: SceneCore.SceneId) -> Bool {
+        act { try runtime.enter(id) }
+    }
+
+    /// Runs a Scene operation, and turns whatever it refuses into a line the panel can show.
+    ///
+    /// Every error the runtime raises is already written to be shown as it is — that is what
+    /// `SceneRuntimeError` and its siblings are for — so there is nothing to translate here and nothing worth
+    /// logging: the user is the one who needs to know.
+    private func act(_ body: () throws -> Void) -> Bool {
+        errorText = nil
+        do {
+            try body()
+            return true
+        } catch let error as SceneCore.SceneRuntimeError {
+            errorText = error.description
+        } catch let error as SceneCore.SceneLifecycleError {
+            errorText = error.description
+        } catch let error as SceneCore.SceneCoreError {
+            errorText = error.description
+        } catch {
+            errorText = error.localizedDescription
+        }
+        return false
+    }
+
     private func haystack(_ row: SceneCore.SceneShellSceneRow) -> String {
         ([row.title] + row.slots.map(\.title) + row.slots.flatMap { $0.windows.map(\.applicationName) })
             .joined(separator: " ")
