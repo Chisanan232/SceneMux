@@ -1,6 +1,9 @@
 VERSION ?= 0.0.0-SNAPSHOT
 CODESIGN_IDENTITY ?= Apple Development
 EXPECTED_CODESIGN_AUTHORITY_PREFIX ?= Authority=Apple Development:
+# 'Automatic' resolves a Developer ID from the keychain. Set CODE_SIGN_STYLE=Manual with
+# CODESIGN_IDENTITY=- to produce an ad-hoc signed build on a machine that has no identity.
+CODE_SIGN_STYLE ?= Automatic
 DEVELOPMENT_TEAM ?=
 NOTARIZE ?= 0
 NOTARYTOOL_PROFILE ?=
@@ -109,7 +112,7 @@ release:
 	    -derivedDataPath "$$derived_data_path" \
 	    CODE_SIGN_IDENTITY="$(CODESIGN_IDENTITY)" \
 	    DEVELOPMENT_TEAM="$(DEVELOPMENT_TEAM)" \
-	    CODE_SIGN_STYLE=Automatic \
+	    CODE_SIGN_STYLE="$(CODE_SIGN_STYLE)" \
 	    archive; \
 	test -d "$$app_path"; \
 	test "$$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" "$$app_path/Contents/Info.plist")" = "$(VERSION)"; \
