@@ -24,7 +24,11 @@ struct WinMuxApp: App {
         #else
         menuBar(
             viewModel: viewModel,
-            checkForUpdates: { AutomaticUpdates.checkForUpdates() },
+            // Offering "Check for Updates…" with no feed configured would present a
+            // control that can only report a failure.
+            checkForUpdates: AutomaticUpdates.isFeedConfigured
+                ? { AutomaticUpdates.checkForUpdates() }
+                : nil,
         )
         #endif
         getShortcutSettingsWindow(model: shortcutSettingsModel)
