@@ -22,8 +22,6 @@ scene, and every window has a place in it. Native apps stay native.</p>
 > engine**. The task-oriented layer this project exists for — Semantic Homes, Scenes, Slots
 > and Mounts — arrives in v0.1.0 and is not present yet.
 
-https://github.com/user-attachments/assets/51983568-a168-494f-8ae3-5f50ca1efce1
-
 ## Highlights
 ### Projects
 Projects are collection of workspaces. Think of it like a parent/child hiearchy, you can switch between projects. Each project has it's own set of workspaces.
