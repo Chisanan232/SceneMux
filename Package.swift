@@ -11,7 +11,7 @@ let package = Package(
     // Products define the executables and libraries a package produces, making them visible to other packages.
     products: [
         .executable(name: "scenemux", targets: ["Cli"]),
-        .executable(name: "winmux-marketing-renderer", targets: ["MarketingRenderer"]),
+        .executable(name: "scenemux-marketing-renderer", targets: ["MarketingRenderer"]),
         .executable(name: "winmux-window-capture", targets: ["WindowCapture"]),
         // Don't use this build for release, use xcode instead
         .executable(name: "WinMuxApp", targets: ["WinMuxApp"]),
