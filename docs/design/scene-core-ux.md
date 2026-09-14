@@ -212,3 +212,97 @@ checking it still asks per window: no single click in this product closes four a
 
 The panel is a non-modal `NSPanel` attached to the sidebar, not an application-modal sheet: SceneMux must
 never block the user's other applications to ask itself a question.
+
+## Home versus mounted
+
+This is the distinction Phase 1 acceptance looks for on screen, so it is specified precisely rather than
+left to a designer's instinct.
+
+A window row shows its **Semantic Home** as trailing text, always, in every Scene and in the Shared
+section. When the window is a **Mount** — borrowed, its Home elsewhere — the row gains three things:
+
+```
+│   ├ ✉  Communication          2 windows · tabs  │
+│   │   ├ ◐ LINE          Communication · mounted │
+│   │   └ ◐ Slack         Communication · mounted │
+│   ├ ✎  Editor                       1 window    │
+│   │   └   IDE                       Development │
+```
+
+1. a **borrow glyph** (`◐`) in the leading position, beside the app icon;
+2. the suffix **`· mounted`** after the Home category;
+3. a **dashed leading edge** on the row instead of a solid one.
+
+Three signals, again, so that the distinction survives greyscale, reduced transparency and a compressed
+screenshot. What the row must *never* do is show `Development` because LINE happens to be inside a
+development Scene — that is invariant I1 rendered, and it is the single assertion the Phase 1 UI evidence
+exists to support.
+
+Hovering or focusing a mounted row reveals its reversibility, in plain words:
+
+```
+│   │   ├ ◐ LINE      Communication · mounted  ⏎↩ │
+│           Borrowed into this Scene. Goes back to
+│           Communication when the Scene closes.
+```
+
+If the user has re-homed the application since it was mounted, that line becomes the one place the change
+is explained — *"Home changed to Development while borrowed; will go back to Development"* — rather than a
+silent difference between what the row said yesterday and where the window goes today.
+
+## Slots and composition
+
+### Creating a Slot
+
+`⌘⇧N` on a selected Scene, or `+` on the Scene's row when expanded. A Slot needs a role and nothing else:
+
+```
+┌──────────────────────────────────────────────┐
+│  Add Slot to “Debug PROD-123”                │
+│   ( ⌨ Terminal ) ( ✎ Editor ) ( ◫ Preview )  │
+│   ( ◷ Observability ) ( ✉ Communication )    │
+│   Label (optional): [                     ]  │
+└──────────────────────────────────────────────┘
+```
+
+Five roles, chosen by click or by arrow keys, one optional label. There is no size field, no position
+field and no monitor picker anywhere in this panel, because a Slot has no geometry — see
+[Slot](scene-core-architecture.md#slot). Duplicate roles are allowed: two terminals is a normal thing to
+want.
+
+### Putting a window into a Slot
+
+| Path | Interaction |
+| --- | --- |
+| Drag | Drag a window row onto a Slot row. The Slot row shows a drop highlight; dropping between two Slots is not a target, because a window belongs *in* a role, not between roles |
+| Keyboard | Select the window row, `⌘⌥→` / `⌘⌥←` to move it to the next/previous Slot |
+| Command | `⌘⇧M` opens the switcher in *move-to-slot* mode: type a role, `⏎` |
+| From the screen | Focus a window, then `⌘⌥⇧1…5` to send the focused window to the *n*-th Slot of the active Scene |
+
+Dragging a window whose Home differs from the Slot's serving Home shows the drop as a **borrow**: the drop
+highlight is dashed and the drop hint reads *"Mount here · stays a Communication window"*. The user is told
+what borrowing means at the moment they do it, not after.
+
+### Composing several windows in one Slot
+
+Composition is a property of the Slot, cycled from its row and shown in its trailing text:
+
+```
+   ├ ✉  Communication       2 windows            ←  .single   (most recent on top)
+   ├ ✉  Communication       2 windows · split ⬍   ←  .split(.v)
+   └ ✉  Communication       2 windows · tabs     ←  .tabbed
+```
+
+| Path | Interaction |
+| --- | --- |
+| Keyboard | `⌘⇧\` cycles the selected Slot's composition: single → split → tabs |
+| Pointer | Click the composition chip in the Slot's trailing area; a three-item dropdown |
+| Drag | Drop a window *onto another window row* inside the same Slot to make it tabbed — the same gesture the inherited tab strip already uses |
+
+Under the hood `.split` is realised with `join-with` and `.tabbed` with `layout tab-group`; the inherited
+`split` command is a no-op in this engine and is not used. That is invisible to the user and is recorded
+here only so nobody designs a UI affordance around a command that does nothing.
+
+Orientation for `.split` is offered as ⬍ / ⬌ and nothing finer. Fractions, weights and resize handles stay
+where they already work — on the windows themselves, through the inherited engine's own resize behaviour,
+which the Scene UI neither replaces nor mirrors.
