@@ -23,6 +23,13 @@ extension SceneCore {
         /// The last thing worth telling the user, until the HUD takes it.
         @Published private(set) var message: SceneShellMessage?
 
+        /// How a command asks for a panel, registered by the UI at startup.
+        ///
+        /// Nothing is registered in a test or in a run with no surfaces, which is why every command that needs
+        /// one checks: a `scene switcher` that returned success without opening anything would be a lie the
+        /// user only discovers by looking at an unchanged screen.
+        var presenter: (@MainActor (SceneShellRequest) -> Void)?
+
         private let engine: any SceneEnginePort
         private let projector: SceneProjector
         private let naming: ApplicationNaming
