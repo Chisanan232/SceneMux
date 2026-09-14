@@ -17,7 +17,7 @@ final class AgentCommandTest: XCTestCase {
         let result = try await parseCommand("agent skill").cmdOrDie.run(.defaultEnv, .emptyStdin)
 
         XCTAssertEqual(result.exitCode, 0)
-        XCTAssertTrue(result.stdout.joined(separator: "\n").contains("name: winmux-agent"))
+        XCTAssertTrue(result.stdout.joined(separator: "\n").contains("name: scenemux-agent"))
         XCTAssertTrue(result.stdout.joined(separator: "\n").contains("setWinMuxFullscreen"))
         XCTAssertTrue(result.stdout.joined(separator: "\n").contains("\"swapPanes\""))
         XCTAssertTrue(result.stdout.joined(separator: "\n").contains("All `edit.operations` commands"))
