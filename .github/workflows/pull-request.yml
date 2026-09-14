@@ -1,0 +1,30 @@
+name: pull-request
+
+# Every change reaches main through a pull request (docs/development/workflow.md), so this is the
+# gate that has to be green before a merge commit is created.
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  # Provenance, licensing and update-feed guards. They are pure-stdlib Python and read only
+  # repository files, so they run on the cheapest runner and report in seconds — a broken
+  # legal record or a leaked Sparkle feed key fails the pull request before the Swift build
+  # has finished starting.
+  guards:
+    name: guards
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Update feed isolation
+        run: python3 script/test_update_feed_isolation.py
+      - name: Appcast validator self-tests
+        run: python3 script/test_validate_appcast.py
+      - name: License inventory
+        run: python3 script/license-inventory.py
