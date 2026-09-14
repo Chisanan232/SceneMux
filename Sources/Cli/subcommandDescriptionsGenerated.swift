@@ -36,6 +36,8 @@ let subcommandDescriptions = [
     ["  project", "Focus the specified project"],
     ["  reload-config", "Reload currently active config"],
     ["  resize", "Resize the focused window"],
+    ["  scene", "Create, enter, leave, rename, list, or close a Scene — one task"],
+    ["  slot", "List, add, remove, or compose the Slots of the Scene on screen"],
     ["  split", "Split focused window"],
     ["  stack-with", "Put the focused window into the same tab group as the nearest window in the specified direction."],
     ["  subscribe", "Subscribe to SceneMux events and receive notifications via socket"],
