@@ -122,4 +122,9 @@ When SceneMux does own a signed release channel, that ordering is what changes:
 3. release with `APPCAST=1`, which generates `appcast.xml`, validates it with
    `script/validate-appcast.py`, and attaches it to the GitHub Release.
 
-Until all three have happened, `APPCAST=1` fails — correctly — with a missing-private-key error.
+Step 2 is what `APPCAST=1` technically depends on: without the private key in the keychain,
+`generate_appcast` reports `Private key for account ed25519 not found in the Keychain (-25300)`, and
+`script/validate-appcast.py` then rejects the unsigned archive. Steps 1 and 3 are not enforced by the
+build, which is exactly why they are written down here: a signed appcast that no shipped build points
+at is a feed nobody consumes, and a feed key created ahead of the reviewed decision to have one is
+the thing this default exists to prevent.
