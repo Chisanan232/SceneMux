@@ -22,4 +22,14 @@ final class SceneLayoutPlanTest: XCTestCase {
         XCTAssertEqual(plan.substrate, substrate)
         XCTAssertEqual(plan.groups.map(\.role), [.terminal, .editor, .preview, .observability, .communication])
     }
+
+    func testSlotsStoredOutOfOrderAreLaidOutInTheirOwnOrder() throws {
+        let last = SceneCoreFixtures.slot(role: .communication, order: 9)
+        let first = SceneCoreFixtures.slot(role: .editor, order: 1)
+        let scene = try SceneCoreFixtures.scene(slots: [last, first])
+
+        let plan = SceneCore.SceneLayoutPlan(scene, on: substrate)
+
+        XCTAssertEqual(plan.groups.map(\.slotId), [first.id, last.id])
+    }
 }
