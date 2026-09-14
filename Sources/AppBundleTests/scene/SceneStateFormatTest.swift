@@ -145,4 +145,32 @@ final class SceneStateFormatTest: XCTestCase {
         guard case .loaded(_, let quarantined) = read else { return XCTFail("Expected a read: \(read)") }
         XCTAssertEqual(quarantined.map(\.reason), [.sceneHasEnded])
     }
+
+    func testAnUnreadableAttachmentIsSetAsideByPathWithoutQuotingWhatWasInIt() throws {
+        let slot = SceneCoreFixtures.slot()
+        let readable = SceneCoreFixtures.attachment(
+            windowRef: try SceneCoreFixtures.windowRef(),
+            slotId: slot.id,
+        )
+        let scene = try SceneCoreFixtures.scene(slots: [slot], attachments: [readable])
+        let file = try fileWithTamperedScene(scene) { json in
+            let attachments = try XCTUnwrap(json["attachments"] as? [[String: Any]])
+            var broken = try XCTUnwrap(attachments.first)
+            broken["slotId"] = 12
+            broken["windowRef"] = ["bundleId": "com.example.private-diary", "ordinalWithinApp": 0]
+            json["attachments"] = [broken] + attachments
+        }
+
+        let read = SceneCore.SceneStateFormat.read(file, from: path)
+
+        XCTAssertEqual(read.scenes.map(\.attachments), [[readable]])
+        guard case .loaded(_, let quarantined) = read else { return XCTFail("Expected a read: \(read)") }
+        XCTAssertEqual(quarantined.map(\.windowRef), [nil])
+        XCTAssertEqual(quarantined.map(\.reason), [.unreadable(at: "scenes[0].attachments[0].slotId")])
+
+        // The diagnostic is the one thing here meant to be read aloud, screenshotted and pasted into an
+        // issue. It says *where* the file stopped making sense and never what was written there.
+        let diagnostic = try XCTUnwrap(read.diagnostics.first)
+        XCTAssertFalse(diagnostic.contains("com.example.private-diary"), diagnostic)
+    }
 }
