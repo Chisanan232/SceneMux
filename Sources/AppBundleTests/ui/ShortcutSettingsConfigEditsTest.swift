@@ -2,6 +2,20 @@
 import XCTest
 
 final class ShortcutSettingsConfigEditsTest: XCTestCase {
+    func testCanonicalConfigCommandScriptNormalizesParsableCommandsAndRejectsOthers() {
+        XCTAssertEqual(canonicalConfigCommandScript("focus left"), "focus left")
+        XCTAssertEqual(canonicalConfigCommandScript("focus    left"), "focus left")
+        // exec-and-forget takes the rest of the line verbatim, so it never reaches the arg parser.
+        // The doubled space is inherited: the script keeps the separator that follows the subcommand,
+        // and the string representation adds its own. Pinned as-is — a canonical form that differs
+        // from what is written in the config decides which bindings this file treats as managed, so
+        // changing it is a behaviour change and not this fix's business.
+        XCTAssertEqual(canonicalConfigCommandScript("exec-and-forget open -a Xcode"), "exec-and-forget  open -a Xcode")
+        XCTAssertNil(canonicalConfigCommandScript("not-a-command"))
+        XCTAssertNil(canonicalConfigCommandScript(""))
+        XCTAssertNil(canonicalConfigCommandScript("focus --help"))
+    }
+
     func testUpdateModeBindingConfigAddsMissingSection() {
         let updated = updateModeBindingConfig(
             in: """
