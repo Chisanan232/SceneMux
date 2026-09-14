@@ -138,4 +138,26 @@ final class SceneOrchestratorTest: XCTestCase {
         // Reported once, and only for the window it happened to.
         XCTAssertEqual(orchestrator.diagnostics.count, 1)
     }
+
+    func testTheGoldenJourneyEndsWithTheBorrowedWindowsSentHome() throws {
+        let store = store(in: try temporaryDirectory())
+        let scene = try SceneCoreFixtures.debugScene(state: .active(substrate))
+        try store.save([scene])
+        let orchestrator = SceneCore.SceneOrchestrator(store: store)
+
+        let plan = try orchestrator.close(scene.id)
+        for step in plan.pending {
+            try orchestrator.resolve(.restored, for: step.windowRef, in: scene.id)
+        }
+
+        // LINE and Slack went home; the terminal, the IDE, the browser and the dashboard were left exactly
+        // where they were for the user to close; nothing was reported, because nothing went wrong.
+        XCTAssertEqual(plan.pending.count, 2)
+        XCTAssertEqual(orchestrator.world.scene(scene.id)?.state, .ended)
+        XCTAssertEqual(orchestrator.world.scene(scene.id)?.attachments, [])
+        XCTAssertEqual(orchestrator.unfinishedTeardowns, [])
+        XCTAssertEqual(orchestrator.diagnostics, [])
+        // And the next launch agrees, without having to be told any of it again.
+        XCTAssertEqual(SceneCore.SceneOrchestrator(store: store).world, orchestrator.world)
+    }
 }
