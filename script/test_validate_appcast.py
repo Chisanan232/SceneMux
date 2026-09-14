@@ -46,6 +46,15 @@ class AppcastValidationTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "current release archive"):
             self.validate(ITEM.replace("SceneMux-0.0.0.zip", "SceneMux-0.0.1.zip"))
 
+    def test_upstream_archive_is_rejected(self):
+        # SceneMux must never publish a feed entry that points at WinMux's release
+        # namespace, which is how an update could silently cross products.
+        upstream = (
+            "https://github.com/ZimengXiong/winmux/releases/download/v0.0.0/WinMux-0.0.0.zip"
+        )
+        with self.assertRaisesRegex(ValueError, "current release archive"):
+            self.validate(ITEM.replace(URL, upstream))
+
     def test_unsigned_archive_is_rejected(self):
         with self.assertRaisesRegex(ValueError, "signature"):
             self.validate(ITEM.replace('sparkle:edSignature="test-signature"', ""))
