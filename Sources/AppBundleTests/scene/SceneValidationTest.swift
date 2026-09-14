@@ -19,6 +19,36 @@ final class SceneValidationTest: XCTestCase {
         }
     }
 
+    func testAPersistedSceneThatMakesNoSenseDoesNotBecomeALiveOne() throws {
+        // Invariant I9: state written by an older or buggier build fails to decode rather than becoming a
+        // Scene nobody can explain, and a Scene that fails to decode operates on no windows at all.
+        let orphanedAttachment = Data(#"""
+        {
+          "id": "scene-1",
+          "title": "Debug PROD-123",
+          "slots": [],
+          "attachments": [
+            {
+              "windowRef": {"bundleId": "com.apple.Terminal", "ordinalWithinApp": 0},
+              "slotId": "slot-that-was-removed",
+              "ownership": "sceneOwned",
+              "homeAtAttachTime": "development",
+              "origin": {"userAction": {}}
+            }
+          ],
+          "state": {"defined": {}}
+        }
+        """#.utf8)
+
+        XCTAssertThrowsError(try JSONDecoder().decode(SceneCore.Scene.self, from: orphanedAttachment)) {
+            error in
+            XCTAssertEqual(
+                error as? SceneCore.SceneCoreError,
+                .unknownSlot(SceneCore.SlotId("slot-that-was-removed")),
+            )
+        }
+    }
+
     func testAFinishedSceneCannotStillOwnWindows() throws {
         let slot = SceneCoreFixtures.slot()
         let attachment = SceneCoreFixtures.attachment(
