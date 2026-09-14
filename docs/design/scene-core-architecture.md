@@ -604,6 +604,11 @@ the original stays where the user — and a newer SceneMux that wrote a version 
 to find it. The copy exists for the other direction, because the next save legitimately replaces the original,
 and without a copy that save is the moment the state stopped existing.
 
+An existing copy is never overwritten. If a later refusal has different bytes, the earlier copy is the older
+state, and SceneMux has already told someone it kept it; the newer refusal makes no preservation claim rather
+than replacing it. Declining to promise costs nothing, because the file being refused is still at its own
+path — breaking a promise already made costs the Scenes it was about.
+
 Diagnostics carry coding *paths* and never values. `DecodingError.debugDescription` quotes what it choked on,
 Scene state contains application bundle ids, and a diagnostic is the one thing here meant to be screenshotted
 and pasted into an issue — so `SceneStateCodingPath` keeps `scenes[2].attachments[1].slotId` and drops the
