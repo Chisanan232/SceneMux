@@ -73,6 +73,16 @@ final class SceneOrchestratorTest: XCTestCase {
         XCTAssertEqual(renamed.slots, scene.slots)
     }
 
+    func testRenamingASceneTheWorldDoesNotHaveIsRefused() throws {
+        // The shell addresses Scenes by index, and an index can name a Scene a restart has already forgotten.
+        let orchestrator = SceneCore.SceneOrchestrator(store: store(in: try temporaryDirectory()))
+        let elsewhere = SceneCore.SceneId.generate()
+
+        XCTAssertThrowsError(try orchestrator.rename(elsewhere, to: "Debug PROD-123")) { error in
+            XCTAssertEqual(error as? SceneCore.SceneLifecycleError, .unknownScene(elsewhere))
+        }
+    }
+
     func testStateThisBuildCannotReadYieldsNoScenesAndOneLine() throws {
         let store = store(in: try temporaryDirectory())
         try Data(#"{ "version": 9000, "scenes": [] }"#.utf8).write(to: store.url)
