@@ -208,4 +208,46 @@ final class WinMuxSceneEngineAdapterTest: XCTestCase {
         XCTAssertEqual(Workspace.all.map(\.name).contains("   "), false)
         XCTAssertEqual(elsewhere.layoutDescription, .h_tiles([.window(1)]))
     }
+
+    /// The user's own normalization gets the last word, and SceneMux says so instead of fighting it.
+    ///
+    /// `enableNormalizationOppositeOrientationForNestedContainers` is on by default in production, and it flips
+    /// a nested container whose orientation matches its parent's. A horizontal split under a horizontal root
+    /// therefore comes out vertical. Reprojecting to force it back would lose the same argument again on the
+    /// next normalization pass, so the honest outcome is a report the user can act on — by changing their
+    /// configuration, or by asking for the other orientation.
+    func testNormalizationFlippingASplitIsReportedRatherThanFought() throws {
+        config.enableNormalizationFlattenContainers = true
+        config.enableNormalizationOppositeOrientationForNestedContainers = true
+        let ide = TestApp(bundleId: App.ide)
+        let terminal = TestApp(bundleId: App.terminal)
+        TestWindow.new(id: 1, parent: elsewhere, app: ide)
+        TestWindow.new(id: 2, parent: elsewhere, app: terminal)
+        TestWindow.new(id: 3, parent: elsewhere, app: terminal)
+        let editor = SceneCoreFixtures.slot(role: .editor, order: 0)
+        let terminals = SceneCoreFixtures.slot(role: .terminal, composition: .split(.horizontal), order: 1)
+        let scene = try SceneCoreFixtures.scene(slots: [editor, terminals])
+            .attaching(SceneCoreFixtures.attachment(
+                windowRef: try .init(bundleId: App.ide, ordinalWithinApp: 0),
+                slotId: editor.id,
+            ))
+            .attaching(SceneCoreFixtures.attachment(
+                windowRef: try .init(bundleId: App.terminal, ordinalWithinApp: 0),
+                slotId: terminals.id,
+            ))
+            .attaching(SceneCoreFixtures.attachment(
+                windowRef: try .init(bundleId: App.terminal, ordinalWithinApp: 1),
+                slotId: terminals.id,
+            ))
+
+        let report = project(scene, onto: name)
+
+        XCTAssertEqual(report.placement(for: terminals.id), .realised(.split(.vertical)))
+        XCTAssertEqual(report.adjustedSlots, [terminals.id])
+        XCTAssertEqual(
+            report.diagnostics,
+            ["SceneMux composed the terminal Slot of \"Debug PROD-123\" as a vertical split instead of "
+                + "a horizontal split, because the window engine normalized it."],
+        )
+    }
 }
