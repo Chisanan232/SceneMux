@@ -9,7 +9,7 @@
 
 > **SceneMux is derived from [WinMux](https://github.com/ZimengXiong/winmux)** (MIT),
 > which is itself derived from [AeroSpace](https://github.com/nikitabobko/AeroSpace) (MIT).
-> SceneMux is a separate project with its own releases, update feed, and direction —
+> SceneMux is a separate project with its own release namespace and direction —
 > it is not WinMux, not a WinMux distribution, and not endorsed by the WinMux authors.
 > Exact derivation baseline: [`docs/legal/ORIGIN.md`](docs/legal/ORIGIN.md).
 
