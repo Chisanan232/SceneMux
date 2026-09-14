@@ -80,13 +80,13 @@ struct ServerArgs: Sendable {
 }
 
 private let serverHelp = """
-    USAGE: \(CommandLine.arguments.first ?? "WinMux.app/Contents/MacOS/WinMux") [<options>]
+    USAGE: \(CommandLine.arguments.first ?? "SceneMux.app/Contents/MacOS/SceneMux") [<options>]
 
     OPTIONS:
       -h, --help              Print help
-      -v, --version           Print WinMux.app version
-      --config-path <path>    Config path. It will take priority over ~/.config/winmux/winmux.toml,
-                              ~/.winmux.toml and ${XDG_CONFIG_HOME}/winmux/winmux.toml
+      -v, --version           Print SceneMux.app version
+      --config-path <path>    Config path. It will take priority over ~/.config/scenemux/scenemux.toml,
+                              ~/.scenemux.toml and ${XDG_CONFIG_HOME}/scenemux/scenemux.toml
       --read-only             Run without mutating macOS windows.
                               Useful if you want to use only debug-windows or other query commands.
     """
