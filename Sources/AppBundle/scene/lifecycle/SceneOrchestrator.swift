@@ -62,6 +62,14 @@ extension SceneCore {
             return created.scene
         }
 
+        /// Put a Scene on screen, projected onto this substrate.
+        ///
+        /// Pressing the same shortcut twice is not an error and does nothing the second time. Entering while a
+        /// different Scene is on screen refuses, rather than switching tasks as a side effect nobody asked for.
+        func enter(_ id: SceneId, on substrate: SubstrateBinding) throws {
+            try apply(try world.entering(id, on: substrate))
+        }
+
         /// Write this world, and only then believe in it.
         ///
         /// The order is the safety property. If the save fails, the change never happened as far as the rest of
