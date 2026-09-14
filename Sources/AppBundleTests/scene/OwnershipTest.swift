@@ -1,0 +1,14 @@
+@testable import AppBundle
+import Foundation
+import XCTest
+
+final class OwnershipTest: XCTestCase {
+    func testAnUnrecognisedPersistedOwnershipDegradesToTheUntouchableOne() throws {
+        let fromTheFuture = Data(#""quarantinedPendingReview""#.utf8)
+
+        let decoded = try JSONDecoder().decode(SceneCore.Ownership.self, from: fromTheFuture)
+
+        XCTAssertEqual(decoded, .sharedPersistent)
+        XCTAssertEqual(decoded.teardownEffect, .untouched)
+    }
+}
