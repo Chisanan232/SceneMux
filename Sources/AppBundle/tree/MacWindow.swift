@@ -244,9 +244,13 @@ final class MacWindow: Window {
     }
 
     override func getAxRect() async throws -> Rect? {
-        let observationToken = await nativeStateObservationToken()
-        let rect = try await macApp.getAxRect(windowId)
         let windowId = self.windowId
+        // Resolve the window on the main actor to read the token, the same way the
+        // write-back below does. Calling the main-actor method on self directly would
+        // send this non-Sendable window across actors.
+        let observationToken = await MainActor.run { Window.get(byId: windowId)?.nativeStateObservationToken() }
+        let rect = try await macApp.getAxRect(windowId)
+        guard let observationToken else { return rect } // Window is gone; nothing to write back to.
         await MainActor.run {
             Window.get(byId: windowId)?.recordObservedActualRect(rect, token: observationToken)
         }
