@@ -57,6 +57,22 @@ final class SceneOrchestratorTest: XCTestCase {
         XCTAssertEqual(relaunched.diagnostics, [])
     }
 
+    func testRenamingAnActiveSceneChangesItsTitleAndNothingElse() throws {
+        // A task that turns out to be something else is renamed while it is on screen, so the rename cannot be
+        // gated on state — and must not disturb the projection it is part of.
+        let orchestrator = SceneCore.SceneOrchestrator(store: store(in: try temporaryDirectory()))
+        let scene = try orchestrator.createScene(title: "Debug PROD-123",
+                                                 slots: SceneCore.SlotTemplate.development.slots())
+        try orchestrator.enter(scene.id, on: substrate)
+
+        try orchestrator.rename(scene.id, to: "Debug PROD-456")
+
+        let renamed = try XCTUnwrap(orchestrator.world.scene(scene.id))
+        XCTAssertEqual(renamed.title, "Debug PROD-456")
+        XCTAssertEqual(renamed.state, .active(substrate))
+        XCTAssertEqual(renamed.slots, scene.slots)
+    }
+
     func testStateThisBuildCannotReadYieldsNoScenesAndOneLine() throws {
         let store = store(in: try temporaryDirectory())
         try Data(#"{ "version": 9000, "scenes": [] }"#.utf8).write(to: store.url)
