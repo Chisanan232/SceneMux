@@ -241,4 +241,13 @@ final class SceneWorldLifecycleTest: XCTestCase {
             [try SceneCoreFixtures.windowRef(App.slack)],
         )
     }
+
+    func testAnOutcomeForASceneThatIsNotClosingIsIgnored() throws {
+        let scene = try SceneCoreFixtures.debugScene(state: .active(substrate))
+        let world = try SceneCore.SceneWorld(scenes: [scene])
+        let line = try SceneCoreFixtures.windowRef(App.line)
+
+        // A report that arrives late must not detach a window from a Scene somebody is still using.
+        XCTAssertEqual(try world.resolving(.restored, for: line, in: scene.id), world)
+    }
 }
