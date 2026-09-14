@@ -92,6 +92,26 @@ extension SceneCore {
             return closed.plan
         }
 
+        /// Record what actually happened to one window of a closing Scene.
+        ///
+        /// A `failed` outcome deliberately changes nothing: the attachment stays, so the restore is still owed
+        /// and will be attempted again — after the app is less busy, or after a relaunch. Nothing here counts
+        /// attempts, because the attachment is the count.
+        ///
+        /// A window deliberately left where it is produces a line for the user. It is the one teardown outcome
+        /// that ends the Scene without keeping the promise the attachment stood for, and someone whose chat
+        /// window stayed in a closed task's layout should be told that by SceneMux rather than find it later.
+        func resolve(_ outcome: SceneTeardownOutcome, for windowRef: WindowRef, in id: SceneId) throws {
+            let title = world.scene(id)?.title
+            let before = world
+            try apply(try world.resolving(outcome, for: windowRef, in: id))
+
+            guard world != before, case .leftInPlace(let reason) = outcome, let title else { return }
+            diagnostics.append(
+                "SceneMux left \(windowRef) where it was when \"\(title)\" ended: \(reason)",
+            )
+        }
+
         /// Write this world, and only then believe in it.
         ///
         /// The order is the safety property. If the save fails, the change never happened as far as the rest of
