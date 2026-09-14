@@ -488,6 +488,14 @@ the outcome is `leftInPlace`, the Scene finishes, and the user is told which win
 the only teardown outcome that ends a Scene without keeping the promise the attachment stood for, so it is
 the one that must always produce a line somebody reads.
 
+**A window that is not the same window.** A `WindowRef` is a bundle id and an ordinal within that
+application — deliberately, because invariant I11 keeps titles, frames and `CGWindowID`s out of state. The
+cost is that after an application relaunches, the window now sitting at that ordinal is *not provably* the
+one the Scene borrowed. So a mismatch is treated as absence, not as a target: the step reports
+`windowIsGone` and the Scene finishes, rather than sending whatever now occupies the ordinal off to a Home
+it never came from. Restoring the wrong window is worse than restoring none, and the layer that can tell
+the difference is the one holding the Accessibility handle.
+
 **State that cannot all be true.** A file can decode perfectly and still describe Scenes that contradict
 each other — two claiming one identity, two saved as being on screen. That is discovered above the store,
 by the world's own rules, and it is refused exactly as an unreadable file is: zero Scenes, zero window
