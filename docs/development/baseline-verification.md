@@ -93,7 +93,7 @@ the tiled area is the monitor's *visible* rect, which on this machine is x ∈ [
 | Nested composition | `join-with right` | `101990` left half 848x1078; `101991`/`101992` stacked right, 848x539 at y = 38 and y = 577 — this is the split-plus-tab shape Phase 1 Slots need |
 | Workspace navigation | `move-node-to-workspace 3`, `workspace 3` | workspace 3 created on demand; hidden members parked at negative x; on switching back they returned to exactly the earlier tiled geometry |
 | Multi-monitor | `list-monitors`, `list-workspaces --all` | two monitors, each with its own active workspace |
-| Diagnostics | `doctor` | permissions granted, monitors, manager state, per-app AX latency (LINE slowest at 152ms) |
+| Diagnostics | `doctor` | permissions granted, monitors, manager state, per-app AX latency (slowest application 152ms, most under 10ms) |
 
 ## Surprises to remember
 
