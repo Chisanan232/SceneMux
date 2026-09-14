@@ -64,6 +64,11 @@ extension SceneCore {
         /// that save would be the moment the state stopped existing. Recovering from a bad upgrade is then
         /// still possible from the copy, which is the difference between an inconvenience and a loss.
         ///
+        /// An existing copy is **never** overwritten. A second refusal, of different bytes, means the first
+        /// copy is the older state — and it is state SceneMux already promised a user it had kept. Breaking
+        /// that promise is a loss; declining to make a second one is not, because the file being refused now
+        /// is still sitting untouched at its own path. So the newer refusal simply makes no claim.
+        ///
         /// Best effort by design. If it fails there is nothing useful to do about it and nothing to hide: the
         /// refusal is returned without a preservation claim rather than with a false one.
         private func preserving(_ refusal: SceneStateRefusal) -> SceneStateRefusal {
@@ -71,10 +76,12 @@ extension SceneCore {
                 .deletingLastPathComponent()
                 .appendingPathComponent(Self.preservedFilename, isDirectory: false)
             do {
-                if FileManager.default.fileExists(atPath: destination.path) {
-                    try FileManager.default.removeItem(at: destination)
+                let refused = try Data(contentsOf: url)
+                if let kept = try? Data(contentsOf: destination) {
+                    // Relaunching with the same bad file is the ordinary case, and it is already preserved.
+                    return kept == refused ? refusal.preserved(at: destination.path) : refusal
                 }
-                try FileManager.default.copyItem(at: url, to: destination)
+                try refused.write(to: destination, options: .atomic)
             } catch {
                 return refusal
             }
