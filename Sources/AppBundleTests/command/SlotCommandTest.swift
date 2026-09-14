@@ -53,4 +53,25 @@ final class SlotCommandTest: XCTestCase {
             XCTAssertEqual(result.stderr, ["No Scene is on screen, so there was nothing to do."], command)
         }
     }
+
+    /// Adding, listing, composing and removing, in the order a user would do them. Composing an empty Slot is
+    /// allowed and is not a no-op: it records how the windows that arrive will share the region.
+    func testAddingListingComposingAndRemovingASlot() async throws {
+        try await parseCommand("scene new --title 'Debug PROD-123' --template empty").cmdOrDie.run(.defaultEnv, .emptyStdin)
+        try await parseCommand("scene 1").cmdOrDie.run(.defaultEnv, .emptyStdin)
+
+        let added = try await parseCommand("slot new --role editor --label Review").cmdOrDie.run(.defaultEnv, .emptyStdin)
+        XCTAssertEqual(added.stdout, ["Added a Review slot to Debug PROD-123."])
+
+        try await parseCommand("slot new --role terminal").cmdOrDie.run(.defaultEnv, .emptyStdin)
+        let listed = try await parseCommand("slot list").cmdOrDie.run(.defaultEnv, .emptyStdin)
+        XCTAssertEqual(listed.stdout, ["1   Review     empty", "2   terminal   empty"])
+
+        let composed = try await parseCommand("slot compose --slot 1").cmdOrDie.run(.defaultEnv, .emptyStdin)
+        XCTAssertEqual(composed.stdout, ["Review slot is now a vertical split."])
+
+        let removed = try await parseCommand("slot remove --slot 2").cmdOrDie.run(.defaultEnv, .emptyStdin)
+        XCTAssertEqual(removed.stdout, ["Removed the terminal slot. No window moved."])
+        XCTAssertEqual(SceneCore.SceneRuntime.shared.snapshot.activeScene?.slots.map(\.title), ["Review"])
+    }
 }
