@@ -71,6 +71,16 @@ extension SceneCore {
             return created.scene
         }
 
+        /// Give a Scene a different name.
+        ///
+        /// Available in every state, including while the Scene is on screen: the title is what a person reads
+        /// and a task that turned out to be something else should be callable by its real name straight away.
+        /// Nothing else changes — not the identity, not the Slots, and no window.
+        func rename(_ id: SceneId, to title: String) throws {
+            guard let scene = world.scene(id) else { throw SceneLifecycleError.unknownScene(id) }
+            try apply(try world.replacing(try scene.renamed(to: title)))
+        }
+
         /// Put a Scene on screen, projected onto this substrate.
         ///
         /// Pressing the same shortcut twice is not an error and does nothing the second time. Entering while a
