@@ -12,7 +12,7 @@ final class TestApp: AbstractApp {
 
     private init() {
         self.pid = 0
-        self.rawAppBundleId = "bobko.WinMux.test-app"
+        self.rawAppBundleId = "com.chisanan232.scenemux.test-app"
         self.name = rawAppBundleId
     }
 
