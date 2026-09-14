@@ -36,4 +36,15 @@ final class SceneShellSlotRowTest: XCTestCase {
         XCTAssertEqual(try row(composition: .single, windows: 1).trailing, "1 window")
         XCTAssertNil(try row(composition: .single, windows: 1).compositionChip)
     }
+
+    /// An empty Slot is still a row, and says so: invariant I13 is what makes a Slot a plan rather than a
+    /// leftover, and it is only visible if the row is.
+    func testAnEmptySlotIsStillARowAndSaysItIsEmpty() throws {
+        let empty = try row(composition: .tabbed, windows: 0, role: .terminal)
+
+        XCTAssertTrue(empty.isEmpty)
+        XCTAssertEqual(empty.title, "terminal")
+        XCTAssertEqual(empty.trailing, "empty")
+        XCTAssertEqual(empty.accessibilityLabel, "terminal slot, empty")
+    }
 }
