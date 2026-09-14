@@ -116,6 +116,8 @@ final class SceneOrchestratorTest: XCTestCase {
         // not a no-op.
         XCTAssertNoThrow(try orchestrator.enter(scene.id, on: substrate))
         XCTAssertEqual(orchestrator.world.activeScene?.state, .active(substrate))
+        // And the directory really is unwritable, so the assertion above is not green for the wrong reason.
+        XCTAssertThrowsError(try orchestrator.leave(scene.id))
     }
 
     func testAWindowLeftBehindIsReportedToTheUser() throws {
