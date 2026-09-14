@@ -173,4 +173,19 @@ final class SceneStateFormatTest: XCTestCase {
         let diagnostic = try XCTUnwrap(read.diagnostics.first)
         XCTAssertFalse(diagnostic.contains("com.example.private-diary"), diagnostic)
     }
+
+    func testASceneThatCouldNotExistAtAllCostsTheWholeFile() throws {
+        let file = try fileWithTamperedScene(try SceneCoreFixtures.scene()) { json in
+            json["title"] = "   "
+        }
+
+        let read = SceneCore.SceneStateFormat.read(file, from: path)
+
+        // Leaving something out cannot repair this: a Scene has no title to fall back to, and inventing one
+        // would put a Scene nobody named in somebody's sidebar. So it is a refusal, and the file is not lost
+        // — it is still there, and still says what it said.
+        guard case .refused(let refusal) = read else { return XCTFail("Expected a refusal: \(read)") }
+        XCTAssertEqual(refusal.reason, .impossibleScene("the Scene has no title"))
+        XCTAssertEqual(read.scenes, [])
+    }
 }
