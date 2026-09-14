@@ -17,6 +17,22 @@ final class SceneOperationsTest: XCTestCase {
         }
     }
 
+    func testRenamingKeepsIdentityAndRefusesABlankName() throws {
+        // The title is what a person reads and the id is what everything else points at, so a rename may
+        // change the first and must not touch the second.
+        let scene = try SceneCoreFixtures.debugScene()
+
+        let renamed = try scene.renamed(to: "  Review the release  ")
+
+        XCTAssertEqual(renamed.title, "Review the release")
+        XCTAssertEqual(renamed.id, scene.id)
+        XCTAssertEqual(renamed.slots, scene.slots)
+        XCTAssertEqual(renamed.attachments, scene.attachments)
+        XCTAssertThrowsError(try scene.renamed(to: "   ")) { error in
+            XCTAssertEqual(error as? SceneCore.SceneCoreError, .emptySceneTitle)
+        }
+    }
+
     func testReplacingASlotKeepsItsWindowsAndRefusesAnUnknownSlot() throws {
         // Recomposing a Slot that holds windows is the ordinary case, so replacement must not behave like the
         // remove-then-add it would otherwise be — that one refuses a Slot with windows in it.
