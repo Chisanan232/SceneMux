@@ -12,7 +12,7 @@ Checks performed:
   1. every spm-pin in the manifest is present in Package.resolved
   2. every pin in Package.resolved is present in the manifest
   3. every declared notice file exists on disk and is non-empty
-  4. every declared SPDX identifier is in the permissive allowlist
+  4. every entry states an SPDX identifier, and every term is in the allowlist
 
 Needs no network access and no third-party packages, so it is safe in CI and
 offline. See docs/legal/LICENSE_POLICY.md for how a license class is decided.
@@ -79,9 +79,18 @@ def main() -> int:
         elif notice.stat().st_size == 0:
             problems.append(f"{entry['identity']}: notice file {entry['notice']} is empty.")
 
-    # 4. licenses must be permissive.
+    # 4. licenses must be stated, and must be permissive. An absent or blank SPDX
+    # field is a failure in its own right: an unstated license is not permission,
+    # and without this check an empty string would pass the loop below silently.
     for entry in entries:
-        for term in spdx_terms(entry["spdx"]):
+        expression = (entry.get("spdx") or "").strip()
+        if not expression:
+            problems.append(
+                f"{entry['identity']}: no SPDX license identifier recorded. An unstated "
+                f"license is not permission — see docs/legal/LICENSE_POLICY.md."
+            )
+            continue
+        for term in spdx_terms(expression):
             if term not in allowlist:
                 problems.append(
                     f"{entry['identity']}: license term {term!r} is not in the permissive "
@@ -97,7 +106,8 @@ def main() -> int:
     print(f"{'DEPENDENCY'.ljust(width)}  {'SOURCE':<10} {'VERSION':<14} LICENSE")
     for entry in sorted(entries, key=lambda e: (e["source"], e["identity"])):
         version = versions.get(entry["identity"], "-")
-        print(f"{entry['name'].ljust(width)}  {entry['source']:<10} {version:<14} {entry['spdx']}")
+        spdx = (entry.get("spdx") or "").strip() or "UNSTATED"
+        print(f"{entry['name'].ljust(width)}  {entry['source']:<10} {version:<14} {spdx}")
 
     print()
     if problems:
