@@ -182,4 +182,13 @@ You do not need to edit anything to get started. After import, WinMux uses `~/.c
 If neither exists, WinMux creates a new WinMux config with the bundled defaults.
 
 ## Credits
-[Aerospace](https://github.com/nikitabobko/AeroSpace)
+[WinMux](https://github.com/ZimengXiong/winmux) — the direct upstream this project is derived from.
+
+[Aerospace](https://github.com/nikitabobko/AeroSpace) — the ancestral upstream WinMux itself derives from.
+
+## License
+MIT — see [`LICENSE.txt`](LICENSE.txt).
+
+- [`docs/legal/ORIGIN.md`](docs/legal/ORIGIN.md) — derivation baseline, lineage, and upstream sync policy.
+- [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) — every bundled dependency and its notice.
+- [`docs/legal/LICENSE_POLICY.md`](docs/legal/LICENSE_POLICY.md) — how new dependencies and contributions are reviewed.
