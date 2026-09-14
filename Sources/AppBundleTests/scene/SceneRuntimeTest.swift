@@ -76,4 +76,19 @@ final class SceneRuntimeTest: XCTestCase {
         XCTAssertEqual(runtime.unfinishedTeardowns, [])
         XCTAssertNil(runtime.message)
     }
+
+    /// A desktop with nowhere to draw refuses the whole operation rather than aiming a Scene at a guess. The
+    /// Scene stays exactly as it was, which is what makes the refusal safe to retry.
+    func testASceneIsNotEnteredWhenThereIsNowhereToDrawIt() throws {
+        let runtime = try runtime()
+        let scene = try runtime.createScene(title: "Debug PROD-123")
+        port.substrate = nil
+
+        XCTAssertThrowsError(try runtime.enter(scene.id)) { error in
+            XCTAssertEqual(error as? SceneCore.SceneRuntimeError, .noSubstrate)
+        }
+        XCTAssertNil(runtime.snapshot.activeScene)
+        XCTAssertEqual(port.preparedSubstrates, [])
+        XCTAssertNil(runtime.message)
+    }
 }
