@@ -68,4 +68,36 @@ extension SceneCore.SceneWorld {
         guard scene.state.label == .active else { return self }
         return try replacing(try scene.transitioning(to: .defined))
     }
+
+    /// Begin ending this Scene, and state what ending it means for every window in it.
+    ///
+    /// Two things happen here, in this order for a reason. The plan is derived first, from the Scene as it
+    /// stands, so it names every window — including the ones nothing will happen to. Then the world afterwards
+    /// drops the attachments that are already discharged: a window whose effect is `leaveInPlace` or
+    /// `untouched` is finished the moment that is said, and leaving it attached would mean a restart deciding
+    /// it again.
+    ///
+    /// A Scene with nothing pending reaches `ended` inside this one operation. There is nobody to report back
+    /// about a Scene of only scene-owned and shared windows, so waiting for a report would leave it closing
+    /// forever.
+    ///
+    /// Closing a Scene that is already closing re-derives its plan and changes nothing else, which is what
+    /// makes an interrupted teardown resumable: the remaining attachments are the work that is left, and
+    /// asking again is always safe. Closing one that has ended returns its now-empty plan.
+    func closing(_ id: SceneCore.SceneId) throws -> (world: Self, plan: SceneCore.SceneTeardownPlan) {
+        guard let scene = scene(id) else {
+            throw SceneCore.SceneLifecycleError.unknownScene(id)
+        }
+        let plan = SceneCore.SceneTeardownPlan(scene)
+        guard scene.state.label != .ended else { return (self, plan) }
+
+        var closing = try scene.transitioning(to: .ending)
+        for step in plan.steps where !step.needsWork {
+            closing = try closing.detaching(step.windowRef)
+        }
+        if plan.pending.isEmpty {
+            closing = try closing.transitioning(to: .ended)
+        }
+        return (try replacing(closing), plan)
+    }
 }
