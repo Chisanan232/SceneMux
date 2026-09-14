@@ -104,4 +104,17 @@ final class SceneOrchestratorTest: XCTestCase {
         XCTAssertEqual(orchestrator.world, before)
         XCTAssertEqual(orchestrator.world.activeScene?.id, scene.id)
     }
+
+    func testANoOpDoesNotNeedToWriteAnything() throws {
+        let directory = try temporaryDirectory()
+        let orchestrator = SceneCore.SceneOrchestrator(store: store(in: directory))
+        let scene = try orchestrator.createScene(title: "Debug PROD-123")
+        try orchestrator.enter(scene.id, on: substrate)
+        try makeUnwritable(directory)
+
+        // The same shortcut pressed twice must not fail because the disk is full. A no-op that can throw is
+        // not a no-op.
+        XCTAssertNoThrow(try orchestrator.enter(scene.id, on: substrate))
+        XCTAssertEqual(orchestrator.world.activeScene?.state, .active(substrate))
+    }
 }
