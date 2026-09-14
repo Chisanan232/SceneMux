@@ -175,3 +175,5 @@ on-mode-changed = []
     ctrl-alt-h = 'scene prev'
     ctrl-alt-l = 'scene next'
     ctrl-alt-0 = 'scene leave'
+    # Opens the confirmation panel. Closing is the one Scene operation that moves windows.
+    ctrl-alt-backspace = 'scene close'
