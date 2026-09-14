@@ -166,6 +166,22 @@ final class SceneSwitcherModel: ObservableObject {
         mode = .browsing
     }
 
+    /// Esc. Returns whether the panel should dismiss.
+    ///
+    /// One key, two meanings, and the order matters: in any state that is part-way through something — a name
+    /// being typed, a close being considered — Esc abandons *that* and leaves the panel up. Only a panel that
+    /// is merely browsing is dismissed by it. A single Esc that both cancelled an edit and closed the panel
+    /// would make the user reopen it to see whether the edit had been committed.
+    func escape() -> Bool {
+        switch mode {
+            case .browsing:
+                return true
+            case .creating, .renaming, .confirmingClose:
+                cancelEditing()
+                return false
+        }
+    }
+
     /// Put the selection on a Scene that was just created, so the next `⏎` enters the thing that was named.
     private func selectNewest(titled title: String) {
         guard let index = results.lastIndex(where: { $0.title == title }) else { return }
