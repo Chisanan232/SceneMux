@@ -202,8 +202,9 @@ final class SceneStateFormatTest: XCTestCase {
             attachments: [borrowed],
             state: .ending,
         )
+        let bytes = try SceneCore.SceneStateFormat.encoded([closing])
 
-        let read = SceneCore.SceneStateFormat.read(try SceneCore.SceneStateFormat.encoded([closing]), from: path)
+        let read = SceneCore.SceneStateFormat.read(bytes, from: path)
 
         // This is the reason `ending` is a persisted state and not a function call. Quitting mid-teardown
         // must not leave a borrowed window stranded in a Scene that no longer exists: the intent to send it
