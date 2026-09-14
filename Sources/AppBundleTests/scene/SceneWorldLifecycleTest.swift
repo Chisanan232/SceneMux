@@ -109,4 +109,31 @@ final class SceneWorldLifecycleTest: XCTestCase {
         XCTAssertEqual(closed.world.scene(scene.id)?.state, .ending)
         XCTAssertEqual(closed.world.scene(scene.id)?.attachments.map(\.ownership), [.borrowed, .borrowed])
     }
+
+    func testClosingASceneCannotTouchASharedApplication() throws {
+        let slot = SceneCoreFixtures.slot(role: .communication)
+        let music = try SceneCoreFixtures.windowRef(App.music)
+        let scene = try SceneCoreFixtures.scene(
+            title: "Debug PROD-123",
+            slots: [slot],
+            attachments: [
+                SceneCoreFixtures.attachment(
+                    windowRef: music,
+                    slotId: slot.id,
+                    ownership: .sharedPersistent,
+                    homeAtAttachTime: .personal,
+                ),
+            ],
+            state: .active(substrate),
+        )
+
+        let closed = try SceneCore.SceneWorld(scenes: [scene]).closing(scene.id)
+
+        // Not restored, and not even offered for cleanup: a shared window belongs to the person's whole day,
+        // and the Scene that borrowed the screen space it sat in has no say over it.
+        XCTAssertEqual(closed.plan.steps.map(\.effect), [.untouched])
+        XCTAssertEqual(closed.plan.pending, [])
+        XCTAssertEqual(closed.plan.cleanupCandidates, [])
+        XCTAssertEqual(closed.world.scene(scene.id)?.state, .ended)
+    }
 }
