@@ -810,6 +810,7 @@ the test.
 | I12 | `scene/domain/` and `scene/lifecycle/` import `Foundation` only; no engine type is named outside `scene/engine/` |
 | I13 | A Slot with no attachments still exists in Scene state and is still shown |
 | I14 | `ended` is reachable from `ending` even when every window involved has disappeared |
+| I15 | A projection binds, unbinds or moves only the windows its Scene names. Every other window on the substrate keeps its place and its parent |
 
 ## Non-goals
 
