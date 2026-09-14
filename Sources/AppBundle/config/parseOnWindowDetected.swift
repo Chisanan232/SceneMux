@@ -75,6 +75,9 @@ private let matcherParsers: [String: any ParserProtocol<WindowDetectedCallbackMa
     "workspace": Parser(\.workspace, upcast(parseString)),
     "app-name-regex-substring": Parser(\.appNameRegexSubstring, upcast(parseCasInsensitiveRegex)),
     "window-title-regex-substring": Parser(\.windowTitleRegexSubstring, upcast(parseCasInsensitiveRegex)),
+    "during-scenemux-startup": Parser(\.duringSceneMuxStartup, upcast(parseBool)),
+    // Inherited WinMux spelling. Still accepted so a config imported from WinMux keeps
+    // matching the windows it used to, instead of failing to parse.
     "during-winmux-startup": Parser(\.duringSceneMuxStartup, upcast(parseBool)),
 ]
 
