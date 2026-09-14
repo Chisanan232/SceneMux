@@ -99,4 +99,24 @@ final class SceneStateFormatTest: XCTestCase {
             [.unknownSlot(SceneCore.SlotId("a-slot-a-later-build-removed"))],
         )
     }
+
+    func testOneWindowAttachedTwiceKeepsItsFirstAttachmentAndOnlyItsFirst() throws {
+        let slot = SceneCoreFixtures.slot()
+        let windowRef = try SceneCoreFixtures.windowRef()
+        let attachment = SceneCoreFixtures.attachment(windowRef: windowRef, slotId: slot.id)
+        let scene = try SceneCoreFixtures.scene(slots: [slot], attachments: [attachment])
+        let file = try fileWithTamperedScene(scene) { json in
+            let attachments = try XCTUnwrap(json["attachments"] as? [[String: Any]])
+            json["attachments"] = attachments + attachments
+        }
+
+        let read = SceneCore.SceneStateFormat.read(file, from: path)
+
+        // Invariant I4 allows one attachment per window. The first one recorded is the one kept, so which
+        // window SceneMux may move does not depend on the order a corrupt file happens to list them in.
+        XCTAssertEqual(read.scenes.map(\.attachments), [[attachment]])
+        guard case .loaded(_, let quarantined) = read else { return XCTFail("Expected a read: \(read)") }
+        XCTAssertEqual(quarantined.map(\.reason), [.alreadyAttached])
+        XCTAssertEqual(quarantined.map(\.windowRef), [windowRef])
+    }
 }
