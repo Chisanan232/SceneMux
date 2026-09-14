@@ -1,6 +1,6 @@
 
 <p align="left">
-  <img src="resources/winmux-logo.svg" width="80" alt="WinMux logo">
+  <img src="resources/scenemux-logo.svg" width="80" alt="SceneMux logo">
 </p>
 
 # WinMux
