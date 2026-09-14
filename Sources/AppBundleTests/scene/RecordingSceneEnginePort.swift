@@ -27,6 +27,13 @@ final class RecordingSceneEnginePort: SceneCore.SceneEnginePort {
     /// Slots the engine declines, in its own words.
     var refusals: [SceneCore.SlotId: String] = [:]
 
+    /// Where the engine says a Scene would be drawn, or nothing when it says there is nowhere.
+    var substrate: SceneCore.SubstrateBinding? = SceneCore.SubstrateBinding(workspaceName: "3")
+
+    func currentSubstrate() -> SceneCore.SubstrateBinding? {
+        substrate
+    }
+
     func prepareSubstrate(_ binding: SceneCore.SubstrateBinding) -> Bool {
         preparedSubstrates.append(binding)
         return substrateIsUsable
