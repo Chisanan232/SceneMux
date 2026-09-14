@@ -63,7 +63,9 @@ Apple credentials and is a human-authorized step — never invent or reuse crede
    its own explicit list — what is *not yet* included. A reader must not be able to mistake inherited
    engine capability for SceneMux-owned work.
 2. **Build the artifact** with `make release VERSION=<version> PUBLISH=0` and verify it: bundle
-   version fields, `codesign --verify`, the generated `appcast.xml`, and the app launching.
+   version fields, `codesign --verify`, the absence of `SUFeedURL` and `SUPublicEDKey` from the built
+   `Info.plist`, and the app launching. No `appcast.xml` is produced — see
+   [Update feed](#update-feed).
 3. **Create the annotated tag** on the verified `origin/main` commit and push it:
    ```shell
    git tag -a v<version> <sha> -m "SceneMux v<version> — <theme>"
