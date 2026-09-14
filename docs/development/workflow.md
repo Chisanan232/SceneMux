@@ -36,6 +36,10 @@ This repository also has an `upstream` remote pointing at the project it derives
 push to it, and never publish a release against it — see
 [Beware of `gh` base-repo resolution](#beware-of-gh-base-repo-resolution).
 
+Run `script/upstream.sh check` to assert the boundary is intact. Adopting upstream work, deciding a
+conflict and offering a fix upstream are covered by
+[`upstream-sync.md`](upstream-sync.md).
+
 ## Branch naming
 
 ```
