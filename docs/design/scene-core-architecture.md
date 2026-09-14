@@ -463,6 +463,37 @@ or `failed`. The first three finish the promise the attachment stood for, so the
 re-entrancy mechanism, and it is why there is no retry counter anywhere: **the attachment is the count.**
 Once the last pending attachment is discharged the Scene reaches `ended` in the same operation.
 
+### Recovery and fallback, stated exactly
+
+Three failures are ordinary enough to have named, deterministic answers, and none of them may cost anybody
+a window.
+
+**A save that fails.** Every change is written before it is believed. If the write fails — a full disk, a
+read-only home directory, a sandbox denial — the operation throws, the in-memory world is unchanged, and
+`close` hands back no plan, so nothing above starts moving windows on the strength of a decision that is
+not on disk. The opposite order is how a borrowed window ends up moved into a Scene that will not exist
+after the next launch, with nothing left anywhere saying where it came from. A no-op — the same shortcut
+pressed twice — writes nothing at all, because a no-op that can fail on a full disk is not a no-op.
+
+**A teardown interrupted.** A Scene left `ending` by a quit, a crash or a machine going to sleep still holds
+the attachments whose restores never happened, so at startup the remaining work is *derived* from state
+rather than remembered separately: one plan per closing Scene, containing only what is still owed. Someone
+whose laptop died mid-teardown finds their borrowed chat window sent home on the next launch instead of
+stranded in a Scene that no longer exists. Re-deriving is also why retrying is always safe: a window that
+was already restored is no longer attached, so there is nothing left to do to it (invariant I8).
+
+**A Home that cannot be resolved.** A borrowed window whose Home surface no longer exists is *not* moved
+somewhere invented for it, and does not hold its Scene open forever either. It stays exactly where it is,
+the outcome is `leftInPlace`, the Scene finishes, and the user is told which window stayed and why. This is
+the only teardown outcome that ends a Scene without keeping the promise the attachment stood for, so it is
+the one that must always produce a line somebody reads.
+
+**State that cannot all be true.** A file can decode perfectly and still describe Scenes that contradict
+each other — two claiming one identity, two saved as being on screen. That is discovered above the store,
+by the world's own rules, and it is refused exactly as an unreadable file is: zero Scenes, zero window
+operations, one diagnostic (invariant I9), and a copy of the bytes kept out of the way of the next save.
+Starting safe must never mean starting destructive.
+
 ### Deliberately not in v0.1.0
 
 - **`suspend` / `resume` as states distinct from `leave` / `enter`.** They would have no observable
