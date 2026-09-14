@@ -128,6 +128,7 @@ extension SceneCore {
         /// the strength of a state change that is not on disk. The alternative — apply now, save if it works —
         /// is how a borrowed window gets moved into a Scene that will not exist after the next launch, with
         /// nothing left anywhere saying where it came from.
+        ///
         /// A world identical to the current one is not written at all. Several operations here are deliberately
         /// no-ops — the same shortcut pressed twice, an outcome reported twice — and a no-op that can fail on a
         /// full disk is not a no-op.
