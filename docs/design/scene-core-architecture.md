@@ -121,3 +121,55 @@ Two consequences are load-bearing:
 > exactly one `Workspace` on one monitor. Concurrent Scenes per monitor are a deliberate deferral —
 > the model above already permits them (`substrate` becomes a set), and nothing in Phase 1 needs them
 > to prove the North Star.
+
+## Semantic Home
+
+A window's **Semantic Home** is what that window *is for*, independent of where it currently is. It is
+a category, not a place:
+
+| Home | Means |
+| --- | --- |
+| `development` | Building software — editors, terminals, agents, local previews |
+| `communication` | Talking to people — chat, mail, calls |
+| `observability` | Watching systems — dashboards, logs, traces, alerts |
+| `personal` | Everything that is the user's own — music, notes, browsing that is not work |
+
+Four categories, fixed in v0.1.0. They are an `enum`, not user-defined strings: a fixed set is
+checkable, and the golden journey needs exactly these four. User-defined Homes are a later decision,
+and adding a case is a source change with a migration, which is the honest cost.
+
+**Home belongs to the window, not to the Scene.** It is resolved once, when SceneMux first sees a
+window, from two inputs and nothing else:
+
+1. a declarative rule table keyed on **application bundle id** — `com.apple.Terminal` →
+   `development`, and so on, shipped with defaults and overridable by the user;
+2. an explicit user override for that application, which wins.
+
+That is the whole input set, deliberately. Window titles are *not* an input — they are the most
+sensitive thing on a person's screen, `AGENTS.md` forbids logging them, and a rule that reads them
+would make classification depend on what someone is currently writing. Process lineage is not an input
+either; that is G2, and it does not exist in v0.1.0.
+
+### The invariant that makes Home worth having
+
+> **Mounting a window into a Scene never changes its Home.**
+
+This is the single most important invariant in the model, because violating it is so easy and the damage
+is so quiet. If LINE is borrowed into "Debug PROD-123" and its Home silently becomes `development`,
+then it belongs to a task that ends, the user's chat app has been redefined by an act of borrowing, and
+nothing on screen said so. Home changes only when the user changes it, explicitly, for the application.
+
+### Home surface: where a Home resolves to
+
+A Home is a meaning, and meanings cannot receive a window — so each Home has a **Home surface**: the
+workspace that Home currently resolves to. It is a lookup, evaluated at the moment it is needed:
+
+- if a workspace is already designated for that Home, that one;
+- otherwise the workspace the window was last in outside of any Scene;
+- otherwise a workspace created for that Home.
+
+`restore(window)` means *put this window back on its Home surface*. The distinction matters for
+correctness: because the surface is resolved late, a Home never holds a stale workspace reference, and
+a Scene ending months after it started still restores a window somewhere real. It matters for the UX
+too — the companion spec shows the Home *category* on a row, never the workspace number, because the
+category is the part that is stable and meaningful.
