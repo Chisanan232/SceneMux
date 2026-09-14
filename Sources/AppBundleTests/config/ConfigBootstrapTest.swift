@@ -186,4 +186,30 @@ final class ConfigBootstrapTest: XCTestCase {
         XCTAssertTrue(candidates[2].hasSuffix("/winmux/winmux.toml"), candidates[2])
         XCTAssertTrue(candidates[3].hasSuffix("/.winmux.toml"), candidates[3])
     }
+
+    func testEnsureBootstrapConfigLeavesTheImportSourceUntouched() throws {
+        let tempDir = FileManager.default.temporaryDirectory
+            .appending(path: "SceneMuxTests-\(UUID().uuidString)", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        let winMuxUrl = tempDir.appending(path: "winmux.toml")
+        let targetUrl = tempDir.appending(path: "scenemux.toml")
+        let winMuxText = """
+            config-version = 2
+
+            [mode.main.binding]
+            alt-h = 'focus left'
+            """
+        try winMuxText.write(to: winMuxUrl, atomically: true, encoding: .utf8)
+
+        XCTAssertTrue(try materializeBootstrapConfigIfNeeded(
+            targetUrl: targetUrl,
+            existingLegacyUrls: [winMuxUrl],
+        ))
+
+        // The import is a copy: the WinMux install this was read from must keep working.
+        XCTAssertTrue(FileManager.default.fileExists(atPath: winMuxUrl.path))
+        XCTAssertEqual(try String(contentsOf: winMuxUrl, encoding: .utf8), winMuxText)
+    }
 }
