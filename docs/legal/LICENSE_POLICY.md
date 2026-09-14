@@ -27,6 +27,14 @@ Both sets are MIT. The upstream copyright notice and permission notice ship with
 every distribution, as MIT requires, and are not removed or replaced because the
 product brand changed.
 
+`LICENSE.txt` therefore carries two copyright lines — the upstream holder's and
+SceneMux's — above an otherwise byte-identical MIT text. It deliberately contains
+no explanatory prose: license detectors match a `LICENSE` file against the MIT
+template and ignore copyright lines, but added body text drops the similarity
+score below their threshold and the file starts being reported as an unrecognized
+custom license. The explanation belongs here and in `docs/legal/ORIGIN.md`, not in
+the license file.
+
 ## Contribution expectations
 
 * Contributions are accepted under the MIT License. Opening a pull request means
