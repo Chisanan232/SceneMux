@@ -67,7 +67,9 @@ process identity.
 
 ## Domain vocabulary
 
-Use these words precisely; they are the product, not decoration.
+Use these words precisely; they are the product, not decoration. The table below is the short form —
+[`docs/design/scene-core-architecture.md`](docs/design/scene-core-architecture.md) is the definition,
+with the invariants that make each one checkable.
 
 | Term | Meaning |
 | --- | --- |
