@@ -68,4 +68,15 @@ extension SceneCore.Scene {
     func attaching(_ attachment: SceneCore.Attachment) throws -> Self {
         try with(attachments: attachments + [attachment])
     }
+
+    /// This Scene without that window.
+    ///
+    /// Detaching a window that is not attached is not an error — it is the state the caller asked for, and
+    /// the operation has to be idempotent because the paths that reach it include a window that has
+    /// disappeared and a `close` re-attempted after a restart. It changes the model only: what to *do* with
+    /// the window it forgot is the teardown effect its ownership already named, decided before the
+    /// attachment goes away.
+    func detaching(_ windowRef: SceneCore.WindowRef) throws -> Self {
+        try with(attachments: attachments.filter { $0.windowRef != windowRef })
+    }
 }
