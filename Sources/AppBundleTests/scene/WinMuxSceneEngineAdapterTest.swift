@@ -87,4 +87,50 @@ final class WinMuxSceneEngineAdapterTest: XCTestCase {
         XCTAssertEqual(report.placement(for: terminals.id), .realised(.split(.vertical)))
         XCTAssertTrue(report.isFullyRealised)
     }
+
+    /// The communication Slot of the golden journey: LINE and Slack in one tab group, so that lending two chat
+    /// windows to a Scene costs one slice of screen rather than two.
+    func testATabbedSlotBuildsATabGroup() throws {
+        config.enableNormalizationFlattenContainers = true
+        let ide = TestApp(bundleId: App.ide)
+        let line = TestApp(bundleId: App.line)
+        let slack = TestApp(bundleId: App.slack)
+        TestWindow.new(id: 1, parent: elsewhere, app: ide)
+        TestWindow.new(id: 2, parent: elsewhere, app: line)
+        TestWindow.new(id: 3, parent: elsewhere, app: slack)
+        let editor = SceneCoreFixtures.slot(role: .editor, order: 0)
+        let comms = SceneCoreFixtures.slot(role: .communication, composition: .tabbed, order: 1)
+        let scene = try SceneCoreFixtures.scene(slots: [editor, comms])
+            .attaching(SceneCoreFixtures.attachment(
+                windowRef: try .init(bundleId: App.ide, ordinalWithinApp: 0),
+                slotId: editor.id,
+            ))
+            .attaching(SceneCoreFixtures.attachment(
+                windowRef: try .init(bundleId: App.line, ordinalWithinApp: 0),
+                slotId: comms.id,
+                ownership: .borrowed,
+                homeAtAttachTime: .communication,
+            ))
+            .attaching(SceneCoreFixtures.attachment(
+                windowRef: try .init(bundleId: App.slack, ordinalWithinApp: 0),
+                slotId: comms.id,
+                ownership: .borrowed,
+                homeAtAttachTime: .communication,
+            ))
+
+        let report = project(scene, onto: name)
+
+        XCTAssertEqual(
+            Workspace.get(byName: name).rootTilingContainer.layoutDescription,
+            .h_tiles([
+                .window(1),
+                .v_tab_group([
+                    .window(2),
+                    .window(3),
+                ]),
+            ]),
+        )
+        XCTAssertEqual(report.placement(for: comms.id), .realised(.tabbed))
+        XCTAssertTrue(report.isFullyRealised)
+    }
 }
