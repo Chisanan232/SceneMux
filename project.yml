@@ -22,7 +22,7 @@ targets:
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         LSUIElement: true
-        SUEnableAutomaticChecks: true
+        SUEnableAutomaticChecks: false
     sources:
       - "Sources/WinMuxApp"
       - "resources"

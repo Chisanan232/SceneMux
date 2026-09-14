@@ -21,6 +21,6 @@
 	<key>LSUIElement</key>
 	<true/>
 	<key>SUEnableAutomaticChecks</key>
-	<true/>
+	<false/>
 </dict>
 </plist>
