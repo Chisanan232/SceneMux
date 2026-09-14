@@ -641,3 +641,69 @@ What is delivered now is a shape that does not have to be broken to add them:
 | **Browser broker** | A G3 gate plus a session-scoped owner | `AdmissionDecision` already distinguishes claiming from routing |
 | **Scene templates** | A derivation from an existing Scene's Slots | Slots are already data, with no geometry to make a template monitor-specific |
 | **Multi-monitor Scenes** | `substrate` becomes a set of bindings | Nothing in the domain model assumes one monitor; Slots carry order, not coordinates |
+
+## The Debug golden journey
+
+This is the journey Phase 1 is accepted against, on a real Mac, under HORO-1109. It is written here in
+*model* terms; the companion spec walks the same journey in *screen* terms, and the two must stay in step.
+
+**Setup.** Homes are resolved from bundle ids: the IDE and the coding agent's terminal are `development`,
+Grafana is `observability`, the browser is `personal`, LINE and Slack are `communication`. A music window
+is open and pinned as shared. No Scene is active.
+
+**1 — Create.** The user creates a Scene titled `Debug PROD-123`. It is `defined`, with four Slots:
+`terminal`, `editor`, `preview`, `observability`. No window has moved, and nothing is on screen but the
+confirmation.
+
+**2 — Enter.** The Scene becomes `active` and is projected onto a workspace. The Slots are empty, so the
+projection places nothing — an empty Scene is a legitimate, quiet state, not an error.
+
+**3 — Populate development.** The coding agent's terminal goes into the `terminal` Slot; the IDE goes into
+the `editor` Slot. Both have Home `development`, both are `.sceneOwned`, and the two Slots compose as a
+vertical split — realised with `join-with`, since `split` is a no-op here.
+
+**4 — Add observability and preview.** Grafana is attached to the `observability` Slot and the browser to
+`preview`. The three-pane shape (one window filling one half, two stacked in the other) is the geometry
+`baseline-verification.md` measured, so it is known to work rather than hoped to.
+
+**5 — Borrow communication.** The user needs LINE and Slack for this task. Both are **mounted**: attached
+to a `communication` Slot, `.borrowed`, `homeAtAttachTime == communication`, composed `.tabbed` so they
+share one region. **Their Home is still `communication`** — I1, the invariant this step exists to prove.
+The sidebar row for each reads `Communication · mounted`, and the Home column does not say `Development`.
+
+**6 — Work, and switch away.** The user leaves the Scene and enters another. Nothing moves: no restore, no
+resize, no focus change (I5). `Debug PROD-123` is `defined` with all six attachments intact. Re-entering
+projects the same composition again.
+
+**7 — End the Scene.** `close` takes it to `ending`, and each attachment resolves by ownership alone:
+
+| Window | Ownership | What happens |
+| --- | --- | --- |
+| LINE, Slack | `.borrowed` | Restored to the `communication` Home surface, once each. Never closed |
+| Terminal, IDE, Grafana, browser | `.sceneOwned` | Left exactly where they are. A cleanup affordance lists them; each close needs the user to say so |
+| Music | `.sharedPersistent` | Untouched. Never moved, never focused, never even a candidate |
+
+The Scene reaches `ended`. LINE and Slack are back where communication windows live, and **their Home is
+still `communication`** — the fact the whole journey is designed to demonstrate. If SceneMux had quit
+during step 7, `ending` is on disk, and the remaining restores are re-attempted on the next launch (I14).
+
+### What this journey proves, and what it does not
+
+Proves: a Scene is a task and not a workspace; a Slot is a role and not a rectangle; borrowing is
+reversible and does not redefine what a window is for; ending a Scene is safe by construction.
+
+Does not prove, and must not be claimed: any form of session ownership, any agent integration, any browser
+control, any pre-creation containment. See [Non-goals](#non-goals).
+
+## How this design is verified
+
+The domain model is verified by unit tests — it imports `Foundation` only, precisely so that the
+invariants above are testable without a window server. The engine adapter and admission are verified
+against the real engine. Everything with a surface is verified natively, per
+[`../development/ui-verification.md`](../development/ui-verification.md): built, launched, driven through
+XCTest/XCUITest, Accessibility automation or a real interactive pass, with window-scoped or artifact-scoped
+screenshots. Browser automation is not a valid verifier for any of it.
+
+The Phase 1 release gate requires evidence of five things on screen, listed in that document: an active
+Debug Scene, multiple semantic Slots, a window shown as Semantic Home versus mounted, split and tab
+composition, and lifecycle restore/result state.
