@@ -51,5 +51,17 @@ extension SceneCore {
             self.world = world
             self.diagnostics = diagnostics
         }
+
+        /// Write this world, and only then believe in it.
+        ///
+        /// The order is the safety property. If the save fails, the change never happened as far as the rest of
+        /// SceneMux is concerned: the caller gets the error, no plan is handed out, and no window is touched on
+        /// the strength of a state change that is not on disk. The alternative — apply now, save if it works —
+        /// is how a borrowed window gets moved into a Scene that will not exist after the next launch, with
+        /// nothing left anywhere saying where it came from.
+        private func apply(_ next: SceneWorld) throws {
+            try store.save(next.scenes)
+            world = next
+        }
     }
 }
