@@ -111,6 +111,26 @@ final class SceneOrchestratorTest: XCTestCase {
         XCTAssertEqual(orchestrator.world.scene(scene.id)?.slots.map(\.id), [occupied.id])
     }
 
+    func testCyclingASlotsCompositionIsSavedAndKeepsItsWindows() throws {
+        // Recomposing is the ordinary edit on a Slot that already has windows in it, and it has to survive a
+        // relaunch — otherwise the shape on screen and the shape in state disagree after the next launch.
+        let store = store(in: try temporaryDirectory())
+        let comms = SceneCoreFixtures.slot(role: .communication, order: 0)
+        let scene = try SceneCoreFixtures.scene(slots: [comms])
+            .attaching(SceneCoreFixtures.attachment(
+                windowRef: try SceneCoreFixtures.windowRef(App.line),
+                slotId: comms.id,
+            ))
+        try store.save([scene])
+        let orchestrator = SceneCore.SceneOrchestrator(store: store)
+
+        let recomposed = try orchestrator.cycleComposition(of: comms.id, in: scene.id)
+
+        XCTAssertEqual(recomposed.composition, .split(.vertical))
+        XCTAssertEqual(SceneCore.SceneOrchestrator(store: store).world.scene(scene.id)?.slots, [recomposed])
+        XCTAssertEqual(orchestrator.world.scene(scene.id)?.attachments, scene.attachments)
+    }
+
     func testRenamingASceneTheWorldDoesNotHaveIsRefused() throws {
         // The shell addresses Scenes by index, and an index can name a Scene a restart has already forgotten.
         let orchestrator = SceneCore.SceneOrchestrator(store: store(in: try temporaryDirectory()))
