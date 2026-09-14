@@ -50,7 +50,7 @@ run:
 	/bin/bash -lc 'cd "$(CURDIR)" && \
 	if pgrep -x yabai >/dev/null 2>&1; then echo "warning: yabai is still running and may conflict with WinMux" >&2; fi && \
 	if pgrep -x skhd >/dev/null 2>&1; then echo "warning: skhd is still running; its yabai shortcuts will keep firing" >&2; fi && \
-	config_path="$${WINMUX_CONFIG_PATH:-}"; \
+	config_path="$${SCENEMUX_CONFIG_PATH:-}"; \
 	if [ -n "$$config_path" ]; then \
 	    if [ ! -f "$$config_path" ]; then \
 	        echo "Missing WinMux config: $$config_path" >&2; \
@@ -66,7 +66,7 @@ run-clean:
 	/bin/bash -lc 'cd "$(CURDIR)" && \
 	if pgrep -x yabai >/dev/null 2>&1; then echo "warning: yabai is still running and may conflict with WinMux" >&2; fi && \
 	if pgrep -x skhd >/dev/null 2>&1; then echo "warning: skhd is still running; its yabai shortcuts will keep firing" >&2; fi && \
-	config_path="$${WINMUX_CONFIG_PATH:-}"; \
+	config_path="$${SCENEMUX_CONFIG_PATH:-}"; \
 	if [ -n "$$config_path" ]; then \
 	    if [ ! -f "$$config_path" ]; then \
 	        echo "Missing WinMux config: $$config_path" >&2; \
