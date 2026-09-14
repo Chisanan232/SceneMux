@@ -78,10 +78,12 @@ browser merely because it is Chrome.
 
 ```shell
 make build VERSION=0.0.0   # SPM debug build; must be warning-free
-swift test                 # the unit tests — `swift build --target AppBundleTests` only compiles them
 make run                   # launch the debug app
 make xcodeproj             # regenerate SceneMux.xcodeproj from project.yml
 make release VERSION=x.y.z # Release archive; see docs/development/release.md before using it
+
+source ./script/setup.sh   # makes `swift` mean the toolchain pinned in .swift-version
+swift test                 # the unit tests — `swift build --target AppBundleTests` only compiles them
 ```
 
 `make` rewrites the tracked files `Sources/Common/versionGenerated.swift` and
