@@ -21,6 +21,16 @@ extension SceneCore {
 
         var description: String { rawValue }
 
+        /// What ending a Scene does to a window held under this ownership. Total, and the only mapping —
+        /// teardown asks ownership rather than deciding for itself, so I7 and I8 hold by construction.
+        var teardownEffect: SceneTeardownEffect {
+            switch self {
+                case .borrowed: .restoreToHome
+                case .sceneOwned: .leaveInPlace
+                case .sharedPersistent: .untouched
+            }
+        }
+
         /// The value to fall back to whenever ownership cannot be determined: corrupt state, an
         /// unrecognised persisted case, a window that vanished and came back.
         ///
