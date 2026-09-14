@@ -75,4 +75,28 @@ final class SceneLayoutPlanTest: XCTestCase {
         XCTAssertEqual(plan.occupiedGroups.map(\.slotId), [editor.id])
         XCTAssertEqual(plan.groups.last?.isOccupied, false)
     }
+
+    /// A container is only ever asked for when it would survive: `normalizeContainers` flattens a container
+    /// down to its only child, so a Slot holding one window must be a window, and a Slot that says `.single`
+    /// composes nothing however many windows it holds.
+    func testOnlyASlotThatComposesSeveralWindowsNeedsAContainer() throws {
+        let plain = SceneCoreFixtures.slot(role: .editor, composition: .single, order: 0)
+        let lonelyTabs = SceneCoreFixtures.slot(role: .preview, composition: .tabbed, order: 1)
+        let comms = SceneCoreFixtures.slot(role: .communication, composition: .tabbed, order: 2)
+        let scene = try SceneCoreFixtures.scene(slots: [plain, lonelyTabs, comms])
+            .attaching(SceneCoreFixtures.attachment(windowRef: try .init(bundleId: App.ide, ordinalWithinApp: 0),
+                                                    slotId: plain.id))
+            .attaching(SceneCoreFixtures.attachment(windowRef: try .init(bundleId: App.ide, ordinalWithinApp: 1),
+                                                    slotId: plain.id))
+            .attaching(SceneCoreFixtures.attachment(windowRef: try .init(bundleId: App.browser, ordinalWithinApp: 0),
+                                                    slotId: lonelyTabs.id))
+            .attaching(SceneCoreFixtures.attachment(windowRef: try .init(bundleId: App.line, ordinalWithinApp: 0),
+                                                    slotId: comms.id))
+            .attaching(SceneCoreFixtures.attachment(windowRef: try .init(bundleId: App.slack, ordinalWithinApp: 0),
+                                                    slotId: comms.id))
+
+        let plan = SceneCore.SceneLayoutPlan(scene, on: substrate)
+
+        XCTAssertEqual(plan.groups.map(\.needsContainer), [false, false, true])
+    }
 }
