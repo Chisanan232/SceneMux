@@ -52,6 +52,15 @@ extension SceneCore {
             self.diagnostics = diagnostics
         }
 
+        /// The teardowns a previous run did not finish, to be carried out again at startup.
+        ///
+        /// Read once the app is able to move windows, and not before. Each plan contains only the steps still
+        /// owed, so re-running one cannot restore a window twice, and a machine that died mid-teardown ends up
+        /// where it was going rather than half way there.
+        var unfinishedTeardowns: [SceneTeardownPlan] {
+            world.unfinishedTeardowns
+        }
+
         /// Define a new Scene: named, off screen, holding no windows.
         ///
         /// Returns the Scene rather than only its identity, so a caller that has just made one does not have to
