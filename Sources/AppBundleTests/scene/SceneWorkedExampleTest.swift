@@ -60,6 +60,22 @@ final class SceneWorkedExampleTest: XCTestCase {
             ))
     }
 
+    func testBorrowingLineIsAMountEvenThoughItLandsInACommunicationSlot() throws {
+        // The recorded ownership is the test for a Mount, not a comparison of the Slot's role against the
+        // window's Home. LINE's Home stays `communication` while it is lent out — a Scene borrows a window,
+        // it does not move house for it — so a role comparison would call this a plain attachment and quietly
+        // drop the promise to send it back.
+        let scene = try debugScene()
+        let line = try SceneCoreFixtures.windowRef(App.line)
+        let music = try SceneCoreFixtures.windowRef(App.music)
+
+        let borrowed = try XCTUnwrap(scene.attachment(for: line))
+
+        XCTAssertEqual(borrowed.homeAtAttachTime, .communication)
+        XCTAssertTrue(borrowed.isMount)
+        XCTAssertFalse(try XCTUnwrap(scene.attachment(for: music)).isMount)
+    }
+
     func testEndingTheDebugSceneTreatsEachWindowTheWayTheUserLentIt() throws {
         // Ownership alone decides this, which is why LINE goes home while the dashboard — a window the user
         // also did not open for this task — stays where the Scene put it.
