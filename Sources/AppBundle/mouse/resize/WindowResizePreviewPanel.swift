@@ -11,7 +11,7 @@ final class WindowResizePreviewPanel: NSPanelHud {
 
     override private init() {
         super.init()
-        identifier = NSUserInterfaceItemIdentifier("WinMux.resizePreview")
+        identifier = NSUserInterfaceItemIdentifier("SceneMux.resizePreview")
         hasShadow = false
         isFloatingPanel = true
         isExcludedFromWindowsMenu = true

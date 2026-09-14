@@ -11,7 +11,7 @@ final class WindowDropIntentOverlayPanelController {
     private var currentModel: WindowDropIntentOverlayModel?
 
     private init() {
-        panel.identifier = NSUserInterfaceItemIdentifier("WinMux.windowDropIntent")
+        panel.identifier = NSUserInterfaceItemIdentifier("SceneMux.windowDropIntent")
         panel.hasShadow = false
         panel.isFloatingPanel = true
         panel.isExcludedFromWindowsMenu = true

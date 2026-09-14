@@ -1,10 +1,10 @@
 import AppKit
 import SwiftUI
 
-let windowTabVisualPanelPrefix = "WinMux.windowTabs.visual."
-let windowTabStripPanelPrefix = "WinMux.windowTabs.strip."
-let windowTabDropPreviewPanelId = "WinMux.windowTabs.dropPreview"
-let windowDragCursorProxyPanelId = "WinMux.windowTabs.cursorProxy"
+let windowTabVisualPanelPrefix = "SceneMux.windowTabs.visual."
+let windowTabStripPanelPrefix = "SceneMux.windowTabs.strip."
+let windowTabDropPreviewPanelId = "SceneMux.windowTabs.dropPreview"
+let windowDragCursorProxyPanelId = "SceneMux.windowTabs.cursorProxy"
 let windowPreviewCornerAlphaThreshold: CGFloat = 0.3
 let windowPreviewCornerScanLimit = 48
 let windowTabReorderDropClearDelay: TimeInterval = 0.24

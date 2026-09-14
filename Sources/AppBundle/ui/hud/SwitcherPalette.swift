@@ -2,7 +2,7 @@ import AppKit
 import Common
 import SwiftUI
 
-private let switcherPalettePanelId = "WinMux.switcherPalette"
+private let switcherPalettePanelId = "SceneMux.switcherPalette"
 private let switcherPaletteWidth: CGFloat = 560
 private let switcherPaletteMaxHeight: CGFloat = 440
 
