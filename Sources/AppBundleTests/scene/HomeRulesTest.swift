@@ -34,4 +34,14 @@ final class HomeRulesTest: XCTestCase {
         XCTAssertEqual(rules.home(of: App.terminal), .development)
         XCTAssertEqual(rules.source(of: App.terminal), .shippedDefault)
     }
+
+    /// An application nobody has classified still gets an answer, and the answer claims nothing: it is the
+    /// user's own. A resolution that could fail would have every caller inventing a Home of its own.
+    func testAnApplicationNobodyClassifiedIsThePersonalFallback() {
+        let rules = SceneCore.HomeRules(overrides: [App.terminal: .development])
+
+        XCTAssertEqual(rules.home(of: "com.example.SomethingNobodyHasHeardOf"), .personal)
+        XCTAssertEqual(rules.source(of: "com.example.SomethingNobodyHasHeardOf"), .fallback)
+        XCTAssertEqual(SceneCore.HomeRules.fallback, .personal)
+    }
 }
