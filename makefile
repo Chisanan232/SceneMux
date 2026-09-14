@@ -140,7 +140,7 @@ release:
 	    cp "$$appcast_stage/appcast.xml" "$$appcast_path"; \
 	    test -f "$$appcast_path"; \
 	else \
-	    echo "Skipping appcast generation because APPCAST=$(APPCAST); SceneMux publishes no update feed yet"; \
+	    echo "Skipping appcast generation because APPCAST=$(APPCAST)"; \
 	fi; \
 	if [ "$(NOTARIZE)" = "1" ]; then \
 	    test -n "$(NOTARYTOOL_PROFILE)"; \
