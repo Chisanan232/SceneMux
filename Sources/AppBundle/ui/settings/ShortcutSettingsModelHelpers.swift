@@ -11,7 +11,7 @@ func buildShortcutSections() -> [ShortcutSettingsModel.Section] {
             id: "managed-focus",
             category: .managed,
             title: "Focus",
-            summary: "Directional focus movement while WinMux is managing windows.",
+            summary: "Directional focus movement while SceneMux is managing windows.",
             actions: [
                 shortcutAction(id: "focus-left", title: "Focus Left", command: "focus left"),
                 shortcutAction(id: "focus-down", title: "Focus Down", command: "focus down"),

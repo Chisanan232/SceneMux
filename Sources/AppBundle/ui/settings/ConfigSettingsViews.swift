@@ -42,7 +42,7 @@ struct ShortcutBehaviorSettingsView: View {
                 SettingsToggle("Normalize nested orientations", isOn: $normalizeNestedContainers, help: "Avoid nested tiled containers with the same orientation.") { persistRootBool("enable-normalization-opposite-orientation-for-nested-containers", normalizeNestedContainers) }
             }
             SettingsSection("Startup") {
-                SettingsToggle("Start at login", isOn: $startAtLogin, help: "Launch WinMux after you sign in.") { persistRootBool("start-at-login", startAtLogin) }
+                SettingsToggle("Start at login", isOn: $startAtLogin, help: "Launch SceneMux after you sign in.") { persistRootBool("start-at-login", startAtLogin) }
                 SettingsToggle("Reload config when it changes", isOn: $autoReloadConfig, help: "Apply valid edits saved from another editor automatically.") { persistRootBool("auto-reload-config", autoReloadConfig) }
             }
             SettingsSection("Default layout") {
