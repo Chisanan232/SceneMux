@@ -458,3 +458,54 @@ Admission is also deliberately **not** built on the inherited `on-window-detecte
 run arbitrary commands from the user's config file; `AGENTS.md` forbids introducing free-form command
 execution to solve orchestration problems, and a typed decision that the app itself executes is both safer
 and testable. The inherited callbacks keep working, unchanged, for the users who already have them.
+
+## Persistence: intent, not window identity
+
+Scene state is persisted so that a Scene survives quitting the app, and so that a Scene caught mid-`ending`
+finishes what it started. The mechanism copies the inherited precedent in
+`tree/frozen/persistedFrozenWorld.swift` — it is already proven in this codebase, and copying it means one
+persistence idiom to review instead of two:
+
+- `~/Library/Application Support/SceneMux/scene-state.json`, beside the inherited `window-state.json`;
+- a `Codable` envelope `{ version: Int, scenes: [...] }` with an explicit integer version;
+- written with `Data.write(to:options: .atomic)`;
+- an unknown version, a decode failure or a missing file all resolve to **no Scenes**, never to a partial
+  read.
+
+### Never in the user's config file
+
+Scene state does **not** go into `~/.config/scenemux/scenemux.toml`, even though the inherited sidebar puts
+its own labels there (`ui/sidebar/WorkspaceSidebarConfigEdits.swift`). The config file is a document the
+user writes by hand and keeps in version control; Scene state changes every time a window is attached.
+Rewriting a hand-edited file on every mount means a bug in that writer destroys someone's configuration —
+and `AGENTS.md` lists persisted state as security-sensitive precisely because of this class of accident.
+Config is *intent the user expressed*; Scene state is *a record of what happened*. Different files.
+
+The one thing that does belong in the config file is user *intent* about Scene Core: the Home rule table
+and per-application overrides. Those are declarative, hand-editable, and reviewed like every other config
+key.
+
+### What is persisted, and what is refused
+
+| Persisted | Not persisted | Why not |
+| --- | --- | --- |
+| `SceneId`, title, state, slot list with roles/labels/composition/order | — | — |
+| Per attachment: application bundle id, `slotId`, ownership, `homeAtAttachTime`, origin | **`CGWindowID`** | A `UInt32` window id is not stable across the owning application's relaunch. The inherited frozen world persists them, but only to restore across *its own* restart, seconds later — a Scene may be reopened next week |
+| The Home rule table and user overrides (in the config file) | **Window titles** | Sensitive by default and forbidden as log or state content |
+| Slot ordering | **Window frames, monitor ids** | Geometry is derived; a stored rectangle is wrong the moment a display is unplugged |
+| — | **Window contents, screenshots, thumbnails** | Never read, never stored |
+
+`WindowRef` is therefore *not* a window id. It is `{ bundleId, ordinalWithinApp }` resolved on load
+against live windows: a match reconnects the attachment, and no match drops it. Dropping an attachment is
+always safe, because an attachment is only ever permission to move a window that is already there.
+
+### Corruption is fail-safe by construction
+
+> A Scene state file that cannot be read, or that contains a value this build does not understand, results
+> in **zero** Scenes and **zero** window operations. It never results in a close, a move or a resize.
+
+`quarantine` exists for the narrower case: state that *parsed* but describes something impossible — an
+attachment to a `SlotId` that no longer exists, an ownership value from a newer build. Those attachments
+are dropped, their windows are left untouched, and the reason is surfaced once in the UI rather than logged
+and forgotten. A user must be able to tell that SceneMux declined to act, or "it did nothing" is
+indistinguishable from "it is broken".
