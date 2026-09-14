@@ -333,6 +333,22 @@ final class WinMuxSceneEngineAdapterTest: XCTestCase {
         XCTAssertEqual(tabs?.lastAppliedLayoutPhysicalRect.orDie().maxX, 3440)
     }
 
+    /// Entering a Scene that is already laid out lands on the same layout rather than on a layout plus the
+    /// wreckage of the last one. Each projection builds fresh containers, so the previous ones are left
+    /// empty — and an empty container that survived would take a share of the screen and show nothing in it.
+    func testProjectingTheSameSceneTwiceLeavesTheSameLayout() throws {
+        config.enableNormalizationFlattenContainers = true
+        makeGoldenJourneyWindows()
+        let scene = try SceneCoreFixtures.debugScene()
+
+        _ = project(scene, onto: name)
+        let onceProjected = Workspace.get(byName: name).rootTilingContainer.layoutDescription
+        let report = project(scene, onto: name)
+
+        XCTAssertEqual(Workspace.get(byName: name).rootTilingContainer.layoutDescription, onceProjected)
+        XCTAssertTrue(report.isFullyRealised, report.diagnostics.joined(separator: " "))
+    }
+
     private func rect(ofWindowId id: UInt32) -> Rect {
         Window.get(byId: id).orDie().lastAppliedLayoutPhysicalRect.orDie()
     }
