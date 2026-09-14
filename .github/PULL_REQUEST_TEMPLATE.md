@@ -40,7 +40,7 @@ Commands and their real output. Not "tests pass".
 | Check | Command | Result |
 | --- | --- | --- |
 | Build | `make build VERSION=0.0.0` | exit 0, 0 errors, 0 warnings |
-| Tests | `swift test` | N tests, 0 failures |
+| Tests | `source ./script/setup.sh && swift test` | N tests, 0 failures |
 | Update-feed isolation | `python3 script/test_update_feed_isolation.py` | OK |
 | Appcast validation | `python3 script/test_validate_appcast.py` | OK |
 | License inventory | `python3 script/license-inventory.py` | OK |
