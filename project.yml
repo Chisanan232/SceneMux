@@ -17,7 +17,7 @@ targets:
     platform: macOS
     deploymentTarget: "13.0"
     info:
-      path: resources/WinMux-Info.plist
+      path: resources/SceneMux-Info.plist
       properties:
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
@@ -50,7 +50,7 @@ targets:
           SWIFT_TREAT_WARNINGS_AS_ERRORS: YES
           GCC_TREAT_WARNINGS_AS_ERRORS: YES
     entitlements:
-      path: resources/WinMux.entitlements
+      path: resources/SceneMux.entitlements
       properties:
         # Accessibility API doesn't work in sandboxed apps
         com.apple.security.app-sandbox: false
