@@ -82,6 +82,21 @@ final class SceneSwitcherPanel: NSPanelHud {
         hostingView.rootView = AnyView(EmptyView())
     }
 
+    /// Run a change that can reach the engine the way every other surface in this app runs one.
+    ///
+    /// Entering a Scene and composing a Slot rebind windows in the inherited tree; it is the session that
+    /// follows — `layoutWorkspaces()` — that actually moves them, and the session that first cancels any
+    /// refresh already in flight. Mutating the tree outside one would leave the screen disagreeing with the
+    /// Scene until something unrelated triggered a refresh, and would interleave with a running refresh while
+    /// doing it. The body reads the model's own answer, so the panel still decides synchronously whether the
+    /// keystroke did anything.
+    private func inSession(_ body: @escaping @MainActor () -> Void) {
+        guard let token: RunSessionGuard = .isServerEnabled else { return body() }
+        Task { @MainActor in
+            try await runLightSession(.menuBarButton, token) { body() }
+        }
+    }
+
     /// Panel-local keys. Everything else — the typing — goes to the field as usual.
     override func sendEvent(_ event: NSEvent) {
         if event.type == .keyDown, isPanelActive {
@@ -99,13 +114,13 @@ final class SceneSwitcherPanel: NSPanelHud {
                     model.beginClose()
                     return
                 case (36, true), (76, true): // ⌘⏎ — enter, and stay open
-                    model.enterSelected()
+                    inSession { self.model.enterSelected() }
                     return
                 case (36, false), (76, false): // ⏎
                     if model.mode.isEditingText {
-                        model.commitName()
-                    } else if model.enterSelected() {
-                        dismiss()
+                        inSession { self.model.commitName() }
+                    } else {
+                        inSession { if self.model.enterSelected() { self.dismiss() } }
                     }
                     return
                 case (120, _): // F2 — rename in place
