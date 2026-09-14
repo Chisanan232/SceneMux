@@ -581,3 +581,63 @@ attached window now belongs to and updates its own state to match. Two consequen
 
 Read-back reads *structure* — which container a window ended up in — and never geometry. Nothing in Scene
 state is derived from a rectangle.
+
+## Invariants
+
+Every one of these is stated so it can be *tested*, and the ticket that introduces the relevant code owns
+the test.
+
+| # | Invariant |
+| --- | --- |
+| I1 | A window's Semantic Home is unchanged by any attach, mount, enter, leave or close. Only an explicit user action on the application changes it |
+| I2 | At most one Scene is `active` (v0.1.0) |
+| I3 | An `active` Scene has exactly one `substrate` binding; a `defined`, `ending` or `ended` Scene has none |
+| I4 | A window has at most one attachment across all Scenes |
+| I5 | `leave` moves, resizes, focuses and closes nothing |
+| I6 | No lifecycle transition closes a window. A close happens only from an explicit per-window user confirmation |
+| I7 | A `.sharedPersistent` window is never moved, resized, focused or closed by Scene Core |
+| I8 | A `.borrowed` window is restored to its Home surface exactly once when its Scene reaches `ended` |
+| I9 | Unreadable or unrecognised persisted state yields zero Scenes and zero window operations |
+| I10 | An unrecognised window receives `ignore`; SceneMux leaves it exactly where the inherited engine put it |
+| I11 | No Scene state contains a window title, a window frame, a monitor id or a `CGWindowID` |
+| I12 | `scene/domain/` imports `Foundation` only; no engine type is named outside `scene/engine/` |
+| I13 | A Slot with no attachments still exists in Scene state and is still shown |
+| I14 | `ended` is reachable from `ending` even when every window involved has disappeared |
+
+## Non-goals
+
+Not built in v0.1.0, and not to be smuggled in by an implementation ticket:
+
+- **Cross-process window embedding.** SceneMux never reparents another application's window into a
+  SceneMux-owned view, never draws another application's content, and never wraps a native app in a
+  container. Composition is achieved by moving and sizing real windows through Accessibility — exactly what
+  the inherited engine does. *Native apps stay native* is a constraint on the implementation, not a slogan.
+- **Rewriting the WinMux engine.** SceneMux differentiates *above* it. No inherited module is restructured
+  to make Scene Core prettier.
+- **`ManagedSession`**, in any form.
+- **Process lineage or window-to-process attribution.**
+- **Coding-agent awareness** — no Claude Code, Codex or OpenCode ownership, detection or special-casing.
+- **A Playwright Browser Broker** or any browser-session ownership.
+- **Admission gates G2 and G3.**
+- **Automatic destruction of anything** — no automatic close, no automatic quit, no "tidy up" that removes
+  a user's window without a per-window confirmation.
+- **Free-form command execution** as an orchestration mechanism.
+- **Reading, logging or persisting window titles or window contents.**
+- **Broadening Accessibility or TCC scope.** Scene Core needs exactly the permission the inherited engine
+  already requires, and asks for nothing further.
+- **Multi-monitor Scenes, concurrent Scenes, Scene templates, Scene sharing, sync.**
+
+## Extension points
+
+These are the places later phases attach. **None of them is code in v0.1.0** — an empty protocol with no
+conforming type is a claim, not a design, and the repository's rules forbid abstractions without callers.
+What is delivered now is a shape that does not have to be broken to add them:
+
+| Future feature | Where it attaches | What v0.1.0 already got right for it |
+| --- | --- | --- |
+| **G2 pre-creation containment** | `AdmissionDecision.claim`, decided before `unbindAndGetBindingDataForNewWindow` returns | Admission is already a typed decision function, not a pile of side effects, and `claim` is already in the enum |
+| **Process lineage** | A new *input* to a G1/G2 rule, alongside bundle id | The rule inputs are an explicit, closed list — adding one is a visible, reviewable change |
+| **`ManagedSession`** | A new `Ownership` case, or an owner reference on `Attachment` | Ownership is already the single thing that decides what closing a Scene may do |
+| **Browser broker** | A G3 gate plus a session-scoped owner | `AdmissionDecision` already distinguishes claiming from routing |
+| **Scene templates** | A derivation from an existing Scene's Slots | Slots are already data, with no geometry to make a template monitor-specific |
+| **Multi-monitor Scenes** | `substrate` becomes a set of bindings | Nothing in the domain model assumes one monitor; Slots carry order, not coordinates |
