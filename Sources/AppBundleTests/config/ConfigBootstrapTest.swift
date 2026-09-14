@@ -65,7 +65,7 @@ final class ConfigBootstrapTest: XCTestCase {
 
     func testEnsureBootstrapConfigCopiesLegacyConfig() throws {
         let tempDir = FileManager.default.temporaryDirectory
-            .appending(path: "WinMuxTests-\(UUID().uuidString)", directoryHint: .isDirectory)
+            .appending(path: "SceneMuxTests-\(UUID().uuidString)", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: tempDir) }
 
@@ -91,7 +91,7 @@ final class ConfigBootstrapTest: XCTestCase {
 
     func testEnsureBootstrapConfigPrefersFirstLegacyConfigWithoutFailing() throws {
         let tempDir = FileManager.default.temporaryDirectory
-            .appending(path: "WinMuxTests-\(UUID().uuidString)", directoryHint: .isDirectory)
+            .appending(path: "SceneMuxTests-\(UUID().uuidString)", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: tempDir) }
 
@@ -125,7 +125,7 @@ final class ConfigBootstrapTest: XCTestCase {
 
     func testEnsureBootstrapConfigImportsAerospaceConfigWhenNoWinMuxConfigExists() throws {
         let tempDir = FileManager.default.temporaryDirectory
-            .appending(path: "WinMuxTests-\(UUID().uuidString)", directoryHint: .isDirectory)
+            .appending(path: "SceneMuxTests-\(UUID().uuidString)", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: tempDir) }
 
