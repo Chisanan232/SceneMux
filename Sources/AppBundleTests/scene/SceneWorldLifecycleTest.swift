@@ -170,4 +170,17 @@ final class SceneWorldLifecycleTest: XCTestCase {
         ])
         XCTAssertEqual(twice, once)
     }
+
+    func testAFailedRestoreStaysOwed() throws {
+        let scene = try SceneCoreFixtures.debugScene(state: .active(substrate))
+        let closed = try SceneCore.SceneWorld(scenes: [scene]).closing(scene.id)
+        let line = try SceneCoreFixtures.windowRef(App.line)
+
+        let failed = try closed.world.resolving(.failed(reason: "LINE is busy"), for: line, in: scene.id)
+
+        // The attachment is the record that the restore is still owed and the instruction to try again. No
+        // counter to get wrong, and a relaunch inherits the same answer.
+        XCTAssertEqual(failed, closed.world)
+        XCTAssertEqual(failed.unfinishedTeardowns.first?.pending.map(\.windowRef).first, line)
+    }
 }
