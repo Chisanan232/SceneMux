@@ -7,6 +7,12 @@
 
 <p align="left">A powerful sidebar-first window manager for macOS.</p>
 
+> **SceneMux is derived from [WinMux](https://github.com/ZimengXiong/winmux)** (MIT),
+> which is itself derived from [AeroSpace](https://github.com/nikitabobko/AeroSpace) (MIT).
+> SceneMux is a separate project with its own releases, update feed, and direction —
+> it is not WinMux, not a WinMux distribution, and not endorsed by the WinMux authors.
+> Exact derivation baseline: [`docs/legal/ORIGIN.md`](docs/legal/ORIGIN.md).
+
 https://github.com/user-attachments/assets/51983568-a168-494f-8ae3-5f50ca1efce1
 
 ## Highlights
