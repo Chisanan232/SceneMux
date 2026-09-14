@@ -111,7 +111,7 @@ struct ShortcutGeneralView: View {
                             Button("Reload Config") { reloadConfigAction() }
                         }
                         
-                        Text("Shortcuts are edited here. Advanced configuration remains in `winmux.toml`.")
+                        Text("Shortcuts are edited here. Advanced configuration remains in `scenemux.toml`.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
