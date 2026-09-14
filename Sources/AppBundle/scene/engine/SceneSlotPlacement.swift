@@ -53,6 +53,18 @@ extension SceneCore {
             }
         }
 
+        /// The same outcome, restated with the composition the engine settled on.
+        ///
+        /// Only a Slot that was actually built can be recomposed. A missing, empty or refused Slot has no
+        /// composition to correct, and rewriting one anyway would report a layout that is not on screen.
+        func recomposed(as composition: SlotComposition) -> SceneSlotPlacement {
+            switch self {
+                case .realised: .realised(composition)
+                case .partlyRealised(_, let missing): .partlyRealised(composition, missing: missing)
+                case .windowsMissing, .empty, .refused: self
+            }
+        }
+
         var description: String {
             switch self {
                 case .realised(let composition): "realised as \(composition)"
