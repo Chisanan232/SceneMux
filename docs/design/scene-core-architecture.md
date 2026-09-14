@@ -389,3 +389,72 @@ reaches `ended` — never a close, never a "clean up by closing what I cannot fi
 - **`save-template`.** A Scene can be created with default Slots; deriving a reusable template from an
   existing Scene is a separate feature with its own persistence surface. Deferred to Phase 2.
 - **Automatic close of anything, ever.** See [Ownership](#ownership).
+
+## Admission
+
+**Admission** is the decision *what should happen to this window* — asked once per window SceneMux
+becomes aware of, answered by a typed value, and never by a side effect:
+
+```
+enum AdmissionDecision {
+    case claim(SlotRef)       // this window belongs to that Slot, and SceneMux says so first
+    case route(SlotRef)       // place it in that Slot of the active Scene
+    case mount(SlotRef)       // attach it as .borrowed, leaving its Home alone
+    case tab(SlotRef)         // add it to that Slot's tab group
+    case float                // leave it floating; do not tile it
+    case ignore               // not our business. The default
+    case quarantine(Reason)   // something is wrong; touch nothing and say so
+}
+```
+
+All seven cases exist in the model because admission is a first-class abstraction that later phases
+extend, and a partial enum would force a source change in every `switch` when G2 arrives. **v0.1.0
+implements `route`, `mount`, `tab` and `ignore`.** `claim` needs pre-creation containment, which is G2.
+`float` is the engine's existing behaviour and needs no SceneMux decision to happen. `quarantine` is
+reachable only from the corrupt-state path in [Persistence](#persistence-intent-not-window-identity) —
+never from a normal user window.
+
+### Gates
+
+| Gate | What it decides | v0.1.0 |
+| --- | --- | --- |
+| **G1 — reactive managed** | A window that already exists and the engine has detected: route / mount / tab / ignore | **Implemented** |
+| **G2 — proactive, pre-creation** | Ownership established before the window appears, from process lineage: a coding agent's terminal, a launched-by-SceneMux browser | **Not implemented.** See [Extension points](#extension-points) |
+| **G3 — session-scoped containment** | A `ManagedSession` or a browser broker owning a whole family of windows | **Not implemented** |
+
+### What a G1 decision may look at
+
+| Input | Allowed | Why |
+| --- | --- | --- |
+| Application bundle id | Yes | Stable, non-sensitive, already available on the detection event |
+| Window role / subrole / level, and the engine's `.window` / `.dialog` / `.popup` classification | Yes | Already computed by `getAxUiElementWindowType`; it is what keeps dialogs out of Slots |
+| The active Scene's Slots and their roles | Yes | It is the intent being served |
+| An explicit user action (drag, keyboard, menu) | Yes — and it overrides every rule | The user is never overruled by a rule table |
+| **Window title** | **No** | The most sensitive text on the screen. `AGENTS.md` forbids logging it, and a rule that reads it makes placement depend on what is being typed |
+| **Process lineage / parent pid** | **No, in v0.1.0** | That is G2. SceneMux has no lineage evidence yet, and pretending otherwise is how you get wrong ownership |
+
+Two rules follow from that table and are worth stating as rules, because both are tempting:
+
+> **A Chrome window is not a Playwright window.** Application identity is evidence of *what application
+> it is* and nothing more. SceneMux has no browser-session ownership in v0.1.0, so it must never infer
+> that a browser window is automation-owned, agent-owned or Scene-owned from its bundle id.
+>
+> **An unrecognised normal user window is `ignore`.** Not floated, not quarantined, not tiled somewhere
+> plausible — left exactly as the inherited engine would have left it. Failing safe means declining to act.
+
+### Where admission attaches, and where it does not
+
+The engine already has the two seams admission needs:
+
+- `tryOnWindowDetected` (`tree/WindowDetectedCallbacks.swift`) fires after a window is bound and is where
+  a G1 decision is *requested and applied* in v0.1.0;
+- `unbindAndGetBindingDataForNewWindow` (`tree/NewWindowBinding.swift`) computes the engine's initial
+  placement. **v0.1.0 does not change it.** The engine places the window as it always has, and admission
+  then moves it if the active Scene wants it. One code path, one behaviour to explain, and an unadmitted
+  window behaves byte-for-byte as it did in `v0.0.0`. Deciding *before* placement is what `claim` is for,
+  and that is G2.
+
+Admission is also deliberately **not** built on the inherited `on-window-detected` config callbacks. Those
+run arbitrary commands from the user's config file; `AGENTS.md` forbids introducing free-form command
+execution to solve orchestration problems, and a typed decision that the app itself executes is both safer
+and testable. The inherited callbacks keep working, unchanged, for the users who already have them.
