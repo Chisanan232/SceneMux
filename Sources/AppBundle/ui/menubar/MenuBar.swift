@@ -2,8 +2,8 @@
     import Foundation
     import SwiftUI
     
-private let winmuxRepositoryURL = "https://github.com/zimengxiong/winmux"
-private let winmuxNewIssueURL = "https://github.com/zimengxiong/winmux/issues/new/choose"
+private let sceneMuxRepositoryURL = "https://github.com/Chisanan232/SceneMux"
+private let sceneMuxNewIssueURL = "https://github.com/Chisanan232/SceneMux/issues/new"
 
     @MainActor
     public func menuBar(
@@ -32,10 +32,10 @@ private let winmuxNewIssueURL = "https://github.com/zimengxiong/winmux/issues/ne
             }
         }
         Button("GitHub Repository") {
-            openURLString(winmuxRepositoryURL)
+            openURLString(sceneMuxRepositoryURL)
         }
         Button("File an issue...") {
-            openURLString(winmuxNewIssueURL)
+            openURLString(sceneMuxNewIssueURL)
         }
         Button("Quit \(winMuxAppName)") {
             Task {
