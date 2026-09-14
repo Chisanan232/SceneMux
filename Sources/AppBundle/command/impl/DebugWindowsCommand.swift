@@ -81,30 +81,30 @@ private func dumpWindowDebugInfo(_ window: Window) async throws -> String {
 
     let windowLevel = getWindowLevel(for: window.windowId)
     let windowLevelJson = windowLevel?.toJson() ?? .null
-    result["WinMux.windowLevel"] = windowLevelJson
+    result["SceneMux.windowLevel"] = windowLevelJson
     result["SceneMux.axWindowId"] = .uint32(window.windowId)
-    result["WinMux.workspace"] = .stringOrNull(window.nodeWorkspace?.name)
-    result["WinMux.treeNodeParent"] = .string(String(describing: window.parent))
-    result["WinMux.macOS.version"] = .string(ProcessInfo().operatingSystemVersionString) // because built-in apps might behave differently depending on the OS version
-    result["WinMux.App.appBundleId"] = .stringOrNull(window.app.rawAppBundleId)
-    result["WinMux.App.pid"] = .int(Int(window.app.pid))
-    result["WinMux.App.versionShort"] = .stringOrNull(appInfoDic["CFBundleShortVersionString"] as? String)
-    result["WinMux.App.version"] = .stringOrNull(appInfoDic["CFBundleVersion"] as? String)
-    result["WinMux.App.nsApp.activationPolicy"] = .string(window.macApp.nsApp.activationPolicy.prettyDescription)
-    result["WinMux.App.nsApp.execPath"] = .stringOrNull(window.macApp.nsApp.executableURL?.description)
-    result["WinMux.App.nsApp.appBundlePath"] = .stringOrNull(window.macApp.nsApp.bundleURL?.description)
-    result["WinMux.AXApp"] = .dict(try await window.macApp.dumpAppAxInfo())
+    result["SceneMux.workspace"] = .stringOrNull(window.nodeWorkspace?.name)
+    result["SceneMux.treeNodeParent"] = .string(String(describing: window.parent))
+    result["SceneMux.macOS.version"] = .string(ProcessInfo().operatingSystemVersionString) // because built-in apps might behave differently depending on the OS version
+    result["SceneMux.App.appBundleId"] = .stringOrNull(window.app.rawAppBundleId)
+    result["SceneMux.App.pid"] = .int(Int(window.app.pid))
+    result["SceneMux.App.versionShort"] = .stringOrNull(appInfoDic["CFBundleShortVersionString"] as? String)
+    result["SceneMux.App.version"] = .stringOrNull(appInfoDic["CFBundleVersion"] as? String)
+    result["SceneMux.App.nsApp.activationPolicy"] = .string(window.macApp.nsApp.activationPolicy.prettyDescription)
+    result["SceneMux.App.nsApp.execPath"] = .stringOrNull(window.macApp.nsApp.executableURL?.description)
+    result["SceneMux.App.nsApp.appBundlePath"] = .stringOrNull(window.macApp.nsApp.bundleURL?.description)
+    result["SceneMux.AXApp"] = .dict(try await window.macApp.dumpAppAxInfo())
 
     let isDialog = try await window.isDialogHeuristic(windowLevel)
     let isWindow = try await window.isWindowHeuristic(windowLevel)
-    result["WinMux.AxUiElementWindowType"] = .string(AxUiElementWindowType.new(isWindow: isWindow, isDialog: { isDialog }).rawValue)
-    result["WinMux.AxUiElementWindowType_isDialogHeuristic"] = .bool(isDialog)
+    result["SceneMux.AxUiElementWindowType"] = .string(AxUiElementWindowType.new(isWindow: isWindow, isDialog: { isDialog }).rawValue)
+    result["SceneMux.AxUiElementWindowType_isDialogHeuristic"] = .bool(isDialog)
 
     var matchingCallbacks: [Json] = []
     for callback in config.onWindowDetected where try await callback.matches(window) {
         matchingCallbacks.append(callback.debugJson)
     }
-    result["WinMux.on-window-detected"] = .array(matchingCallbacks)
+    result["SceneMux.on-window-detected"] = .array(matchingCallbacks)
 
     return JSONEncoder.winMuxDefault.encodeToString(result).prettyDescription
         .prefixLines(with: "\(window.app.rawAppBundleId ?? "nil-bundle-id").\(window.windowId) ||| ")
