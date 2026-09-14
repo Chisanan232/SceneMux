@@ -7,6 +7,11 @@ CODE_SIGN_STYLE ?= Automatic
 DEVELOPMENT_TEAM ?=
 NOTARIZE ?= 0
 NOTARYTOOL_PROFILE ?=
+# SceneMux ships no Sparkle feed until it owns a signed release channel, so a release generates no
+# appcast by default. Generating one requires a Sparkle ed25519 private key, and that key is the
+# power to replace the application on users' machines — it is created deliberately, never as a side
+# effect of a release. See the update-feed section of docs/development/release.md.
+APPCAST ?= 0
 RELEASE_DIR ?= .release
 RELEASE_TAG ?= v$(VERSION)
 RELEASE_NOTES ?= auto
@@ -124,15 +129,19 @@ release:
 	codesign --verify --deep --strict --verbose=2 "$$app_path"; \
 	codesign -dv --verbose=4 "$$app_path" 2>&1 | grep -F "$(EXPECTED_CODESIGN_AUTHORITY_PREFIX)" >/dev/null; \
 	ditto -c -k --sequesterRsrc --keepParent "$$app_path" "$$zip_path"; \
-	sparkle_appcast="$$(find "$$derived_data_path/SourcePackages/artifacts" -type f -name generate_appcast -print -quit)"; \
-	test -n "$$sparkle_appcast"; \
-	appcast_stage="$$(mktemp -d "$$release_dir/appcast-stage.XXXXXX")"; \
-	trap "rm -rf \"$$appcast_stage\"" EXIT; \
-	cp "$$zip_path" "$$appcast_stage/"; \
-	"$$sparkle_appcast" --download-url-prefix "https://github.com/Chisanan232/SceneMux/releases/download/$(RELEASE_TAG)/" "$$appcast_stage"; \
-	python3 script/validate-appcast.py "$$appcast_stage/appcast.xml" "$(VERSION)" "https://github.com/Chisanan232/SceneMux/releases/download/$(RELEASE_TAG)/$$app_name-$(VERSION).zip"; \
-	cp "$$appcast_stage/appcast.xml" "$$appcast_path"; \
-	test -f "$$appcast_path"; \
+	if [ "$(APPCAST)" = "1" ]; then \
+	    sparkle_appcast="$$(find "$$derived_data_path/SourcePackages/artifacts" -type f -name generate_appcast -print -quit)"; \
+	    test -n "$$sparkle_appcast"; \
+	    appcast_stage="$$(mktemp -d "$$release_dir/appcast-stage.XXXXXX")"; \
+	    trap "rm -rf \"$$appcast_stage\"" EXIT; \
+	    cp "$$zip_path" "$$appcast_stage/"; \
+	    "$$sparkle_appcast" --download-url-prefix "https://github.com/Chisanan232/SceneMux/releases/download/$(RELEASE_TAG)/" "$$appcast_stage"; \
+	    python3 script/validate-appcast.py "$$appcast_stage/appcast.xml" "$(VERSION)" "https://github.com/Chisanan232/SceneMux/releases/download/$(RELEASE_TAG)/$$app_name-$(VERSION).zip"; \
+	    cp "$$appcast_stage/appcast.xml" "$$appcast_path"; \
+	    test -f "$$appcast_path"; \
+	else \
+	    echo "Skipping appcast generation because APPCAST=$(APPCAST)"; \
+	fi; \
 	if [ "$(NOTARIZE)" = "1" ]; then \
 	    test -n "$(NOTARYTOOL_PROFILE)"; \
 	    xcrun notarytool submit "$$zip_path" --keychain-profile "$(NOTARYTOOL_PROFILE)" --wait; \
@@ -145,16 +154,18 @@ release:
 	else \
 	    echo "Skipping notarization because NOTARIZE=$(NOTARIZE)"; \
 	fi; \
+	assets=("$$zip_path"); \
+	if [ "$(APPCAST)" = "1" ]; then assets+=("$$appcast_path"); fi; \
 	if [ "$(PUBLISH)" != "1" ]; then \
 	    echo "Skipping GitHub release publish because PUBLISH=$(PUBLISH)"; \
 	elif /usr/bin/which gh >/dev/null 2>&1; then \
 	    if gh release view "$(RELEASE_TAG)" --repo "$(RELEASE_REPO)" >/dev/null 2>&1; then \
-	        gh release upload "$(RELEASE_TAG)" "$$zip_path" "$$appcast_path" --repo "$(RELEASE_REPO)" --clobber; \
+	        gh release upload "$(RELEASE_TAG)" "$${assets[@]}" --repo "$(RELEASE_REPO)" --clobber; \
 	    else \
 	        if [ "$(RELEASE_NOTES)" = "auto" ]; then \
-	            gh release create "$(RELEASE_TAG)" "$$zip_path" "$$appcast_path" --repo "$(RELEASE_REPO)" --title "$$app_name $(VERSION)" --generate-notes; \
+	            gh release create "$(RELEASE_TAG)" "$${assets[@]}" --repo "$(RELEASE_REPO)" --title "$$app_name $(VERSION)" --generate-notes; \
 	        else \
-	            gh release create "$(RELEASE_TAG)" "$$zip_path" "$$appcast_path" --repo "$(RELEASE_REPO)" --title "$$app_name $(VERSION)" --notes "$(RELEASE_NOTES)"; \
+	            gh release create "$(RELEASE_TAG)" "$${assets[@]}" --repo "$(RELEASE_REPO)" --title "$$app_name $(VERSION)" --notes "$(RELEASE_NOTES)"; \
 	        fi; \
 	    fi; \
 	else \

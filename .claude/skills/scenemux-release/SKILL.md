@@ -51,10 +51,14 @@ not be able to assume a capability that is still on the roadmap.
 make release VERSION=<version> PUBLISH=0
 ```
 
-Then confirm the archive's bundle version fields, `codesign --verify`, the generated `appcast.xml`,
-and that the app launches. If no signing identity exists on the machine, use the ad-hoc invocation
-documented in `docs/development/release.md` and say so in the release notes — never fabricate or
-reuse Apple credentials, and never claim a build is notarized when it is not.
+Then confirm the archive's bundle version fields, `codesign --verify`, that `SUFeedURL` and
+`SUPublicEDKey` are absent from the built `Info.plist`, and that the app launches. No `appcast.xml`
+is produced: `APPCAST` defaults to `0` because SceneMux publishes no update feed, and turning it on
+is the human-authorized decision listed at the end of this skill.
+
+If no signing identity exists on the machine, use the ad-hoc invocation documented in
+`docs/development/release.md` and say so in the release notes — never fabricate or reuse Apple
+credentials, and never claim a build is notarized when it is not.
 
 ## 4. Tag and publish
 

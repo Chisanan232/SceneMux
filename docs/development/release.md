@@ -63,7 +63,9 @@ Apple credentials and is a human-authorized step — never invent or reuse crede
    its own explicit list — what is *not yet* included. A reader must not be able to mistake inherited
    engine capability for SceneMux-owned work.
 2. **Build the artifact** with `make release VERSION=<version> PUBLISH=0` and verify it: bundle
-   version fields, `codesign --verify`, the generated `appcast.xml`, and the app launching.
+   version fields, `codesign --verify`, the absence of `SUFeedURL` and `SUPublicEDKey` from the built
+   `Info.plist`, and the app launching. No `appcast.xml` is produced — see
+   [Update feed](#update-feed).
 3. **Create the annotated tag** on the verified `origin/main` commit and push it:
    ```shell
    git tag -a v<version> <sha> -m "SceneMux v<version> — <theme>"
@@ -104,3 +106,26 @@ feed added later points at `https://github.com/Chisanan232/SceneMux/releases/`.
 
 Publishing a feed is a security decision — it grants a signing key the power to replace the
 application on users' machines — and is made deliberately, not as a side effect of a release.
+
+`make release` therefore defaults to `APPCAST=0`: it builds and verifies the archive, and generates
+no appcast. The inherited pipeline generated one unconditionally, which is the wrong default for a
+project with no feed — Sparkle's `generate_appcast` needs an ed25519 private key in the keychain to
+sign the archive, so an unconditional appcast step turns "create the key that can replace the
+application on every user's machine" into a prerequisite for building a release at all.
+
+When SceneMux does own a signed release channel, three things happen, in this order:
+
+1. create the ed25519 key pair with Sparkle's `generate_keys`, which stores the private half in the
+   keychain and prints the public half — this is the step that requires human authorization, because
+   it is the moment the signing power comes into existence;
+2. add `SUFeedURL` (pointing at `https://github.com/Chisanan232/SceneMux/releases/`) and the printed
+   `SUPublicEDKey` under their own reviewed change, not during a release;
+3. release with `APPCAST=1`, which generates `appcast.xml`, validates it with
+   `script/validate-appcast.py`, and attaches it to the GitHub Release.
+
+Step 1 is what `APPCAST=1` technically depends on: without the private key in the keychain,
+`generate_appcast` reports `Private key for account ed25519 not found in the Keychain (-25300)`, and
+`script/validate-appcast.py` then rejects the unsigned archive. Steps 2 and 3 are not enforced by the
+build, which is exactly why they are written down here: a signed appcast that no shipped build points
+at is a feed nobody consumes, and a feed key created ahead of the reviewed decision to have one is
+the thing this default exists to prevent.
