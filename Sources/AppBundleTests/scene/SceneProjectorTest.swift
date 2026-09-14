@@ -44,4 +44,25 @@ final class SceneProjectorTest: XCTestCase {
         XCTAssertTrue(report.isFullyRealised)
         XCTAssertEqual(report.diagnostics, [])
     }
+
+    /// An unusable substrate stops the projection dead rather than letting it place the Scene's windows
+    /// somewhere the Scene never asked for.
+    func testAnUnusableSubstrateRefusesEverySlotAndPlacesNothing() throws {
+        let port = RecordingSceneEnginePort()
+        port.substrateIsUsable = false
+        let scene = try SceneCoreFixtures.debugScene()
+
+        let report = SceneCore.SceneProjector(port: port)
+            .project(SceneCore.SceneLayoutPlan(scene, on: substrate))
+
+        XCTAssertEqual(port.placedGroups, [])
+        XCTAssertEqual(port.settledSubstrates, [])
+        XCTAssertEqual(report.placements.count, scene.slots.count)
+        XCTAssertEqual(report.diagnostics.count, 1)
+        XCTAssertEqual(
+            report.diagnostics.first,
+            "SceneMux could not prepare workspace \"3\" for \"Debug PROD-123\", so it laid out nothing.",
+        )
+        XCTAssertFalse(report.isFullyRealised)
+    }
 }
