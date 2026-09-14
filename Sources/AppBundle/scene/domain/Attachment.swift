@@ -23,6 +23,10 @@ extension SceneCore {
         /// How the attachment came about.
         let origin: AttachmentOrigin
 
+        /// True when this attachment is a Mount: a window lent to the Scene, which goes home when the Scene
+        /// ends. Reads the recorded ownership and nothing else — no Home comparison is involved.
+        var isMount: Bool { ownership == .borrowed }
+
         var description: String { "\(windowRef) → \(slotId) (\(ownership))" }
     }
 }
