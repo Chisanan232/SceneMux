@@ -74,4 +74,11 @@ final class SceneWorldLifecycleTest: XCTestCase {
         // must not send borrowed windows home twice.
         XCTAssertEqual(left.scene(scene.id)?.attachments, scene.attachments)
     }
+
+    func testLeavingASceneThatIsNotOnScreenIsANoOp() throws {
+        let world = try SceneCore.SceneWorld(scenes: [try SceneCoreFixtures.debugScene()])
+        let id = try XCTUnwrap(world.scenes.first?.id)
+
+        XCTAssertEqual(try world.leaving(id), world)
+    }
 }
