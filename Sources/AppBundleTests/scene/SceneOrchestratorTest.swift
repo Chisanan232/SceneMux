@@ -131,6 +131,16 @@ final class SceneOrchestratorTest: XCTestCase {
         XCTAssertEqual(orchestrator.world.scene(scene.id)?.attachments, scene.attachments)
     }
 
+    func testCyclingASlotTheSceneDoesNotHaveIsRefused() throws {
+        let orchestrator = SceneCore.SceneOrchestrator(store: store(in: try temporaryDirectory()))
+        let scene = try orchestrator.createScene(title: "Debug PROD-123")
+        let elsewhere = SceneCore.SlotId.generate()
+
+        XCTAssertThrowsError(try orchestrator.cycleComposition(of: elsewhere, in: scene.id)) { error in
+            XCTAssertEqual(error as? SceneCore.SceneCoreError, .unknownSlot(elsewhere))
+        }
+    }
+
     func testRenamingASceneTheWorldDoesNotHaveIsRefused() throws {
         // The shell addresses Scenes by index, and an index can name a Scene a restart has already forgotten.
         let orchestrator = SceneCore.SceneOrchestrator(store: store(in: try temporaryDirectory()))
