@@ -912,8 +912,11 @@ The domain model is verified by unit tests — it imports `Foundation` only, pre
 invariants above are testable without a window server. So is the lifecycle above it: every transition,
 every teardown outcome and the whole interrupted-teardown path are exercised as values, and the
 orchestrator against a real state file in a temporary directory, including a directory it is not allowed
-to write to. The engine adapter and admission are verified
-against the real engine. Everything with a surface is verified natively, per
+to write to. The seam is verified twice over: the projector's order of operations against a recording port,
+and the adapter against the real inherited tree — including the golden journey built out of six windows and
+five Slots and then measured as actual rectangles. A fake would agree with whatever the adapter believed,
+which is the one thing worth doubting. Admission is verified against the real engine too. Everything with a
+surface is verified natively, per
 [`../development/ui-verification.md`](../development/ui-verification.md): built, launched, driven through
 XCTest/XCUITest, Accessibility automation or a real interactive pass, with window-scoped or artifact-scoped
 screenshots. Browser automation is not a valid verifier for any of it.
