@@ -183,4 +183,17 @@ final class SceneWorldLifecycleTest: XCTestCase {
         XCTAssertEqual(failed, closed.world)
         XCTAssertEqual(failed.unfinishedTeardowns.first?.pending.map(\.windowRef).first, line)
     }
+
+    func testTheLastRestoreEndsTheScene() throws {
+        let scene = try SceneCoreFixtures.debugScene(state: .active(substrate))
+        let closed = try SceneCore.SceneWorld(scenes: [scene]).closing(scene.id)
+
+        let world = try closed.world
+            .resolving(.restored, for: try SceneCoreFixtures.windowRef(App.line), in: scene.id)
+            .resolving(.restored, for: try SceneCoreFixtures.windowRef(App.slack), in: scene.id)
+
+        XCTAssertEqual(world.scene(scene.id)?.state, .ended)
+        XCTAssertEqual(world.scene(scene.id)?.attachments, [])
+        XCTAssertEqual(world.unfinishedTeardowns, [])
+    }
 }
