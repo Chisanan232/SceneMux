@@ -178,4 +178,22 @@ final class SceneSwitcherModelTest: XCTestCase {
         XCTAssertNil(model.snapshot.activeScene)
         XCTAssertEqual(port.preparedSubstrates, [])
     }
+
+    /// Leaving a Scene takes it off screen and moves nothing, and leaving when there is no Scene on screen says
+    /// so instead of quietly doing nothing — the menu item and `⌃⌥0` both land here.
+    func testLeavingTakesTheSceneOffScreenWithoutMovingAnything() throws {
+        let scene = try model.runtime.createScene(title: "Debug PROD-123", template: .empty)
+        XCTAssertTrue(model.enter(scene.id))
+        let placedWhileEntering = port.placedGroups.count
+
+        XCTAssertTrue(model.leave())
+
+        XCTAssertNil(model.snapshot.activeScene, "the Scene is no longer on screen")
+        XCTAssertEqual(model.snapshot.scenes.map(\.title), ["Debug PROD-123"], "and it still exists")
+        XCTAssertEqual(port.placedGroups.count, placedWhileEntering, "leaving places nothing")
+        XCTAssertNil(model.errorText)
+
+        XCTAssertFalse(model.leave())
+        XCTAssertEqual(model.errorText, "No Scene is on screen, so there was nothing to do.")
+    }
 }
