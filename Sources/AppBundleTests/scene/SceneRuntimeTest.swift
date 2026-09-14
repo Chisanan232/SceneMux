@@ -36,4 +36,24 @@ final class SceneRuntimeTest: XCTestCase {
         XCTAssertEqual(port.preparedSubstrates, [])
         XCTAssertNil(runtime.message)
     }
+
+    /// Entering a Scene draws it and says so once. Entering a second one leaves the first — the lifecycle
+    /// refuses to swap two Scenes in one step, so the shell makes that decision explicitly, here, where the
+    /// keystroke happened.
+    func testEnteringASceneDrawsItAndEnteringAnotherLeavesTheFirst() throws {
+        let runtime = try runtime()
+        let first = try runtime.createScene(title: "Debug PROD-123")
+        let second = try runtime.createScene(title: "Release notes", template: .empty)
+
+        try runtime.enter(first.id)
+        XCTAssertEqual(runtime.snapshot.activeScene?.id, first.id)
+        XCTAssertEqual(runtime.snapshot.menuBarTitle, "Debug PROD-123")
+        XCTAssertEqual(runtime.message, .entered(sceneTitle: "Debug PROD-123", slots: 4, windows: 0))
+        XCTAssertEqual(port.preparedSubstrates, [SceneCore.SubstrateBinding(workspaceName: "3")])
+
+        try runtime.enter(second.id)
+        XCTAssertEqual(runtime.snapshot.activeScene?.id, second.id)
+        XCTAssertEqual(runtime.snapshot.scenes.map(\.state), [.defined, .active])
+        XCTAssertEqual(runtime.message, .entered(sceneTitle: "Release notes", slots: 0, windows: 0))
+    }
 }
