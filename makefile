@@ -118,8 +118,8 @@ release:
 	appcast_stage="$$(mktemp -d "$$release_dir/appcast-stage.XXXXXX")"; \
 	trap "rm -rf \"$$appcast_stage\"" EXIT; \
 	cp "$$zip_path" "$$appcast_stage/"; \
-	"$$sparkle_appcast" --download-url-prefix "https://github.com/ZimengXiong/winmux/releases/download/$(RELEASE_TAG)/" "$$appcast_stage"; \
-	python3 script/validate-appcast.py "$$appcast_stage/appcast.xml" "$(VERSION)" "https://github.com/ZimengXiong/winmux/releases/download/$(RELEASE_TAG)/$$app_name-$(VERSION).zip"; \
+	"$$sparkle_appcast" --download-url-prefix "https://github.com/Chisanan232/SceneMux/releases/download/$(RELEASE_TAG)/" "$$appcast_stage"; \
+	python3 script/validate-appcast.py "$$appcast_stage/appcast.xml" "$(VERSION)" "https://github.com/Chisanan232/SceneMux/releases/download/$(RELEASE_TAG)/$$app_name-$(VERSION).zip"; \
 	cp "$$appcast_stage/appcast.xml" "$$appcast_path"; \
 	test -f "$$appcast_path"; \
 	if [ "$(NOTARIZE)" = "1" ]; then \
