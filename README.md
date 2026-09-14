@@ -5,7 +5,10 @@
 
 # SceneMux
 
-<p align="left">A powerful sidebar-first window manager for macOS.</p>
+<p align="left"><strong>Stop managing windows. Start managing work.</strong></p>
+
+<p align="left">A task-oriented desktop application multiplexer for macOS. Every task has a
+scene, and every window has a place in it. Native apps stay native.</p>
 
 > **SceneMux is derived from [WinMux](https://github.com/ZimengXiong/winmux)** (MIT),
 > which is itself derived from [AeroSpace](https://github.com/nikitabobko/AeroSpace) (MIT).
