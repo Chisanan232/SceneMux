@@ -82,6 +82,20 @@ final class SceneWorldLifecycleTest: XCTestCase {
         XCTAssertEqual(try world.leaving(id), world)
     }
 
+    func testEnteringAndLeavingRepeatedlyLeavesTheSceneExactlyAsItWas() throws {
+        let scene = try SceneCoreFixtures.debugScene()
+        let world = try SceneCore.SceneWorld(scenes: [scene])
+
+        var cycled = world
+        for _ in 1...5 {
+            cycled = try cycled.entering(scene.id, on: substrate).leaving(scene.id)
+        }
+
+        // Nothing accumulates: not a duplicate attachment, not a second binding, not a Slot that drifted.
+        // Layout state that degrades a little each time somebody switches tasks is the failure this rules out.
+        XCTAssertEqual(cycled, world)
+    }
+
     func testClosingTheGoldenJourneyOwesOnlyTheBorrowedWindows() throws {
         let scene = try SceneCoreFixtures.debugScene(state: .active(substrate))
         let world = try SceneCore.SceneWorld(scenes: [scene])
