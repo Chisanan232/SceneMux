@@ -6,6 +6,14 @@ extension SceneCore.Scene {
         slots.first { $0.id == id }
     }
 
+    /// The attachments participating in this Slot, in the order they were attached.
+    ///
+    /// An empty result is an ordinary answer, not a problem: a Slot with nothing in it still exists and is
+    /// still shown (invariant I13), because an empty `terminal` Slot says something about the task.
+    func attachments(in slotId: SceneCore.SlotId) -> [SceneCore.Attachment] {
+        attachments.filter { $0.slotId == slotId }
+    }
+
     /// A copy of this Scene with some parts replaced, re-validated on the way through.
     ///
     /// Every operation below funnels through here, which is why none of them can produce a Scene the
