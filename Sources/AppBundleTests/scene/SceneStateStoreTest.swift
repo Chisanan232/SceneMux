@@ -54,4 +54,27 @@ final class SceneStateStoreTest: XCTestCase {
         // have one, and the first attach must not be the thing that fails.
         XCTAssertTrue(FileManager.default.fileExists(atPath: store.url.path))
     }
+
+    func testAFileThisBuildCannotReadIsCopiedAsideBeforeASaveCanReplaceIt() throws {
+        let url = try temporaryDirectory().appending(path: "scene-state.json")
+        let refusedBytes = Data(#"{ "version": 1, "scenes": "not an array of Scenes" }"#.utf8)
+        try refusedBytes.write(to: url)
+        let store = SceneCore.SceneStateStore(url: url)
+
+        let load = store.load()
+        try store.save([])
+
+        // The save is entitled to replace the file — SceneMux has to be usable again. What it must not do is
+        // be the moment the state stopped existing, so the refused bytes are kept where a person can get at
+        // them, and the refusal says where.
+        guard case .refused(let refusal) = load else { return XCTFail("Expected a refusal: \(load)") }
+        let preservedAt = try XCTUnwrap(refusal.preservedAt)
+        XCTAssertEqual(
+            URL(filePath: preservedAt).lastPathComponent,
+            SceneCore.SceneStateStore.preservedFilename,
+        )
+        XCTAssertEqual(try Data(contentsOf: URL(filePath: preservedAt)), refusedBytes)
+        XCTAssertTrue(refusal.diagnostic.contains(preservedAt), refusal.diagnostic)
+        XCTAssertNotEqual(try Data(contentsOf: url), refusedBytes)
+    }
 }
