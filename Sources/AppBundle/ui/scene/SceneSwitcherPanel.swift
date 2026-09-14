@@ -124,6 +124,14 @@ final class SceneSwitcherPanel: NSPanelHud {
                 model.select(at: digit - 1)
                 return
             }
+            // While the confirmation is up it owns `⏎`, because *Close Scene* is the default action and the list
+            // underneath is not what the key is being pressed at. Left to the cases below, `⏎` at a confirmation
+            // entered the Scene and dismissed the panel: the question went unanswered and windows moved instead,
+            // which is the one thing a confirmation exists to prevent.
+            if case .confirmingClose = model.mode, event.keyCode == 36 || event.keyCode == 76 {
+                inSession { self.model.confirmClose() }
+                return
+            }
             switch (event.keyCode, isCommand) {
                 case (53, _): // esc — abandon the edit first, dismiss only a panel that is merely browsing
                     if model.escape() { dismiss() }
