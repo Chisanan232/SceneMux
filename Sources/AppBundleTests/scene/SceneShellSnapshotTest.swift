@@ -50,4 +50,24 @@ final class SceneShellSnapshotTest: XCTestCase {
             "Debug the rele…date PROD-123",
         )
     }
+
+    /// An empty list has two very different causes, and saying the wrong one is the failure this asserts
+    /// against: inviting someone to create their first Scene when the real reason their Scenes are missing is
+    /// that the state file could not be read would send them to make a new one on top of state SceneMux has
+    /// deliberately refused to touch.
+    func testAnEmptyListInvitesOnFirstRunButExplainsItselfAfterARefusal() throws {
+        let refusal = SceneCore.SceneStateRefusal(
+            reason: .unreadable,
+            path: "/tmp/scene-state.json",
+            preservedAt: nil,
+        )
+
+        XCTAssertNotNil(try snapshot([]).firstRunMessage)
+        XCTAssertNil(try snapshot([try SceneCoreFixtures.scene()]).firstRunMessage)
+
+        let refused = try snapshot([], diagnostics: [refusal.diagnostic])
+        XCTAssertTrue(refused.isEmpty)
+        XCTAssertNil(refused.firstRunMessage)
+        XCTAssertEqual(refused.diagnostics, [refusal.diagnostic])
+    }
 }
