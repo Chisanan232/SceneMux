@@ -273,4 +273,32 @@ final class SceneOrchestratorTest: XCTestCase {
         XCTAssertEqual(refusal.path, store.url.path)
         XCTAssertEqual(orchestrator.quarantined, [])
     }
+    /// A Scene that came back smaller than it left is explainable only if the set-aside attachments are kept
+    /// where a surface can name the Scene and count the windows. The Scene itself still loads: an attachment is
+    /// permission to move a window, so dropping one makes SceneMux do less, never more.
+    func testSetAsideAttachmentsAreKeptWhereASurfaceCanNameTheScene() throws {
+        let store = store(in: try temporaryDirectory())
+        let slot = SceneCoreFixtures.slot()
+        let windowRef = try SceneCoreFixtures.windowRef(App.line)
+        try store.save([try SceneCoreFixtures.scene(
+            slots: [slot],
+            attachments: [SceneCoreFixtures.attachment(windowRef: windowRef, slotId: slot.id)],
+        )])
+        var json = try XCTUnwrap(
+            try JSONSerialization.jsonObject(with: try Data(contentsOf: store.url)) as? [String: Any],
+        )
+        var scenes = try XCTUnwrap(json["scenes"] as? [[String: Any]])
+        var attachments = try XCTUnwrap(scenes[0]["attachments"] as? [[String: Any]])
+        attachments[0]["slotId"] = "a-slot-a-later-build-removed"
+        scenes[0]["attachments"] = attachments
+        json["scenes"] = scenes
+        try JSONSerialization.data(withJSONObject: json).write(to: store.url)
+
+        let orchestrator = SceneCore.SceneOrchestrator(store: store)
+
+        XCTAssertNil(orchestrator.stateRefusal)
+        XCTAssertEqual(orchestrator.world.scenes.map(\.title), ["Debug PROD-123"])
+        XCTAssertEqual(orchestrator.quarantined.map(\.sceneTitle), ["Debug PROD-123"])
+        XCTAssertEqual(orchestrator.quarantined.map(\.windowRef), [windowRef])
+    }
 }
