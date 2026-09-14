@@ -69,9 +69,10 @@ below was measured on a working machine without disturbing it, using three contr
 3. **Every mutating command targeted by `--window-id`**, never by focus, and only ever at throwaway
    TextEdit windows.
 
-Containment held: the pre-existing windows' frames were byte-identical before and after the whole
-session, and at the end every remaining window was `floating` (plus one pre-existing
-`macos_native_fullscreen`) with no tab group left behind.
+Containment held. Every window that was observable when the session started — four of them — had a
+byte-identical frame, layout and workspace afterwards; no window other than the three throwaway ones
+was ever named in a command; and at the end all fifteen remaining windows were `floating`, plus the
+one that was already `macos_native_fullscreen`, with no tab group left behind.
 
 ## Verified inherited behaviour
 
