@@ -188,4 +188,24 @@ final class WinMuxSceneEngineAdapterTest: XCTestCase {
         XCTAssertEqual(report.placement(for: observability.id), .windowsMissing([grafana]))
         XCTAssertEqual(report.missingWindows, [secondTerminal, grafana])
     }
+
+    /// A blank workspace name is refused rather than registered. The engine would happily create a workspace
+    /// called `" "`, and a Scene projected onto it would be somewhere the user can neither see nor name.
+    func testABlankSubstrateNameIsRefusedAndNothingIsBuilt() throws {
+        let ide = TestApp(bundleId: App.ide)
+        TestWindow.new(id: 1, parent: elsewhere, app: ide)
+        let editor = SceneCoreFixtures.slot(role: .editor, order: 0)
+        let scene = try SceneCoreFixtures.scene(slots: [editor])
+            .attaching(SceneCoreFixtures.attachment(
+                windowRef: try .init(bundleId: App.ide, ordinalWithinApp: 0),
+                slotId: editor.id,
+            ))
+
+        let report = project(scene, onto: "   ")
+
+        XCTAssertEqual(report.placement(for: editor.id)?.composition, nil)
+        XCTAssertFalse(report.isFullyRealised)
+        XCTAssertEqual(Workspace.all.map(\.name).contains("   "), false)
+        XCTAssertEqual(elsewhere.layoutDescription, .h_tiles([.window(1)]))
+    }
 }
