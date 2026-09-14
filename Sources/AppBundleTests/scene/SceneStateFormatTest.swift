@@ -72,4 +72,31 @@ final class SceneStateFormatTest: XCTestCase {
         XCTAssertEqual(read.scenes, [])
         XCTAssertEqual(read.diagnostics.count, 1)
     }
+
+    func testAnAttachmentToASlotTheSceneNoLongerHasCostsOnlyThatAttachment() throws {
+        let slot = SceneCoreFixtures.slot()
+        let windowRef = try SceneCoreFixtures.windowRef()
+        let scene = try SceneCoreFixtures.scene(
+            slots: [slot],
+            attachments: [SceneCoreFixtures.attachment(windowRef: windowRef, slotId: slot.id)],
+        )
+        let file = try fileWithTamperedScene(scene) { json in
+            var attachments = try XCTUnwrap(json["attachments"] as? [[String: Any]])
+            attachments[0]["slotId"] = "a-slot-a-later-build-removed"
+            json["attachments"] = attachments
+        }
+
+        let read = SceneCore.SceneStateFormat.read(file, from: path)
+
+        // The Scene and its Slots survive. Losing the whole Scene over one stale entry would throw away the
+        // layout and the ownership record of every other window in it.
+        XCTAssertEqual(read.scenes.map(\.slots), [[slot]])
+        XCTAssertEqual(read.scenes.map(\.attachments), [[]])
+        guard case .loaded(_, let quarantined) = read else { return XCTFail("Expected a read: \(read)") }
+        XCTAssertEqual(quarantined.map(\.windowRef), [windowRef])
+        XCTAssertEqual(
+            quarantined.map(\.reason),
+            [.unknownSlot(SceneCore.SlotId("a-slot-a-later-build-removed"))],
+        )
+    }
 }
