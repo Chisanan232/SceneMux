@@ -2,6 +2,7 @@
 # Verify, repair and inspect the upstream boundary described in docs/development/upstream-sync.md.
 #
 #   script/upstream.sh check    # assert the boundary is intact (offline)
+#   script/upstream.sh history  # the provenance half of check: no remotes needed, so CI can run it
 #   script/upstream.sh setup    # create or repair the upstream remote, idempotently
 #   script/upstream.sh fetch    # fetch upstream without tags, then report divergence
 #   script/upstream.sh status   # how far SceneMux and upstream have diverged
@@ -37,10 +38,36 @@ baseline-sha() {
 remote-url() { git remote get-url "$1" 2>/dev/null || true; }
 push-url() { git remote get-url --push "$1" 2>/dev/null || true; }
 
-cmd-check() {
+# The history half of `check`: it needs a full clone but no remote configuration, so it is the
+# part that can run in CI. A recorded baseline SHA is only immutable if something fails when it
+# stops being an ancestor of main.
+cmd-history() {
     local baseline
     baseline=$(baseline-sha)
 
+    if [ "$(git cat-file -t "$baseline" 2>/dev/null || true)" = "commit" ]; then
+        ok "derivation baseline $baseline is present"
+    else
+        fail "derivation baseline $baseline is missing — is this a shallow clone?"
+        return
+    fi
+
+    if git merge-base --is-ancestor "$baseline" HEAD; then
+        ok "derivation baseline is an ancestor of HEAD"
+    else
+        fail "derivation baseline is NOT an ancestor of HEAD — the inherited history is broken"
+    fi
+
+    local inherited
+    inherited=$(git tag --list 'v0.[1-5].*' | grep -vxE 'v0\.1\.0' || true)
+    if [ -z "$inherited" ]; then
+        ok "no inherited upstream release tag is present"
+    else
+        fail "inherited upstream tags found: $(echo "$inherited" | tr '\n' ' ')"
+    fi
+}
+
+cmd-check() {
     if [ "$(remote-url origin)" = "$ORIGIN_URL" ]; then
         ok "origin is $ORIGIN_URL"
     else
@@ -68,26 +95,7 @@ cmd-check() {
         fail "remote.upstream.tagOpt is not --no-tags — run: script/upstream.sh setup"
     fi
 
-    if [ "$(git cat-file -t "$baseline" 2>/dev/null || true)" = "commit" ]; then
-        ok "derivation baseline $baseline is present"
-    else
-        fail "derivation baseline $baseline is missing from this clone"
-        return
-    fi
-
-    if git merge-base --is-ancestor "$baseline" HEAD; then
-        ok "derivation baseline is an ancestor of HEAD"
-    else
-        fail "derivation baseline is NOT an ancestor of HEAD — the inherited history is broken"
-    fi
-
-    local inherited
-    inherited=$(git tag --list 'v0.[1-5].*' | grep -vxE 'v0\.1\.0' || true)
-    if [ -z "$inherited" ]; then
-        ok "no inherited upstream release tag is present"
-    else
-        fail "inherited upstream tags found: $(echo "$inherited" | tr '\n' ' ')"
-    fi
+    cmd-history
 }
 
 cmd-setup() {
@@ -129,11 +137,12 @@ cmd-status() {
 
 case "${1:-check}" in
     check) cmd-check ;;
+    history) cmd-history ;;
     setup) cmd-setup ;;
     fetch) cmd-fetch ;;
     status) cmd-status ;;
     *)
-        echo "Usage: script/upstream.sh <check|setup|fetch|status>" >&2
+        echo "Usage: script/upstream.sh <check|history|setup|fetch|status>" >&2
         exit 1
         ;;
 esac
