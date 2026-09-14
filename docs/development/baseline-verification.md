@@ -165,7 +165,9 @@ screenshot-hygiene problem, so it is also recorded in
 
 ![Nested composition produced by join-with](baseline/composition.png)
 
-## A pre-existing upstream defect, separated from SceneMux
+## Pre-existing upstream defects, separated from SceneMux
+
+### The debug build could not launch — Sparkle framework not copied
 
 | | |
 | --- | --- |
@@ -174,6 +176,17 @@ screenshot-hygiene problem, so it is also recorded in
 | Not ours | `git show e0ad328e:makefile` — the derivation baseline — has the identical copy step, and the baseline `Package.swift` already pinned Sparkle 2.9.6. SceneMux's only change to that step was the product rename. |
 | Fixed here | One line: `cp -R .build/debug/Sparkle.framework .debug`. |
 | Follow-up | Generic, contains no SceneMux identity, and is the first candidate for the "offer a fix upstream" path in [`upstream-sync.md`](upstream-sync.md). |
+
+### The Release build crashed writing the starter config — HORO-1175
+
+| | |
+| --- | --- |
+| Symptom | A Release build died with `EXC_BAD_ACCESS` / `SIGSEGV` on first launch, before any window appeared, while writing the starter `~/.config/scenemux/scenemux.toml`. The faulting address was a garbage `String` bridge object in no mapped region. Debug builds were unaffected, and launching with `--config-path` never crashed, because that path skips bootstrap entirely. |
+| Cause | `canonicalConfigCommandScript` switched over `parseCommand(raw)` in expression position and read `args` out of the `any Command` bound by the `.cmd` case. Under `-O` the temporary `ParsedCmd<any Command>` is destroyed before that read, so `args` came back holding a dangling `String` and the crash landed in the destroy that followed. No unsafe pointer, `unowned` reference or bit-cast is involved anywhere in the code reached — this is a miscompile, not a latent source defect. |
+| Not ours | `git show e0ad328e:Sources/AppBundle/ui/settings/ShortcutSettingsConfigEdits.swift` contains that function byte-identical to how it stood before this fix, and `git log -S canonicalConfigCommandScript` dates it to `b56bc898` and `45f17f52`, both ancestors of the derivation baseline. |
+| Fixed here | Bind the parsed value to a local and copy `args` out of it before reading it — no behaviour change. Proven in both directions under the pinned Swift 6.2.4: with the fix reverted, `swift test -c release --filter ShortcutSettingsConfigEdits` exits on signal 11; with it, all six tests pass. Three other rewrites (`withExtendedLifetime`, `@inline(never)`, parsing straight to `any CmdArgs`) were also crash-free, which is what pins the cause to the destroyed temporary rather than to one expression. |
+| Why it reached a release gate | CI ran `swift test` only. The suite already covered this code path and passed, because unoptimized builds do not have the defect — so the first thing that ever exercised it was the release artifact. [`pull-request.yml`](../../.github/workflows/pull-request.yml) now runs `swift test -c release` as well. |
+| Follow-up | The rewrite is generic and carries no SceneMux identity, so it is a candidate for the upstream path in [`upstream-sync.md`](upstream-sync.md). The miscompile itself is worth reporting to `swiftlang/swift`; that has not been done, and neither is a SceneMux release blocker. |
 
 That separation is the point of this document: the fix ships, and the record says plainly that the
 bug was inherited rather than introduced.
