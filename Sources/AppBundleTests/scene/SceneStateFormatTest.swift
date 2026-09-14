@@ -119,4 +119,30 @@ final class SceneStateFormatTest: XCTestCase {
         XCTAssertEqual(quarantined.map(\.reason), [.alreadyAttached])
         XCTAssertEqual(quarantined.map(\.windowRef), [windowRef])
     }
+
+    func testAnAttachmentLeftInAnEndedSceneIsNotReadAsPermissionToMoveThatWindow() throws {
+        let slot = SceneCoreFixtures.slot()
+        let scene = try SceneCoreFixtures.scene(
+            slots: [slot],
+            attachments: [
+                SceneCoreFixtures.attachment(
+                    windowRef: try SceneCoreFixtures.windowRef(),
+                    slotId: slot.id,
+                    ownership: .borrowed,
+                ),
+            ],
+        )
+        let file = try fileWithTamperedScene(scene) { json in
+            json["state"] = ["ended": [String: Any]()]
+        }
+
+        let read = SceneCore.SceneStateFormat.read(file, from: path)
+
+        // An `ended` Scene is a record of a finished task. A borrowed attachment surviving into one would be
+        // standing permission to move somebody's window home again, days later, for a task that is over.
+        XCTAssertEqual(read.scenes.map(\.state), [.ended])
+        XCTAssertEqual(read.scenes.map(\.attachments), [[]])
+        guard case .loaded(_, let quarantined) = read else { return XCTFail("Expected a read: \(read)") }
+        XCTAssertEqual(quarantined.map(\.reason), [.sceneHasEnded])
+    }
 }
