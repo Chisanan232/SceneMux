@@ -16,6 +16,12 @@ scene, and every window has a place in it. Native apps stay native.</p>
 > it is not WinMux, not a WinMux distribution, and not endorsed by the WinMux authors.
 > Exact derivation baseline: [`docs/legal/ORIGIN.md`](docs/legal/ORIGIN.md).
 
+> **Current status — v0.0.0, Independent Foundation.** This release establishes SceneMux as
+> a standalone, provenance-safe repository with its own identity and its own (currently
+> unconfigured) update channel. Everything documented below is the **inherited WinMux
+> engine**. The task-oriented layer this project exists for — Semantic Homes, Scenes, Slots
+> and Mounts — arrives in v0.1.0 and is not present yet.
+
 https://github.com/user-attachments/assets/51983568-a168-494f-8ae3-5f50ca1efce1
 
 ## Highlights
