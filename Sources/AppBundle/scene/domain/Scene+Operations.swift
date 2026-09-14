@@ -43,6 +43,19 @@ extension SceneCore.Scene {
         try with(slots: slots + [slot])
     }
 
+    /// This Scene with that Slot replaced by a changed version of itself, matched by id.
+    ///
+    /// The *same* Slot changed, not a different one added, which is why composing or relabelling a Slot goes
+    /// through here rather than through a remove-then-add: removal refuses a Slot that still holds windows,
+    /// and recomposing a Slot full of windows is precisely the ordinary case. Refuses a Slot this Scene does
+    /// not have, rather than quietly adding it — a caller passing the wrong id has a bug, not an intention.
+    func replacingSlot(_ slot: SceneCore.Slot) throws -> Self {
+        guard self.slot(slot.id) != nil else {
+            throw SceneCore.SceneCoreError.unknownSlot(slot.id)
+        }
+        return try with(slots: slots.map { $0.id == slot.id ? slot : $0 })
+    }
+
     /// This Scene without that Slot.
     ///
     /// Refuses a Slot that still holds windows, rather than dropping their attachments with it. Silently
