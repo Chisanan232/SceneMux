@@ -277,6 +277,10 @@ extension Workspace {
         process.executableURL = URL(filePath: exec)
         process.arguments = Array(config.execOnWorkspaceChange.dropFirst())
         var environment = config.execConfig.envVariables
+        environment[SCENEMUX_FOCUSED_WORKSPACE] = newWorkspace
+        environment[SCENEMUX_PREV_WORKSPACE] = oldWorkspace
+        environment[SCENEMUX_WORKSPACE] = newWorkspace
+        // Also export the inherited WinMux names so an imported config keeps working.
         environment[WINMUX_FOCUSED_WORKSPACE] = newWorkspace
         environment[WINMUX_PREV_WORKSPACE] = oldWorkspace
         environment[WINMUX_WORKSPACE] = newWorkspace
