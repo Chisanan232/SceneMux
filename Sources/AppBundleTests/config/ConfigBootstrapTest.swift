@@ -212,4 +212,30 @@ final class ConfigBootstrapTest: XCTestCase {
         XCTAssertTrue(FileManager.default.fileExists(atPath: winMuxUrl.path))
         XCTAssertEqual(try String(contentsOf: winMuxUrl, encoding: .utf8), winMuxText)
     }
+
+    func testEnsureBootstrapConfigKeepsAnExistingSceneMuxConfig() throws {
+        let tempDir = FileManager.default.temporaryDirectory
+            .appending(path: "SceneMuxTests-\(UUID().uuidString)", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        let winMuxUrl = tempDir.appending(path: "winmux.toml")
+        let targetUrl = tempDir.appending(path: "scenemux.toml")
+        let ownText = """
+            config-version = 2
+
+            [mode.main.binding]
+            alt-l = 'focus right'
+            """
+        try "config-version = 2\n".write(to: winMuxUrl, atomically: true, encoding: .utf8)
+        try ownText.write(to: targetUrl, atomically: true, encoding: .utf8)
+
+        // Bootstrap only ever creates a missing config, so a config the user has already
+        // edited cannot be clobbered by an inherited import on a later launch.
+        XCTAssertFalse(try materializeBootstrapConfigIfNeeded(
+            targetUrl: targetUrl,
+            existingLegacyUrls: [winMuxUrl],
+        ))
+        XCTAssertEqual(try String(contentsOf: targetUrl, encoding: .utf8), ownText)
+    }
 }
