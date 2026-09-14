@@ -306,3 +306,102 @@ here only so nobody designs a UI affordance around a command that does nothing.
 Orientation for `.split` is offered as ⬍ / ⬌ and nothing finer. Fractions, weights and resize handles stay
 where they already work — on the windows themselves, through the inherited engine's own resize behaviour,
 which the Scene UI neither replaces nor mirrors.
+
+## Lifecycle feedback
+
+Everything SceneMux does to someone's windows is reported once, in a transient HUD built on the inherited
+`NSPanelHud` / `MessageView`, for about 2.5 seconds, dismissible with Esc, and never stacking more than one
+at a time. The wording rule is: **say what happened to which windows, in the user's vocabulary.**
+
+| Event | HUD | Why it exists |
+| --- | --- | --- |
+| Scene entered | `Debug PROD-123 · 4 slots, 6 windows` | Confirms which Scene now owns the screen |
+| Scene left | *(none)* | Nothing happened to any window. A HUD would be noise |
+| Windows restored | `2 windows went back to Communication — LINE, Slack` | The single most important thing to confirm: borrowing was reversed |
+| Restore target missing | `Slack could not be found — nothing was closed or moved` | Distinguishes "declined to act" from "broke something" |
+| Scene-owned windows left | `4 windows left in place` | Says explicitly that closing the Scene did *not* close them |
+| Shared window skipped | *(only on an attempt)* `Music is shared — left untouched` | Only when the user tried; otherwise silence is correct |
+| Window ignored by admission | `Preview app isn't part of this Scene` — once per application, then suppressed | Principle 5. An unexplained non-action reads as a bug |
+| Attachment dropped on load | `1 window from “Debug PROD-123” is no longer open` | Explains a Scene that came back smaller than it left |
+| State could not be read | `Scene state couldn't be read — no windows were changed` + a *Show details* affordance | The corrupt-state case; see below |
+
+Two anti-patterns, banned explicitly because both are conventional and both are wrong here:
+
+- **No HUD for a leave.** Frequent, harmless, and a toast on every Scene switch trains the user to ignore
+  toasts — including the one that matters.
+- **No progress bar for restores.** The Scene row's `restoring…` state is the progress indicator. A modal
+  progress window while another application's window is being moved would block the user out of the very
+  thing being moved.
+
+## Empty, error and recovery states
+
+### An empty Scene
+
+Entering a Scene with no attachments is normal — it is what step 2 of the golden journey does — and it must
+read as an invitation rather than a failure:
+
+```
+┌──────────────────────────────────────────────┐
+│ ▌ Debug PROD-123                    active   │
+│   ⌨  Terminal                        empty   │
+│   ✎  Editor                          empty   │
+│   ◫  Preview                         empty   │
+│   ◷  Observability                   empty   │
+│                                              │
+│   Focus a window and press ⌘⌥⇧1 to put it    │
+│   in the first slot.                         │
+└──────────────────────────────────────────────┘
+```
+
+No window is moved, nothing is auto-populated, and no application is launched. An empty Slot stays listed;
+that is invariant I13, and it is what makes a Slot a plan rather than a leftover.
+
+### No Scenes at all
+
+First run, and after a state file is discarded. One line and one action — *"No scenes yet. A scene is one
+task: `Debug PROD-123`, `Review the release notes`. ⌘N"* — and, critically, **the app behaves exactly as
+`v0.0.0` did.** Every window keeps working, the inherited sidebar keeps working, and nothing about the
+desktop changes because Scene Core has no data.
+
+### Unreadable or unrecognised state
+
+The fail-safe path from
+[Persistence](scene-core-architecture.md#persistence-intent-not-window-identity), given a surface:
+
+```
+┌────────────────────────────────────────────────────┐
+│  Scene state couldn’t be read                      │
+│                                                    │
+│  No windows were changed. Your windows are exactly │
+│  where they were.                                  │
+│                                                    │
+│  Scenes are unavailable until this is resolved.    │
+│  The unreadable file was kept at                   │
+│  ~/Library/Application Support/SceneMux/           │
+│      scene-state.json                              │
+│                                                    │
+│      [ Start with no scenes ]   [ Reveal file ]    │
+└────────────────────────────────────────────────────┘
+```
+
+Four properties of this screen are requirements, not styling:
+
+1. **It states that nothing was changed** — the user's first fear is that their windows were rearranged by
+   a broken file, and the answer is no.
+2. **It does not delete the file.** *Start with no scenes* moves it aside; nothing is destroyed without the
+   user, per `AGENTS.md`.
+3. **It offers no repair.** A half-understood state file is not something to guess at.
+4. **It appears once per launch,** and is reachable again from Settings — not repeated every time a Scene
+   surface opens.
+
+### A Scene caught mid-close
+
+If the app quit while a Scene was `ending`, the next launch shows the Scene as `restoring…` and finishes:
+
+```
+│ ▌ Debug PROD-123                restoring…   │
+│   Finishing: 1 window goes back to Communication
+```
+
+A window that no longer exists is skipped with the "could not be found" HUD. Nothing is closed to reach a
+tidy state — the Scene reaches `ended` with an honest report instead (invariant I14).
