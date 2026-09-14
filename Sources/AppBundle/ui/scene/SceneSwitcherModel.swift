@@ -166,6 +166,27 @@ final class SceneSwitcherModel: ObservableObject {
         mode = .browsing
     }
 
+    /// The `+` on a Scene's row: give the Scene on screen somewhere else to put a window.
+    ///
+    /// Adding a Slot moves nothing. It is a statement about the task — *the terminal goes here* — which is why
+    /// an empty Slot is drawn like any other row instead of being hidden until something lands in it.
+    func addSlot(role: SceneCore.SlotRole, label: String? = nil) {
+        _ = act { _ = try runtime.addSlot(role: role, label: label) }
+    }
+
+    /// Clicking the composition chip: single → split ⬍ → split ⬌ → tabs, and round again.
+    ///
+    /// The screen is re-drawn by the runtime as part of the change, so the chip and the windows can never
+    /// disagree about how a Slot is composed.
+    func cycleComposition(of slotId: SceneCore.SlotId) {
+        _ = act { _ = try runtime.cycleComposition(of: slotId) }
+    }
+
+    /// *Remove slot* on a Slot row. Refused by the model while the Slot still holds windows.
+    func removeSlot(_ slotId: SceneCore.SlotId) {
+        _ = act { try runtime.removeSlot(slotId) }
+    }
+
     /// Esc. Returns whether the panel should dismiss.
     ///
     /// One key, two meanings, and the order matters: in any state that is part-way through something — a name
