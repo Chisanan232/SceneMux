@@ -752,9 +752,12 @@ is a rule that survives exactly as long as reviewers keep noticing:
    recognise. Where the engine must call outward — the admission hook on window detection — it calls one
    named function with no Scene types in its signature.
 
-`SceneEnginePort` is introduced *with its adapter and its callers, in the ticket that needs it*. It is not
+`SceneEnginePort` is introduced *with its adapter and its caller, in the ticket that needs it*. It is not
 added ahead of time as an empty protocol: the repository's own rules forbid abstractions with no callers,
-and an unimplemented seam is a claim rather than a design.
+and an unimplemented seam is a claim rather than a design. Its caller is `SceneProjector`, which walks a
+`SceneLayoutPlan` derived from a Scene; what invokes *that* is the Scene enter path in the shell, which
+lands with the shell itself under HORO-1106. Until then the seam is exercised by tests against the real
+inherited tree, which is why those tests use the engine rather than a fake.
 
 ### Reconciliation and the engine adapter
 
