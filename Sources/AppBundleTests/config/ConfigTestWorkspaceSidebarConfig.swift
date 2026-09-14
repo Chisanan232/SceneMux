@@ -282,6 +282,18 @@ extension ConfigTest {
         assertEquals(errors, [])
     }
 
+    func testParseDuringSceneMuxStartupMatcher() {
+        let (config, errors) = parseConfig(
+            """
+            [[on-window-detected]]
+                if.during-scenemux-startup = true
+                run = []
+            """,
+        )
+        assertEquals(errors.descriptions, [])
+        assertEquals(config.onWindowDetected.singleOrNil()?.matcher.duringSceneMuxStartup, true)
+    }
+
     func testRegex() {
         var devNull: [String] = []
         XCTAssertTrue("System Settings".contains(parseCaseInsensitiveRegex("settings").getOrNil(appendErrorTo: &devNull)!))
