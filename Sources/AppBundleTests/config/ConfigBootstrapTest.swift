@@ -176,4 +176,14 @@ final class ConfigBootstrapTest: XCTestCase {
         XCTAssertEqual(parsedConfig.configVersion, 2)
         XCTAssertEqual(parsedConfig.modes[mainModeId]?.bindings.values.map(\.descriptionWithKeyNotation).sorted(), ["alt-h", "alt-j", "alt-l"])
     }
+
+    func testLegacyConfigCandidatesRankSceneMuxPathsAboveWinMux() {
+        let candidates = legacyConfigCandidateUrls().map(\.path)
+
+        XCTAssertEqual(candidates.count, 4)
+        XCTAssertTrue(candidates[0].hasSuffix("/scenemux/scenemux.toml"), candidates[0])
+        XCTAssertTrue(candidates[1].hasSuffix("/.scenemux.toml"), candidates[1])
+        XCTAssertTrue(candidates[2].hasSuffix("/winmux/winmux.toml"), candidates[2])
+        XCTAssertTrue(candidates[3].hasSuffix("/.winmux.toml"), candidates[3])
+    }
 }
