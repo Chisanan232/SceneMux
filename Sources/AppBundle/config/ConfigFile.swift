@@ -239,9 +239,9 @@ func migrateAerospaceConfigForWinMux(_ rawToml: String) throws -> String {
         : removingAerospaceKeyboardConfigSections(from: starterConfigText())
 
     return """
-        # Migrated from AeroSpace config by WinMux.
-        # WinMux owns this file after import; the AeroSpace source is not read again.
-        # Current WinMux defaults are used for WinMux-specific behavior; AeroSpace keyboard sections are preserved below.
+        # Migrated from AeroSpace config by SceneMux.
+        # SceneMux owns this file after import; the AeroSpace source is not read again.
+        # Current SceneMux defaults are used for SceneMux-specific behavior; AeroSpace keyboard sections are preserved below.
 
         \(baseConfig)
         \(migrated.isEmpty ? "" : "\n# Keyboard configuration imported from AeroSpace.\n\(migrated)")
