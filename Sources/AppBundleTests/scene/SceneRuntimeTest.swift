@@ -113,4 +113,22 @@ final class SceneRuntimeTest: XCTestCase {
             XCTAssertEqual(error as? SceneCore.SceneRuntimeError, .noSlotNumbered(9))
         }
     }
+
+    /// Composing a Slot goes round a fixed cycle and the row says the new shape. The Slot is empty here, so the
+    /// screen has nothing to redraw — which is the point: the shape is a property of the Scene's plan, kept
+    /// whether or not a window has arrived to be shaped by it yet.
+    func testComposingASlotCyclesItsShapeAndTheRowSaysSo() throws {
+        let runtime = try runtime()
+        let scene = try runtime.createScene(title: "Debug PROD-123", template: .empty)
+        try runtime.enter(scene.id)
+        let slot = try runtime.addSlot(role: .editor)
+
+        XCTAssertEqual(try runtime.slot(numbered: 1).compositionChip, nil)
+        XCTAssertEqual(try runtime.cycleComposition(of: slot.id).composition, .split(.vertical))
+        XCTAssertEqual(try runtime.slot(numbered: 1).compositionChip, "split ⬍")
+        XCTAssertEqual(try runtime.cycleComposition(of: slot.id).composition, .split(.horizontal))
+        XCTAssertEqual(try runtime.cycleComposition(of: slot.id).composition, .tabbed)
+        XCTAssertEqual(try runtime.cycleComposition(of: slot.id).composition, .single)
+        XCTAssertEqual(try runtime.slot(numbered: 1).trailing, "empty")
+    }
 }
