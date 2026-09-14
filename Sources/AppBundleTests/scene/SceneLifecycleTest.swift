@@ -3,6 +3,17 @@ import Foundation
 import XCTest
 
 final class SceneLifecycleTest: XCTestCase {
+    func testAClosedSceneStaysClosed() throws {
+        let ended = try SceneCoreFixtures.scene(state: .ended)
+
+        XCTAssertThrowsError(try ended.transitioning(to: .defined)) { error in
+            XCTAssertEqual(
+                error as? SceneCore.SceneCoreError,
+                .illegalTransition(from: .ended, to: .defined),
+            )
+        }
+    }
+
     func testASceneCarriesASubstrateWhileActiveAndNoneAfterLeaving() throws {
         // Invariant I3. Leaving does not hand `defined` a substrate to forget about, because `defined` has
         // nowhere to put one — the binding lives only in `active`'s payload.
