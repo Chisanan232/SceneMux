@@ -133,4 +133,30 @@ final class WinMuxSceneEngineAdapterTest: XCTestCase {
         XCTAssertEqual(report.placement(for: comms.id), .realised(.tabbed))
         XCTAssertTrue(report.isFullyRealised)
     }
+
+    /// Invariant I15: a projection touches the Scene's own windows and no others. The music player was already
+    /// on this workspace and is not in the Scene, so it keeps its place and its parent — the Scene arrives
+    /// after it instead of shouldering it aside.
+    func testWindowsTheSceneDoesNotOwnAreLeftWhereTheyAre() throws {
+        config.enableNormalizationFlattenContainers = true
+        let music = TestApp(bundleId: App.music)
+        let ide = TestApp(bundleId: App.ide)
+        let root = Workspace.get(byName: name).rootTilingContainer
+        let stranger = TestWindow.new(id: 99, parent: root, app: music)
+        TestWindow.new(id: 1, parent: elsewhere, app: ide)
+        let editor = SceneCoreFixtures.slot(role: .editor, order: 0)
+        let scene = try SceneCoreFixtures.scene(slots: [editor])
+            .attaching(SceneCoreFixtures.attachment(
+                windowRef: try .init(bundleId: App.ide, ordinalWithinApp: 0),
+                slotId: editor.id,
+            ))
+
+        _ = project(scene, onto: name)
+
+        XCTAssertEqual(
+            Workspace.get(byName: name).rootTilingContainer.layoutDescription,
+            .h_tiles([.window(99), .window(1)]),
+        )
+        XCTAssertTrue(stranger.parent === Workspace.get(byName: name).rootTilingContainer)
+    }
 }
