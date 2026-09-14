@@ -94,4 +94,21 @@ final class SceneCommandTest: XCTestCase {
         XCTAssertEqual(left.stdout, ["Left Second. Nothing moved."])
         XCTAssertEqual(port.invisibleWindows, [])
     }
+
+    /// A command that can only be carried out by a surface says so when there is no surface, rather than
+    /// reporting success against a screen where nothing happened. `scene new` with no title is one of those:
+    /// the name is typed into the switcher, so without one there is nowhere to type it.
+    func testCommandsThatNeedASurfaceSayWhenThereIsNone() async throws {
+        let refused = try await parseCommand("scene switcher").cmdOrDie.run(.defaultEnv, .emptyStdin)
+        XCTAssertEqual(refused.exitCode, 1)
+        XCTAssertEqual(refused.stderr, ["This needs the SceneMux app to be running with its interface available."])
+
+        var asked: [SceneCore.SceneShellRequest] = []
+        SceneCore.SceneRuntime.shared.presenter = { asked.append($0) }
+        try await parseCommand("scene switcher").cmdOrDie.run(.defaultEnv, .emptyStdin)
+        try await parseCommand("scene new").cmdOrDie.run(.defaultEnv, .emptyStdin)
+
+        XCTAssertEqual(asked, [.switcher, .newScene])
+        XCTAssertEqual(SceneCore.SceneRuntime.shared.snapshot.scenes, [])
+    }
 }
