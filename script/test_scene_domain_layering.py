@@ -10,6 +10,11 @@ reason: it decides what happens to a window and must never be able to do it. A
 lifecycle that could reach a `MacWindow` would eventually reach one, and then
 "nothing here touches a window" would be a comment rather than a fact.
 
+`scene/engine/` is where the two worlds finally meet, so the rule there is about
+width rather than height: exactly one file — the adapter — may name an engine
+type, and everything else in the layer stays on the Scene side of the seam. A
+seam that is only mostly narrow is not a seam.
+
 A rule like this decays the moment it is only written down, because the convenient
 thing to do is always to reach for the engine type that is already there. So it is
 checked here, in the guards job, where reaching for it fails the build.
@@ -24,6 +29,10 @@ SOURCES = REPO / "Sources"
 SCENE = SOURCES / "AppBundle" / "scene"
 DOMAIN = SCENE / "domain"
 LIFECYCLE = SCENE / "lifecycle"
+ENGINE = SCENE / "engine"
+
+# The one file in the repository allowed to hold both vocabularies at once.
+ADAPTER = ENGINE / "WinMuxSceneEngineAdapter.swift"
 
 # Every kind of Swift declaration that introduces a type name.
 DECLARATION = re.compile(
@@ -59,6 +68,7 @@ class SceneDomainLayeringTest(unittest.TestCase):
             cls.domain_types.update(DECLARATION.findall(path.read_text()))
 
         cls.lifecycle_files = swift_files(LIFECYCLE)
+        cls.engine_files = [path for path in swift_files(ENGINE) if path != ADAPTER]
 
         # Two exclusion sets, because the two layers are allowed different things. The
         # domain may not name even a Scene Core type from another layer — it is the one
@@ -85,6 +95,11 @@ class SceneDomainLayeringTest(unittest.TestCase):
     def test_the_lifecycle_layer_exists(self):
         self.assertTrue(self.lifecycle_files, f"no Swift files under {LIFECYCLE}")
         self.assertIn("SceneWorld", {n for p in self.lifecycle_files for n in DECLARATION.findall(p.read_text())})
+
+    def test_the_engine_layer_exists_and_has_exactly_one_adapter(self):
+        self.assertTrue(self.engine_files, f"no Swift files under {ENGINE} besides the adapter")
+        self.assertTrue(ADAPTER.is_file(), f"{ADAPTER.relative_to(REPO)} is missing")
+        self.assertIn("SceneEnginePort", {n for p in self.engine_files for n in DECLARATION.findall(p.read_text())})
 
     def test_engine_type_names_were_actually_collected(self):
         # And without this, "no engine type is named" could pass by finding no engine
@@ -132,6 +147,38 @@ class SceneDomainLayeringTest(unittest.TestCase):
                 f"{path.relative_to(REPO)} names engine types {trespassers}; deciding what happens to a "
                 "window is this layer's job, and doing it is not",
             )
+
+
+    def test_the_engine_layer_imports_foundation_only_apart_from_the_adapter(self):
+        for path in self.engine_files:
+            for module in IMPORT.findall(path.read_text()):
+                self.assertEqual(
+                    module,
+                    "Foundation",
+                    f"{path.relative_to(REPO)} imports {module}; only "
+                    f"{ADAPTER.name} reaches across the seam",
+                )
+
+
+    def test_only_the_adapter_names_an_engine_type(self):
+        for path in self.engine_files:
+            named = set(IDENTIFIER.findall(strip_comments(path.read_text())))
+            trespassers = sorted(named & self.engine_types_beyond_scene_core)
+            self.assertEqual(
+                trespassers,
+                [],
+                f"{path.relative_to(REPO)} names engine types {trespassers}; the seam is "
+                f"{ADAPTER.name} and nothing else, so that it stays narrow enough to reason about",
+            )
+
+    def test_the_adapter_really_is_the_seam(self):
+        # If the adapter stopped naming engine types, the exemption above would be
+        # protecting nothing, and this file would have quietly become decoration.
+        named = set(IDENTIFIER.findall(strip_comments(ADAPTER.read_text())))
+        self.assertTrue(
+            named & self.engine_types_beyond_scene_core,
+            f"{ADAPTER.relative_to(REPO)} names no engine type; the seam has moved somewhere unguarded",
+        )
 
 
 if __name__ == "__main__":

@@ -1,0 +1,175 @@
+import AppKit
+import Common
+
+extension SceneCore {
+    /// The one file in SceneMux that speaks both languages: Scenes on the way in, the inherited WinMux tree
+    /// on the way out.
+    ///
+    /// Everything the engine knows about tiling stops here. `scene/domain/` and `scene/lifecycle/` name no
+    /// engine type at all (invariant I12) and `script/test_scene_domain_layering.py` keeps them honest; this
+    /// adapter is the deliberate exception, so that there is exactly one place to look when the engine
+    /// changes underneath us and exactly one place to change.
+    ///
+    /// What it does is narrow on purpose. It binds windows into containers and it reads back what shape they
+    /// ended up in. It computes no frames, picks no monitor, focuses nothing and closes nothing — the
+    /// inherited engine is better at geometry than any Scene could be, and a Scene that started choosing
+    /// rectangles would stop surviving a display change.
+    ///
+    /// Physically moving the windows is left to the engine's own layout pass, which runs after any tree
+    /// change: this adapter mutates the tree and normalizes it, exactly as the inherited commands do, and the
+    /// refresh that follows does the moving.
+    @MainActor
+    final class WinMuxSceneEngineAdapter: SceneEnginePort {
+        /// The containers this projection built, by Slot, so `settle` can ask what became of them.
+        ///
+        /// Per-projection scratch, cleared by `prepareSubstrate`, and never a source of truth: Slot identity
+        /// lives in Scene state, because a container can be flattened away and an empty Slot has no
+        /// container to be identified by in the first place.
+        private var builtContainers: [SlotId: TilingContainer] = [:]
+        /// Slots whose windows went straight into the substrate root, and so are a single window by shape.
+        private var flattenedSlots: Set<SlotId> = []
+
+        init() {}
+
+        /// Resolves the Scene's workspace, creating it if the user has not used it yet.
+        ///
+        /// A blank name is refused rather than normalized into something plausible: the engine would happily
+        /// register a workspace called `" "`, and a Scene bound to it would be projected somewhere the user
+        /// can neither see nor name.
+        func prepareSubstrate(_ binding: SubstrateBinding) -> Bool {
+            builtContainers = [:]
+            flattenedSlots = []
+            guard !binding.workspaceName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                return false
+            }
+            _ = Workspace.get(byName: binding.workspaceName).rootTilingContainer
+            return true
+        }
+
+        /// Builds one Slot by binding its windows into the substrate, appending after whatever is already
+        /// there.
+        ///
+        /// Appending is what keeps invariant I15 true: windows already in this workspace that the Scene never
+        /// mentioned are not rebound, not reordered relative to each other and not moved out — they are
+        /// simply passed over. The Scene's own Slots then arrive in call order, which is Slot order.
+        func place(_ group: SceneLayoutGroup, on binding: SubstrateBinding) -> SceneSlotPlacement {
+            var windows: [Window] = []
+            var missing: [WindowRef] = []
+            for windowRef in group.windows {
+                if let window = resolve(windowRef) {
+                    windows.append(window)
+                } else {
+                    missing.append(windowRef)
+                }
+            }
+            guard !windows.isEmpty else { return .windowsMissing(missing) }
+
+            let root = Workspace.get(byName: binding.workspaceName).rootTilingContainer
+            let composition: SlotComposition
+            if group.needsContainer, windows.count > 1 {
+                // Built the way `JoinWithCommand` builds one, which is the only mechanism the engine
+                // actually has: `split` is a no-op while flatten-containers normalization is on, as
+                // `docs/development/baseline-verification.md` measured on this machine.
+                let container = TilingContainer(
+                    parent: root,
+                    adaptiveWeight: WEIGHT_AUTO,
+                    orientation(for: group.composition, under: root),
+                    layout(for: group.composition),
+                    index: INDEX_BIND_LAST,
+                )
+                builtContainers[group.slotId] = container
+                for window in windows {
+                    window.bind(to: container, adaptiveWeight: WEIGHT_AUTO, index: INDEX_BIND_LAST)
+                }
+                composition = self.composition(of: container)
+            } else {
+                // One window needs no container, and would not keep one: normalization flattens a container
+                // down to its only child. A `.single` Slot holding several windows also lands here, because
+                // a Slot that says it does not compose its windows gets them side by side.
+                flattenedSlots.insert(group.slotId)
+                for window in windows {
+                    window.bind(to: root, adaptiveWeight: WEIGHT_AUTO, index: INDEX_BIND_LAST)
+                }
+                composition = .single
+            }
+            return missing.isEmpty
+                ? .realised(composition)
+                : .partlyRealised(composition, missing: missing)
+        }
+
+        /// Lets the engine normalize what was just built, then reports the shape each Slot really has.
+        ///
+        /// Normalization is run rather than avoided. The user's own settings decide whether a nested
+        /// container keeps the orientation it was asked for — opposite-orientation normalization is on by
+        /// default and flips a nested container that matches its parent — and a projection that fought that
+        /// would only lose the argument on the next normalization pass, leaving the screen disagreeing with
+        /// both the configuration and the report. So SceneMux normalizes, looks, and reports what it sees.
+        ///
+        /// Structure only: which Slots are split, tabbed or plain. Never geometry.
+        func settle(_ binding: SubstrateBinding) -> [SlotId: SlotComposition] {
+            guard let workspace = Workspace.existing(byName: binding.workspaceName) else { return [:] }
+            workspace.normalizeContainers()
+
+            var result: [SlotId: SlotComposition] = [:]
+            for slotId in flattenedSlots {
+                result[slotId] = .single
+            }
+            for (slotId, container) in builtContainers {
+                // A container the engine dissolved leaves its windows where it was, side by side, so the
+                // Slot really is a single-window Slot now however it was asked for.
+                result[slotId] = container.parent == nil ? .single : composition(of: container)
+            }
+            return result
+        }
+
+        /// Finds the window a `WindowRef` means, or nothing.
+        ///
+        /// The ref is `bundleId` plus the window's ordinal within its application, so resolution has to pick
+        /// an order for an app's windows and stick to it. Window id ascending is that order: it is stable
+        /// across a projection, it is the same order the engine assigns as windows appear, and it does not
+        /// depend on the tree — which is the thing being rebuilt.
+        ///
+        /// Nothing is created, launched or focused here. A window that is not there is simply not there, and
+        /// invariant I10 has SceneMux leave it at that.
+        private func resolve(_ windowRef: WindowRef) -> Window? {
+            let candidates = inventory
+                .filter { $0.app.rawAppBundleId == windowRef.bundleId }
+                .sorted { $0.windowId < $1.windowId }
+            return candidates.getOrNil(atIndex: windowRef.ordinalWithinApp)
+        }
+
+        /// Every window the engine currently knows about.
+        ///
+        /// Follows `Window.get(byId:)`: under test the tree is the only inventory there is, because no
+        /// `MacWindow` was ever registered from the Accessibility API.
+        private var inventory: [Window] {
+            isUnitTest
+                ? Workspace.all.flatMap { $0.allLeafWindowsRecursive }
+                : MacWindow.allWindows
+        }
+
+        private func orientation(for composition: SlotComposition, under root: TilingContainer) -> Orientation {
+            switch composition {
+                case .split(let orientation): orientation == .horizontal ? .h : .v
+                // A tab group stacks its members, so its orientation decides nothing the user can see. The
+                // engine's own `join-with` picks the opposite of the parent, and matching that keeps
+                // opposite-orientation normalization from having anything to correct.
+                case .tabbed, .single: root.orientation.opposite
+            }
+        }
+
+        private func layout(for composition: SlotComposition) -> Layout {
+            switch composition {
+                case .tabbed: .tabGroup
+                case .split, .single: .tiles
+            }
+        }
+
+        private func composition(of container: TilingContainer) -> SlotComposition {
+            switch container.layout {
+                case .tabGroup: .tabbed
+                case .tiles: .split(container.orientation == .h ? .horizontal : .vertical)
+            }
+        }
+    }
+}

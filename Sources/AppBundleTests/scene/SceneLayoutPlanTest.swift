@@ -1,0 +1,116 @@
+@testable import AppBundle
+import Foundation
+import XCTest
+
+/// The plan as a pure reading of a Scene: intent in, work out, no engine anywhere near it.
+///
+/// Everything here runs without a Mac, a workspace or a window, which is the point of deriving the plan
+/// separately from realising it. What the engine then does with the plan is `SceneProjectorTest` and
+/// `WinMuxSceneEngineAdapterTest`.
+final class SceneLayoutPlanTest: XCTestCase {
+    private typealias App = SceneCoreFixtures.App
+
+    private let substrate = SceneCore.SubstrateBinding(workspaceName: "3")
+
+    func testAPlanDescribesEverySlotOfTheSceneInSlotOrder() throws {
+        let scene = try SceneCoreFixtures.debugScene()
+
+        let plan = SceneCore.SceneLayoutPlan(scene, on: substrate)
+
+        XCTAssertEqual(plan.sceneId, scene.id)
+        XCTAssertEqual(plan.sceneTitle, "Debug PROD-123")
+        XCTAssertEqual(plan.substrate, substrate)
+        XCTAssertEqual(plan.groups.map(\.role), [.terminal, .editor, .preview, .observability, .communication])
+    }
+
+    func testSlotsStoredOutOfOrderAreLaidOutInTheirOwnOrder() throws {
+        let last = SceneCoreFixtures.slot(role: .communication, order: 9)
+        let first = SceneCoreFixtures.slot(role: .editor, order: 1)
+        let scene = try SceneCoreFixtures.scene(slots: [last, first])
+
+        let plan = SceneCore.SceneLayoutPlan(scene, on: substrate)
+
+        XCTAssertEqual(plan.groups.map(\.slotId), [first.id, last.id])
+    }
+
+    /// Two Slots may legally share an ordering number, and the same Scene has to project the same way every
+    /// time it is projected. `sorted(by:)` is not documented to be stable, so this is a real risk rather than
+    /// a theoretical one — a plan that shuffled the tie would move the user's windows for no reason.
+    func testSlotsSharingAnOrderKeepTheOrderTheSceneStoredThemIn() throws {
+        let editor = SceneCoreFixtures.slot(role: .editor, order: 0)
+        let terminal = SceneCoreFixtures.slot(role: .terminal, order: 0)
+        let preview = SceneCoreFixtures.slot(role: .preview, order: 0)
+        let scene = try SceneCoreFixtures.scene(slots: [editor, terminal, preview])
+
+        let plan = SceneCore.SceneLayoutPlan(scene, on: substrate)
+
+        XCTAssertEqual(plan.groups.map(\.slotId), [editor.id, terminal.id, preview.id])
+    }
+
+    func testASlotsWindowsArriveInAttachmentOrder() throws {
+        let comms = SceneCoreFixtures.slot(role: .communication, composition: .tabbed, order: 0)
+        let scene = try SceneCoreFixtures.scene(slots: [comms])
+            .attaching(SceneCoreFixtures.attachment(windowRef: try .init(bundleId: App.line, ordinalWithinApp: 0),
+                                                    slotId: comms.id))
+            .attaching(SceneCoreFixtures.attachment(windowRef: try .init(bundleId: App.slack, ordinalWithinApp: 0),
+                                                    slotId: comms.id))
+
+        let plan = SceneCore.SceneLayoutPlan(scene, on: substrate)
+
+        XCTAssertEqual(plan.groups.singleOrNil()?.windows.map(\.bundleId), [App.line, App.slack])
+    }
+
+    /// Invariant I13: an empty Slot stays in the plan so the shell can still show it, and stays out of the
+    /// engine's work, because there is nothing to tile.
+    func testAnEmptySlotIsPlannedButNotWork() throws {
+        let editor = SceneCoreFixtures.slot(role: .editor, order: 0)
+        let empty = SceneCoreFixtures.slot(role: .observability, order: 1)
+        let scene = try SceneCoreFixtures.scene(slots: [editor, empty])
+            .attaching(SceneCoreFixtures.attachment(windowRef: try .init(bundleId: App.ide, ordinalWithinApp: 0),
+                                                    slotId: editor.id))
+
+        let plan = SceneCore.SceneLayoutPlan(scene, on: substrate)
+
+        XCTAssertEqual(plan.groups.count, 2)
+        XCTAssertEqual(plan.occupiedGroups.map(\.slotId), [editor.id])
+        XCTAssertEqual(plan.groups.last?.isOccupied, false)
+    }
+
+    /// A container is only ever asked for when it would survive: `normalizeContainers` flattens a container
+    /// down to its only child, so a Slot holding one window must be a window, and a Slot that says `.single`
+    /// composes nothing however many windows it holds.
+    func testOnlyASlotThatComposesSeveralWindowsNeedsAContainer() throws {
+        let plain = SceneCoreFixtures.slot(role: .editor, composition: .single, order: 0)
+        let lonelyTabs = SceneCoreFixtures.slot(role: .preview, composition: .tabbed, order: 1)
+        let comms = SceneCoreFixtures.slot(role: .communication, composition: .tabbed, order: 2)
+        let scene = try SceneCoreFixtures.scene(slots: [plain, lonelyTabs, comms])
+            .attaching(SceneCoreFixtures.attachment(windowRef: try .init(bundleId: App.ide, ordinalWithinApp: 0),
+                                                    slotId: plain.id))
+            .attaching(SceneCoreFixtures.attachment(windowRef: try .init(bundleId: App.ide, ordinalWithinApp: 1),
+                                                    slotId: plain.id))
+            .attaching(SceneCoreFixtures.attachment(windowRef: try .init(bundleId: App.browser, ordinalWithinApp: 0),
+                                                    slotId: lonelyTabs.id))
+            .attaching(SceneCoreFixtures.attachment(windowRef: try .init(bundleId: App.line, ordinalWithinApp: 0),
+                                                    slotId: comms.id))
+            .attaching(SceneCoreFixtures.attachment(windowRef: try .init(bundleId: App.slack, ordinalWithinApp: 0),
+                                                    slotId: comms.id))
+
+        let plan = SceneCore.SceneLayoutPlan(scene, on: substrate)
+
+        XCTAssertEqual(plan.groups.map(\.needsContainer), [false, false, true])
+    }
+
+    /// Invariant I15: a projection may touch the Scene's own windows and nothing else, which is only checkable
+    /// if the plan says out loud which those are.
+    func testAPlanNamesEveryWindowItMayTouchAndNoOther() throws {
+        let scene = try SceneCoreFixtures.debugScene()
+
+        let plan = SceneCore.SceneLayoutPlan(scene, on: substrate)
+
+        XCTAssertEqual(
+            plan.windows.map(\.bundleId),
+            [App.terminal, App.ide, App.browser, App.grafana, App.line, App.slack],
+        )
+        XCTAssertFalse(plan.windows.map(\.bundleId).contains(App.music))
+    }
+}

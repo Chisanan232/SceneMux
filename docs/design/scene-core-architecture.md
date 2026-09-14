@@ -227,13 +227,27 @@ Scene state follows the user rather than fighting them.
 
 | `SlotComposition` | Engine realisation |
 | --- | --- |
-| `.single` | The window is bound into the workspace's tiling tree at the Slot's ordinal position |
-| `.split(.horizontal / .vertical)` | Sibling windows joined with `join-with` in that orientation — never `split`, which is a no-op in this engine |
-| `.tabbed` | A `TilingContainer` with `Layout.tabGroup`, the shape `baseline-verification.md` measured |
+| `.single`, or any Slot holding one window | The window is bound straight into the workspace's root tiling container. Never wrapped in a container of its own: `normalizeContainers()` flattens a single-child container, so the wrapper would evaporate moments later and the Slot would look like a bug |
+| `.split(.horizontal / .vertical)` | A nested `TilingContainer` with `Layout.tiles` in that orientation, the Slot's windows bound into it — the shape `join-with` produces, built the way `JoinWithCommand` builds it. Never `split`, which is a no-op in this engine |
+| `.tabbed` | A nested `TilingContainer` with `Layout.tabGroup`, the shape `baseline-verification.md` measured. Built once, with every member bound into it — a tab group dissolves if its members are moved in one at a time |
 
-The nested case the golden journey needs — one window filling the left half, two stacked on the right —
-is exactly the `join-with right` shape recorded in the baseline document, so it is known to work on real
-geometry rather than assumed.
+The nested case the golden journey needs — four windows across a band of the screen, two chat windows
+sharing the fifth place as tabs — is exactly the `join-with` shape recorded in the baseline document, so it
+is known to work on real geometry rather than assumed.
+
+### When the engine has the last word
+
+`enableNormalizationOppositeOrientationForNestedContainers` is on by default, and it flips a nested
+container whose orientation equals its parent's. A `.split(.horizontal)` Slot under a horizontal root
+therefore comes out vertical, whatever SceneMux asked for.
+
+SceneMux does not re-project to force it back. It would lose the same argument on the next normalization
+pass, and a layout that oscillates is worse than one that is merely not what was asked. Instead the
+adapter reads the settled structure back and reports it: the Slot's placement carries the composition the
+engine arrived at, and the projection's diagnostics say so in the user's own words — *"SceneMux composed
+the terminal Slot of "Debug PROD-123" as a vertical split instead of a horizontal split, because the
+window engine normalized it."* The user can then change their configuration or ask for the other
+orientation, which are both things they can actually do; being quietly lied to is not.
 
 ### A naming collision, stated so nobody trips on it
 
@@ -717,7 +731,7 @@ rest.
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-Three rules hold this together, and each one is checkable in review — the first of them is also checked by
+Three rules hold this together, and each one is checkable in review — the first two are also checked by
 `script/test_scene_domain_layering.py` on every pull request, because a rule that only a reviewer enforces
 is a rule that survives exactly as long as reviewers keep noticing:
 
@@ -726,24 +740,47 @@ is a rule that survives exactly as long as reviewers keep noticing:
    server, a monitor, or a running app. This is also what makes the model reviewable by someone who does
    not know the engine.
 2. **Scene Core never names an engine type outside `scene/engine/`.** It speaks to `SceneEnginePort`, a
-   protocol expressed in Scene vocabulary — "make this Scene's projection current", "place this window in
-   this Slot", "put this window back on this Home surface". `WinMuxSceneEngineAdapter` is the single file
-   that knows both languages, and it is the only place an upstream rename can reach.
+   protocol expressed in Scene vocabulary — "make this Scene's workspace usable", "build this Slot",
+   "settle, and tell me what shape each Slot ended up". `WinMuxSceneEngineAdapter` is the single file
+   that knows both languages, and it is the only place an upstream rename can reach. The guard holds
+   `scene/engine/` to that literally: every file in it but the adapter imports `Foundation` only and names
+   no engine type, and the adapter is checked to still name one — an exemption protecting nothing would
+   mean the seam had quietly moved somewhere unguarded.
 3. **The engine is not modified to know about Scenes.** Not one inherited type gains a `sceneId`. This is
    the Phase 0 rule about mergeability applied to Phase 1: an `upstream` merge that touches
    `NewWindowBinding.swift` or `WorkspaceProjects.swift` must still merge into code its author would
    recognise. Where the engine must call outward — the admission hook on window detection — it calls one
    named function with no Scene types in its signature.
 
-`SceneEnginePort` is introduced *with its adapter and its callers, in the ticket that needs it*. It is not
+`SceneEnginePort` is introduced *with its adapter and its caller, in the ticket that needs it*. It is not
 added ahead of time as an empty protocol: the repository's own rules forbid abstractions with no callers,
-and an unimplemented seam is a claim rather than a design.
+and an unimplemented seam is a claim rather than a design. Its caller is `SceneProjector`, which walks a
+`SceneLayoutPlan` derived from a Scene; what invokes *that* is the Scene enter path in the shell, which
+lands with the shell itself under HORO-1106. Until then the seam is exercised by tests against the real
+inherited tree, which is why those tests use the engine rather than a fake.
 
 ### Reconciliation and the engine adapter
 
 Projection is one-directional: **Scene state → engine tree.** Entering a Scene walks its Slots in order and
 asks the adapter to place each attachment's window; the adapter uses the inherited verbs (`join-with`,
 `layout tab-group`, tree binding) and the engine computes every rectangle.
+
+`SceneEnginePort` is three methods, and the order they run in is the whole protocol:
+
+| Step | Method | What it is for |
+| --- | --- | --- |
+| 1 | `prepareSubstrate(_:)` | Make the Scene's workspace usable, or refuse. A refusal ends the projection before a single window has moved — better a Scene that did not open than a Scene half-scattered across the wrong workspace |
+| 2 | `place(_:on:)`, once per occupied Slot, in Slot order | Build one Slot: resolve its windows, build a container if the composition needs one, bind. Call order *is* Slot order — the port has no position argument, because a Slot's place among its siblings is where it was built, and a second way of saying it could only ever disagree with the first |
+| 3 | `settle(_:)` | Run the engine's own normalization and read the resulting composition of each Slot back |
+
+Two things follow from step 1 being separate. An empty Slot is never offered to the engine at all — there
+is nothing to build — but it is still in the report, so the UX can draw it (I13). And a Slot whose windows
+have all quit is reported empty rather than filled with a substitute: the Scene said *these* windows, and
+"something in roughly the right place" is not what was asked for.
+
+The projection returns a `SceneLayoutReport`: per Slot, what actually happened — realised, realised without
+some window, empty, or refused in the engine's own words — plus diagnostics in plain language. Nothing is
+thrown away, and nothing is rounded up to success.
 
 The one read-back is user-initiated rearrangement. The inherited engine has its own commands and its own
 drag handling, and a user who moves a window with `move right` is expressing intent just as surely as one
@@ -779,6 +816,7 @@ the test.
 | I12 | `scene/domain/` and `scene/lifecycle/` import `Foundation` only; no engine type is named outside `scene/engine/` |
 | I13 | A Slot with no attachments still exists in Scene state and is still shown |
 | I14 | `ended` is reachable from `ending` even when every window involved has disappeared |
+| I15 | A projection binds, unbinds or moves only the windows its Scene names. Every other window on the substrate keeps its place and its parent |
 
 ## Non-goals
 
@@ -877,8 +915,11 @@ The domain model is verified by unit tests — it imports `Foundation` only, pre
 invariants above are testable without a window server. So is the lifecycle above it: every transition,
 every teardown outcome and the whole interrupted-teardown path are exercised as values, and the
 orchestrator against a real state file in a temporary directory, including a directory it is not allowed
-to write to. The engine adapter and admission are verified
-against the real engine. Everything with a surface is verified natively, per
+to write to. The seam is verified twice over: the projector's order of operations against a recording port,
+and the adapter against the real inherited tree — including the golden journey built out of six windows and
+five Slots and then measured as actual rectangles. A fake would agree with whatever the adapter believed,
+which is the one thing worth doubting. Admission is verified against the real engine too. Everything with a
+surface is verified natively, per
 [`../development/ui-verification.md`](../development/ui-verification.md): built, launched, driven through
 XCTest/XCUITest, Accessibility automation or a real interactive pass, with window-scoped or artifact-scoped
 screenshots. Browser automation is not a valid verifier for any of it.

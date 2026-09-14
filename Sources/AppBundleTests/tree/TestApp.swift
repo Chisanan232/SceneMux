@@ -10,10 +10,14 @@ final class TestApp: AbstractApp {
     @MainActor
     static let shared = TestApp()
 
-    private init() {
-        self.pid = 0
-        self.rawAppBundleId = "com.chisanan232.scenemux.test-app"
-        self.name = rawAppBundleId
+    /// A second, third, fourth application, for tests about *which* application a window belongs to.
+    ///
+    /// A Scene addresses windows by bundle id plus ordinal, so a test that only ever has one application
+    /// cannot tell a correct resolver from one that ignores the bundle id entirely.
+    init(bundleId: String = "com.chisanan232.scenemux.test-app", pid: Int32 = 0) {
+        self.pid = pid
+        self.rawAppBundleId = bundleId
+        self.name = bundleId
     }
 
     var _windows: [Window] = []
