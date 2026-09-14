@@ -16,7 +16,10 @@ extension SceneCore {
     /// window itself; the projector and the engine do that, and only for windows the Scene names.
     @MainActor
     final class SceneRuntime: ObservableObject {
-        static let shared = SceneRuntime()
+        /// The running app's Scenes. Assignable so a test can point the commands at a temporary state file and a
+        /// recording engine instead of the real ones — a test that wrote to Application Support would edit the
+        /// Scenes of whoever ran it.
+        static var shared = SceneRuntime()
 
         /// Everything the surfaces draw, rebuilt after every change. One value, so they cannot disagree.
         @Published private(set) var snapshot: SceneShellSnapshot
