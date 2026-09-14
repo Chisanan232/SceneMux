@@ -5,7 +5,7 @@ import SwiftUI
 // This file is shared between SPM and xcode project
 
 @main
-struct WinMuxApp: App {
+struct SceneMuxApp: App {
     @StateObject var viewModel = TrayMenuModel.shared
     @StateObject var messageModel = MessageModel.shared
     @StateObject var shortcutSettingsModel = ShortcutSettingsModel.shared
@@ -24,7 +24,11 @@ struct WinMuxApp: App {
         #else
         menuBar(
             viewModel: viewModel,
-            checkForUpdates: { AutomaticUpdates.checkForUpdates() },
+            // Offering "Check for Updates…" with no feed configured would present a
+            // control that can only report a failure.
+            checkForUpdates: AutomaticUpdates.isFeedConfigured
+                ? { AutomaticUpdates.checkForUpdates() }
+                : nil,
         )
         #endif
         getShortcutSettingsWindow(model: shortcutSettingsModel)

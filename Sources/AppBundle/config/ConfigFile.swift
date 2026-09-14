@@ -2,9 +2,12 @@ import Common
 import Foundation
 import TOMLKit
 
-let legacyConfigDotfileName = ".winmux.toml"
-let generatedConfigDirectoryName = "winmux"
-let generatedConfigFileName = "winmux.toml"
+let legacyConfigDotfileName = ".scenemux.toml"
+let winMuxConfigDirectoryName = "winmux"
+let winMuxConfigFileName = "winmux.toml"
+let winMuxLegacyConfigDotfileName = ".winmux.toml"
+let generatedConfigDirectoryName = "scenemux"
+let generatedConfigFileName = "scenemux.toml"
 let aerospaceLegacyConfigDotfileName = ".aerospace.toml"
 let aerospaceConfigDirectoryName = "aerospace"
 let aerospaceConfigFileName = "aerospace.toml"
@@ -20,10 +23,19 @@ func generatedConfigUrl() -> URL {
         .appending(path: generatedConfigFileName)
 }
 
+/// Config files SceneMux may import from, in priority order.
+///
+/// These are read-only import sources. SceneMux copies the first one that exists into
+/// its own config path and never writes to, moves, or deletes any of them, so an
+/// installed WinMux keeps working off its own file afterwards.
 func legacyConfigCandidateUrls() -> [URL] {
     [
-        xdgConfigHomeUrl().appending(path: "winmux").appending(path: "winmux.toml"),
+        xdgConfigHomeUrl().appending(path: generatedConfigDirectoryName).appending(path: generatedConfigFileName),
         FileManager.default.homeDirectoryForCurrentUser.appending(path: legacyConfigDotfileName),
+        // Inherited WinMux locations. Kept so a WinMux user is not dropped onto starter
+        // defaults, but ranked below SceneMux's own paths.
+        xdgConfigHomeUrl().appending(path: winMuxConfigDirectoryName).appending(path: winMuxConfigFileName),
+        FileManager.default.homeDirectoryForCurrentUser.appending(path: winMuxLegacyConfigDotfileName),
     ]
 }
 
@@ -207,10 +219,10 @@ func migrateAerospaceConfigForWinMux(_ rawToml: String) throws -> String {
 
     var migrated = aerospaceKeyboardConfigSections(from: rawToml)
     let literalReplacements = [
-        ("AEROSPACE_FOCUSED_WORKSPACE", "WINMUX_FOCUSED_WORKSPACE"),
-        ("AEROSPACE_PREV_WORKSPACE", "WINMUX_PREV_WORKSPACE"),
-        ("AEROSPACE_WINDOW_ID", "WINMUX_WINDOW_ID"),
-        ("AEROSPACE_WORKSPACE", "WINMUX_WORKSPACE"),
+        ("AEROSPACE_FOCUSED_WORKSPACE", SCENEMUX_FOCUSED_WORKSPACE),
+        ("AEROSPACE_PREV_WORKSPACE", SCENEMUX_PREV_WORKSPACE),
+        ("AEROSPACE_WINDOW_ID", SCENEMUX_WINDOW_ID),
+        ("AEROSPACE_WORKSPACE", SCENEMUX_WORKSPACE),
         ("accordion-padding", "tab-group-padding"),
         ("h_accordion", "h_tab_group"),
         ("v_accordion", "v_tab_group"),
@@ -227,9 +239,9 @@ func migrateAerospaceConfigForWinMux(_ rawToml: String) throws -> String {
         : removingAerospaceKeyboardConfigSections(from: starterConfigText())
 
     return """
-        # Migrated from AeroSpace config by WinMux.
-        # WinMux owns this file after import; the AeroSpace source is not read again.
-        # Current WinMux defaults are used for WinMux-specific behavior; AeroSpace keyboard sections are preserved below.
+        # Migrated from AeroSpace config by SceneMux.
+        # SceneMux owns this file after import; the AeroSpace source is not read again.
+        # Current SceneMux defaults are used for SceneMux-specific behavior; AeroSpace keyboard sections are preserved below.
 
         \(baseConfig)
         \(migrated.isEmpty ? "" : "\n# Keyboard configuration imported from AeroSpace.\n\(migrated)")

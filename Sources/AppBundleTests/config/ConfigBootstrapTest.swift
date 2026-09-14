@@ -65,12 +65,12 @@ final class ConfigBootstrapTest: XCTestCase {
 
     func testEnsureBootstrapConfigCopiesLegacyConfig() throws {
         let tempDir = FileManager.default.temporaryDirectory
-            .appending(path: "WinMuxTests-\(UUID().uuidString)", directoryHint: .isDirectory)
+            .appending(path: "SceneMuxTests-\(UUID().uuidString)", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: tempDir) }
 
         let legacyUrl = tempDir.appending(path: "legacy.toml")
-        let targetUrl = tempDir.appending(path: "winmux.toml")
+        let targetUrl = tempDir.appending(path: "scenemux.toml")
         let legacyText = """
             config-version = 2
 
@@ -91,13 +91,13 @@ final class ConfigBootstrapTest: XCTestCase {
 
     func testEnsureBootstrapConfigPrefersFirstLegacyConfigWithoutFailing() throws {
         let tempDir = FileManager.default.temporaryDirectory
-            .appending(path: "WinMuxTests-\(UUID().uuidString)", directoryHint: .isDirectory)
+            .appending(path: "SceneMuxTests-\(UUID().uuidString)", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: tempDir) }
 
         let preferredLegacyUrl = tempDir.appending(path: "preferred.toml")
         let secondaryLegacyUrl = tempDir.appending(path: "secondary.toml")
-        let targetUrl = tempDir.appending(path: "winmux.toml")
+        let targetUrl = tempDir.appending(path: "scenemux.toml")
         let preferredText = """
             config-version = 2
 
@@ -125,12 +125,12 @@ final class ConfigBootstrapTest: XCTestCase {
 
     func testEnsureBootstrapConfigImportsAerospaceConfigWhenNoWinMuxConfigExists() throws {
         let tempDir = FileManager.default.temporaryDirectory
-            .appending(path: "WinMuxTests-\(UUID().uuidString)", directoryHint: .isDirectory)
+            .appending(path: "SceneMuxTests-\(UUID().uuidString)", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: tempDir) }
 
         let aerospaceUrl = tempDir.appending(path: "aerospace.toml")
-        let targetUrl = tempDir.appending(path: "winmux.toml")
+        let targetUrl = tempDir.appending(path: "scenemux.toml")
         let aerospaceText = """
             start-at-login = false
             default-root-container-layout = 'accordion'
@@ -156,7 +156,7 @@ final class ConfigBootstrapTest: XCTestCase {
 
         XCTAssertTrue(didMaterialize)
         let migratedText = try String(contentsOf: targetUrl, encoding: .utf8)
-        XCTAssertTrue(migratedText.contains("# Migrated from AeroSpace config by WinMux."))
+        XCTAssertTrue(migratedText.contains("# Migrated from AeroSpace config by SceneMux."))
         XCTAssertTrue(migratedText.contains("default-root-container-layout = 'tiles'"))
         XCTAssertTrue(migratedText.contains("tab-group-padding = 30"))
         XCTAssertTrue(migratedText.contains("window-tabs.enabled = true"))
@@ -164,7 +164,7 @@ final class ConfigBootstrapTest: XCTestCase {
         XCTAssertTrue(migratedText.contains("enabled = true"))
         XCTAssertTrue(migratedText.contains("layout tab-group tiles"))
         XCTAssertTrue(migratedText.contains("layout h_tab_group v_tab_group"))
-        XCTAssertTrue(migratedText.contains("$WINMUX_WINDOW_ID"))
+        XCTAssertTrue(migratedText.contains("$SCENEMUX_WINDOW_ID"))
         XCTAssertFalse(migratedText.contains("exec-on-workspace-change"))
         XCTAssertFalse(migratedText.contains("accordion"))
         XCTAssertFalse(migratedText.contains("AEROSPACE_"))
@@ -175,5 +175,67 @@ final class ConfigBootstrapTest: XCTestCase {
         XCTAssertTrue(parsedConfig.windowTabs.enabled)
         XCTAssertEqual(parsedConfig.configVersion, 2)
         XCTAssertEqual(parsedConfig.modes[mainModeId]?.bindings.values.map(\.descriptionWithKeyNotation).sorted(), ["alt-h", "alt-j", "alt-l"])
+    }
+
+    func testLegacyConfigCandidatesRankSceneMuxPathsAboveWinMux() {
+        let candidates = legacyConfigCandidateUrls().map(\.path)
+
+        XCTAssertEqual(candidates.count, 4)
+        XCTAssertTrue(candidates[0].hasSuffix("/scenemux/scenemux.toml"), candidates[0])
+        XCTAssertTrue(candidates[1].hasSuffix("/.scenemux.toml"), candidates[1])
+        XCTAssertTrue(candidates[2].hasSuffix("/winmux/winmux.toml"), candidates[2])
+        XCTAssertTrue(candidates[3].hasSuffix("/.winmux.toml"), candidates[3])
+    }
+
+    func testEnsureBootstrapConfigLeavesTheImportSourceUntouched() throws {
+        let tempDir = FileManager.default.temporaryDirectory
+            .appending(path: "SceneMuxTests-\(UUID().uuidString)", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        let winMuxUrl = tempDir.appending(path: "winmux.toml")
+        let targetUrl = tempDir.appending(path: "scenemux.toml")
+        let winMuxText = """
+            config-version = 2
+
+            [mode.main.binding]
+            alt-h = 'focus left'
+            """
+        try winMuxText.write(to: winMuxUrl, atomically: true, encoding: .utf8)
+
+        XCTAssertTrue(try materializeBootstrapConfigIfNeeded(
+            targetUrl: targetUrl,
+            existingLegacyUrls: [winMuxUrl],
+        ))
+
+        // The import is a copy: the WinMux install this was read from must keep working.
+        XCTAssertTrue(FileManager.default.fileExists(atPath: winMuxUrl.path))
+        XCTAssertEqual(try String(contentsOf: winMuxUrl, encoding: .utf8), winMuxText)
+    }
+
+    func testEnsureBootstrapConfigKeepsAnExistingSceneMuxConfig() throws {
+        let tempDir = FileManager.default.temporaryDirectory
+            .appending(path: "SceneMuxTests-\(UUID().uuidString)", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        let winMuxUrl = tempDir.appending(path: "winmux.toml")
+        let targetUrl = tempDir.appending(path: "scenemux.toml")
+        let ownText = """
+            config-version = 2
+
+            [mode.main.binding]
+            alt-l = 'focus right'
+            """
+        try "config-version = 2\n".write(to: winMuxUrl, atomically: true, encoding: .utf8)
+        try ownText.write(to: targetUrl, atomically: true, encoding: .utf8)
+
+        // Bootstrap only ever creates a missing config, so a config the user has already
+        // edited cannot be clobbered by an inherited import on a later launch.
+        XCTAssertFalse(try materializeBootstrapConfigIfNeeded(
+            targetUrl: targetUrl,
+            existingLegacyUrls: [winMuxUrl],
+        ))
+        XCTAssertEqual(try String(contentsOf: targetUrl, encoding: .utf8), ownText)
     }
 }

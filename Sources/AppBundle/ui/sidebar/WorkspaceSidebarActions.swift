@@ -511,13 +511,13 @@ private func confirmWorkspaceSidebarProjectDeletion(_ project: WorkspaceSidebarP
         case .closeWindows:
             alert.messageText = "Close Project Windows?"
             alert.informativeText = """
-            WinMux will ask macOS to close \(windowCount) window\(windowCount == 1 ? "" : "s") in “\(project.displayName)”. Apps may show their own confirmation dialogs for unsaved work. If any window stays open, WinMux will keep the project.
+            SceneMux will ask macOS to close \(windowCount) window\(windowCount == 1 ? "" : "s") in “\(project.displayName)”. Apps may show their own confirmation dialogs for unsaved work. If any window stays open, SceneMux will keep the project.
             """
             alert.addButton(withTitle: "Close Project")
         case .moveWindowsToFallback:
             alert.messageText = "Delete Project?"
             alert.informativeText = """
-            WinMux will delete “\(project.displayName)” and move \(windowCount) window\(windowCount == 1 ? "" : "s") to another project.
+            SceneMux will delete “\(project.displayName)” and move \(windowCount) window\(windowCount == 1 ? "" : "s") to another project.
             """
             alert.addButton(withTitle: "Delete Project")
     }

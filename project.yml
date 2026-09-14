@@ -1,7 +1,7 @@
 # Xcode project configuration. Managed by https://github.com/yonaskolb/XcodeGen
 # Xcode is only used to build the release App Bundle. Debug builds only use Swift Package Manager
 
-name: WinMux
+name: SceneMux
 
 packages:
   WinMuxPackage:
@@ -12,21 +12,19 @@ configs:
   Release: release
 
 targets:
-  WinMux:
+  SceneMux:
     type: application
     platform: macOS
     deploymentTarget: "13.0"
     info:
-      path: resources/WinMux-Info.plist
+      path: resources/SceneMux-Info.plist
       properties:
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         LSUIElement: true
-        SUEnableAutomaticChecks: true
-        SUFeedURL: https://github.com/ZimengXiong/winmux/releases/latest/download/appcast.xml
-        SUPublicEDKey: $(SPARKLE_PUBLIC_KEY)
+        SUEnableAutomaticChecks: false
     sources:
-      - "Sources/WinMuxApp"
+      - "Sources/SceneMuxApp"
       - "resources"
     dependencies:
       - package: WinMuxPackage
@@ -37,23 +35,22 @@ targets:
     settings:
       base:
         SWIFT_VERSION: 6.2 # Swift Language Version
-        MARKETING_VERSION: ${XCODEGEN_WINMUX_VERSION}
-        CURRENT_PROJECT_VERSION: ${XCODEGEN_WINMUX_VERSION}
-        SPARKLE_PUBLIC_KEY: ${XCODEGEN_WINMUX_SPARKLE_PUBLIC_KEY}
+        MARKETING_VERSION: ${XCODEGEN_SCENEMUX_VERSION}
+        CURRENT_PROJECT_VERSION: ${XCODEGEN_SCENEMUX_VERSION}
         CODE_SIGN_STYLE: Automatic
-        CODE_SIGN_IDENTITY: ${XCODEGEN_WINMUX_CODE_SIGN_IDENTITY}
-        DEVELOPMENT_TEAM: ${XCODEGEN_WINMUX_DEVELOPMENT_TEAM}
+        CODE_SIGN_IDENTITY: ${XCODEGEN_SCENEMUX_CODE_SIGN_IDENTITY}
+        DEVELOPMENT_TEAM: ${XCODEGEN_SCENEMUX_DEVELOPMENT_TEAM}
       configs:
         Debug:
-          PRODUCT_NAME: WinMux-Debug
-          PRODUCT_BUNDLE_IDENTIFIER: com.zimengxiong.winmux.debug
+          PRODUCT_NAME: SceneMux-Debug
+          PRODUCT_BUNDLE_IDENTIFIER: com.chisanan232.scenemux.debug
         Release:
-          PRODUCT_NAME: WinMux
-          PRODUCT_BUNDLE_IDENTIFIER: com.zimengxiong.winmux
+          PRODUCT_NAME: SceneMux
+          PRODUCT_BUNDLE_IDENTIFIER: com.chisanan232.scenemux
           SWIFT_TREAT_WARNINGS_AS_ERRORS: YES
           GCC_TREAT_WARNINGS_AS_ERRORS: YES
     entitlements:
-      path: resources/WinMux.entitlements
+      path: resources/SceneMux.entitlements
       properties:
         # Accessibility API doesn't work in sandboxed apps
         com.apple.security.app-sandbox: false

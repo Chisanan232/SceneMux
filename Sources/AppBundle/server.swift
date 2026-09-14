@@ -20,7 +20,7 @@ func startUnixSocketServer() {
 func toggleReleaseServerIfDebug(_ state: EnableCmdArgs.State) async {
     if serverArgs.isReadOnly { return }
     if !isDebug { return }
-    let socketFile = "/tmp/\(stableWinMuxAppId)-\(unixUserName).sock"
+    let socketFile = "/tmp/\(stableSceneMuxAppId)-\(unixUserName).sock"
     let connection = NWConnection(to: NWEndpoint.unix(path: socketFile), using: .tcp)
     defer { connection.cancel() }
     if await connection.startBlocking().error != nil { // Can't connect, WinMux.app is not running
@@ -32,7 +32,7 @@ func toggleReleaseServerIfDebug(_ state: EnableCmdArgs.State) async {
     _ = await connection.readNonAtomic()
 }
 
-private let serverVersionAndHash = "\(winMuxAppVersion) \(gitHash)"
+private let serverVersionAndHash = "\(sceneMuxAppVersion) \(gitHash)"
 
 private func newConnection(_ connection: NWConnection) async { // todo add exit codes
     func answerToClient(exitCode: Int32, stdout: String = "", stderr: String = "") async {
@@ -76,8 +76,8 @@ private func newConnection(_ connection: NWConnection) async { // todo add exit 
         guard let token: RunSessionGuard = await .isServerEnabled(orIsEnableCommand: command) else {
             await answerToClient(
                 exitCode: 1,
-                stderr: "\(winMuxAppName) server is disabled and doesn't accept commands. " +
-                    "You can use 'winmux enable on' to enable the server",
+                stderr: "\(sceneMuxAppName) server is disabled and doesn't accept commands. " +
+                    "You can use 'scenemux enable on' to enable the server",
             )
             continue
         }
@@ -120,7 +120,7 @@ private func newConnection(_ connection: NWConnection) async { // todo add exit 
                     serverVersionAndHash: serverVersionAndHash,
                 )
             if request.windowId == nil || request.workspace == nil {
-                answer.stderr += "\n\nWinMux client has sent incomplete JSON request. 'windowId' or/and 'workspace' fields are missing. Please forward WINMUX_WINDOW_ID and WINMUX_WORKSPACE to these JSON fields. If the appropriate environment variables are empty, pass explicit 'null' in the JSON."
+                answer.stderr += "\n\nSceneMux client has sent incomplete JSON request. 'windowId' or/and 'workspace' fields are missing. Please forward \(SCENEMUX_WINDOW_ID) and \(SCENEMUX_WORKSPACE) to these JSON fields. If the appropriate environment variables are empty, pass explicit 'null' in the JSON."
             }
             await answerToClient(answer)
             continue

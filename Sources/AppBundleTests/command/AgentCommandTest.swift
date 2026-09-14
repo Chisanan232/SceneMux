@@ -8,16 +8,16 @@ final class AgentCommandTest: XCTestCase {
 
     func testParse() {
         XCTAssertTrue(parseCommand("agent query").cmdOrNil is AgentCommand)
-        XCTAssertTrue(parseCommand("agent query --path /tmp/winmux-agent.json").cmdOrNil is AgentCommand)
+        XCTAssertTrue(parseCommand("agent query --path /tmp/scenemux-agent.json").cmdOrNil is AgentCommand)
         XCTAssertEqual(parseCommand("agent apply").errorOrNil, "--path is mandatory for 'check' and 'apply'")
-        XCTAssertEqual(parseCommand("agent skill --path /tmp/winmux-agent.json").errorOrNil, "--path is incompatible with 'skill'")
+        XCTAssertEqual(parseCommand("agent skill --path /tmp/scenemux-agent.json").errorOrNil, "--path is incompatible with 'skill'")
     }
 
     func testSkill() async throws {
         let result = try await parseCommand("agent skill").cmdOrDie.run(.defaultEnv, .emptyStdin)
 
         XCTAssertEqual(result.exitCode, 0)
-        XCTAssertTrue(result.stdout.joined(separator: "\n").contains("name: winmux-agent"))
+        XCTAssertTrue(result.stdout.joined(separator: "\n").contains("name: scenemux-agent"))
         XCTAssertTrue(result.stdout.joined(separator: "\n").contains("setWinMuxFullscreen"))
         XCTAssertTrue(result.stdout.joined(separator: "\n").contains("\"swapPanes\""))
         XCTAssertTrue(result.stdout.joined(separator: "\n").contains("All `edit.operations` commands"))
@@ -197,6 +197,27 @@ final class AgentCommandTest: XCTestCase {
         XCTAssertTrue(editor.noOuterGapsInFullscreen)
     }
 
+    func testSetSceneMuxFullscreenIsAcceptedAlongsideInheritedSpelling() async throws {
+        let root = Workspace.get(byName: "a").rootTilingContainer
+        let editor = TestWindow.new(id: 1, parent: root)
+
+        let path = try writeAgentJson("""
+            {
+              "schemaVersion": 1,
+              "edit": {
+                "operations": [
+                  { "type": "setSceneMuxFullscreen", "windowId": 1, "value": true }
+                ]
+              }
+            }
+            """)
+
+        let result = try await parseCommand("agent apply --path \(path.path)").cmdOrDie.run(.defaultEnv, .emptyStdin)
+
+        XCTAssertEqual(result.exitCode, 0)
+        XCTAssertTrue(editor.isFullscreen)
+    }
+
     func testCreateTabGroupAcceptsWindowsAliasAndInfersWorkspace() async throws {
         let root = Workspace.get(byName: "a").rootTilingContainer
         _ = TestWindow.new(id: 1, parent: root)
@@ -298,7 +319,7 @@ final class AgentCommandTest: XCTestCase {
 
 func writeAgentJson(_ json: String) throws -> URL {
     let url = URL(filePath: NSTemporaryDirectory())
-        .appending(path: "winmux-agent-\(UUID().uuidString).json")
+        .appending(path: "scenemux-agent-\(UUID().uuidString).json")
     try json.write(to: url, atomically: true, encoding: .utf8)
     return url
 }

@@ -113,8 +113,8 @@ func replaceWorkspaceNameInFocusState(oldName: String, newName: String) {
 
 /// Global focus.
 /// Commands must be cautious about accessing this property directly. There are legitimate cases.
-/// But, in general, commands must firstly check --window-id, --workspace, WINMUX_WINDOW_ID env and
-/// WINMUX_WORKSPACE env before accessing the global focus.
+/// But, in general, commands must firstly check --window-id, --workspace, SCENEMUX_WINDOW_ID env and
+/// SCENEMUX_WORKSPACE env before accessing the global focus.
 @MainActor var focus: LiveFocus { _focus.live }
 
 @MainActor func setFocus(to newFocus: LiveFocus) -> Bool {
@@ -277,6 +277,10 @@ extension Workspace {
         process.executableURL = URL(filePath: exec)
         process.arguments = Array(config.execOnWorkspaceChange.dropFirst())
         var environment = config.execConfig.envVariables
+        environment[SCENEMUX_FOCUSED_WORKSPACE] = newWorkspace
+        environment[SCENEMUX_PREV_WORKSPACE] = oldWorkspace
+        environment[SCENEMUX_WORKSPACE] = newWorkspace
+        // Also export the inherited WinMux names so an imported config keeps working.
         environment[WINMUX_FOCUSED_WORKSPACE] = newWorkspace
         environment[WINMUX_PREV_WORKSPACE] = oldWorkspace
         environment[WINMUX_WORKSPACE] = newWorkspace

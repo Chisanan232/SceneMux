@@ -282,6 +282,32 @@ extension ConfigTest {
         assertEquals(errors, [])
     }
 
+    func testParseDuringSceneMuxStartupMatcher() {
+        let (config, errors) = parseConfig(
+            """
+            [[on-window-detected]]
+                if.during-scenemux-startup = true
+                run = []
+            """,
+        )
+        assertEquals(errors.descriptions, [])
+        assertEquals(config.onWindowDetected.singleOrNil()?.matcher.duringSceneMuxStartup, true)
+    }
+
+    func testParseInheritedDuringWinMuxStartupMatcher() {
+        // A config imported from WinMux still uses the inherited spelling. It must keep
+        // parsing, and must land on the same matcher field as the canonical key.
+        let (config, errors) = parseConfig(
+            """
+            [[on-window-detected]]
+                if.during-winmux-startup = false
+                run = []
+            """,
+        )
+        assertEquals(errors.descriptions, [])
+        assertEquals(config.onWindowDetected.singleOrNil()?.matcher.duringSceneMuxStartup, false)
+    }
+
     func testRegex() {
         var devNull: [String] = []
         XCTAssertTrue("System Settings".contains(parseCaseInsensitiveRegex("settings").getOrNil(appendErrorTo: &devNull)!))

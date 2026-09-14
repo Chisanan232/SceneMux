@@ -101,7 +101,9 @@ enum AgentOperation: Decodable {
                     tabGroupId: try container.decode(String.self, forKey: .tabGroupId),
                     windowId: try container.decode(UInt32.self, forKey: .windowId),
                 )
-            case "setwinmuxfullscreen", "setfullscreen":
+            // "setWinMuxFullscreen" is the inherited spelling, still accepted so an agent
+            // prompt written against WinMux keeps working.
+            case "setscenemuxfullscreen", "setwinmuxfullscreen", "setfullscreen":
                 self = .setWinMuxFullscreen(
                     windowId: try container.decode(UInt32.self, forKey: .windowId),
                     value: try container.decode(Bool.self, forKey: .value),

@@ -3,7 +3,7 @@ import UniformTypeIdentifiers
 
 let workspaceSidebarWindowDragPrefix = "window:"
 let workspaceSidebarTabGroupDragPrefix = "tab-group:"
-let workspaceSidebarDragPayloadType = UTType(exportedAs: "dev.winmux.sidebar-drag-payload")
+let workspaceSidebarDragPayloadType = UTType(exportedAs: "dev.scenemux.sidebar-drag-payload")
 
 enum WorkspaceSidebarDragPayload: Equatable, Sendable {
     case window(UInt32)

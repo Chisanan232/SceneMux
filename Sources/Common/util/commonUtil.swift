@@ -2,7 +2,7 @@ import AppKit
 import Darwin
 import Foundation
 
-public let socketPath = "/tmp/\(winMuxAppId)-\(unixUserName).sock"
+public let socketPath = "/tmp/\(sceneMuxAppId)-\(unixUserName).sock"
 public let unixUserName = NSUserName()
 public let mainModeId = "main"
 
@@ -24,11 +24,11 @@ public func dieT<T>(
     let message =
         """
         Please report to:
-            https://github.com/nikitabobko/WinMux/discussions/categories/potential-bugs
+            https://github.com/Chisanan232/SceneMux/issues/new
             Please describe what you did to trigger this error
 
         Message: \(_message)
-        Version: \(winMuxAppVersion)
+        Version: \(sceneMuxAppVersion)
         Git hash: \(gitHash)
         refreshSessionEvent: \(refreshSessionEvent.prettyDescription)
         Date: \(Date.now)
@@ -48,9 +48,9 @@ public func dieT<T>(
     if !isUnitTest && isServer {
         showDiagnosticMessage(
             filenameIfConsoleApp: recursionDetectorDuringTermination
-                ? "winmux-runtime-error-recursion.txt"
-                : "winmux-runtime-error.txt",
-            title: "WinMux Runtime Error",
+                ? "scenemux-runtime-error-recursion.txt"
+                : "scenemux-runtime-error.txt",
+            title: "SceneMux Runtime Error",
             message: message,
         )
     }

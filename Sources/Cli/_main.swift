@@ -5,7 +5,7 @@ import Network
 
 let usage =
     """
-    USAGE: \(CommandLine.arguments.first ?? "winmux") [-h|--help] [-v|--version] <subcommand> [<args>...]
+    USAGE: \(CommandLine.arguments.first ?? "scenemux") [-h|--help] [-v|--version] <subcommand> [<args>...]
 
     SUBCOMMANDS:
     \(subcommandDescriptions.sortedBy { $0[0] }.toPaddingTable(columnSeparator: "   ").joined(separator: "\n"))
@@ -34,16 +34,16 @@ struct Main {
             }
             print(
                 """
-                winmux CLI client version: \(cliClientVersionAndHash)
-                WinMux.app server version: \(serverVersionAndHash ?? "Unknown. The server is not running")
+                scenemux CLI client version: \(cliClientVersionAndHash)
+                SceneMux.app server version: \(serverVersionAndHash ?? "Unknown. The server is not running")
                 """,
             )
             if serverVersionAndHash != nil && cliClientVersionAndHash != serverVersionAndHash {
                 eprint(
                     """
-                    Warning: WinMux client/server versions don't match. Possible fixes:
-                      - Restart WinMux.app (server restart is required after each update)
-                      - Reinstall and restart WinMux (corrupted installation)
+                    Warning: SceneMux client/server versions don't match. Possible fixes:
+                      - Restart SceneMux.app (server restart is required after each update)
+                      - Reinstall and restart SceneMux (corrupted installation)
                     """,
                 )
             }
@@ -63,7 +63,7 @@ struct Main {
         let connection = NWConnection(to: NWEndpoint.unix(path: socketPath), using: .tcp)
 
         if let e = await connection.startBlocking().error {
-            exit(1, err: "Can't connect to WinMux server. Is WinMux.app running?\n\(e.localizedDescription)")
+            exit(1, err: "Can't connect to SceneMux server. Is SceneMux.app running?\n\(e.localizedDescription)")
         }
 
         var stdin = ""
@@ -92,8 +92,10 @@ struct Main {
         }
 
         let environment = ProcessInfo.processInfo.environment
-        let windowId = environment[WINMUX_WINDOW_ID].flatMap(UInt32.init)
-        let workspace = environment[WINMUX_WORKSPACE]
+        // The inherited WinMux names are read only as a fallback, so a shell that still
+        // exports them from an imported config keeps addressing the right window.
+        let windowId = (environment[SCENEMUX_WINDOW_ID] ?? environment[WINMUX_WINDOW_ID]).flatMap(UInt32.init)
+        let workspace = environment[SCENEMUX_WORKSPACE] ?? environment[WINMUX_WORKSPACE]
 
         // Handle subscribe command specially
         if parsedArgs is SubscribeCmdArgs {
@@ -108,12 +110,12 @@ struct Main {
         if ans.exitCode != 0 && ans.serverVersionAndHash != cliClientVersionAndHash {
             eprint(
                 """
-                Warning: WinMux client/server versions don't match
-                  - winmux CLI client version: \(cliClientVersionAndHash)
-                  - WinMux.app server version: \(ans.serverVersionAndHash)
+                Warning: SceneMux client/server versions don't match
+                  - scenemux CLI client version: \(cliClientVersionAndHash)
+                  - SceneMux.app server version: \(ans.serverVersionAndHash)
                   Possible fixes:
-                  - Restart WinMux.app (server restart is required after each update)
-                  - Reinstall and restart WinMux (corrupted installation)
+                  - Restart SceneMux.app (server restart is required after each update)
+                  - Reinstall and restart SceneMux (corrupted installation)
                 """,
             )
         }

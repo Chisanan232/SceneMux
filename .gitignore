@@ -10,7 +10,9 @@
 /default.profraw
 .DS_Store
 /.xcode-build
-/WinMux.xcodeproj
+/SceneMux.xcodeproj
+# Python bytecode cache, created by running the script/ tests
+__pycache__/
 # Swift package manager
 /.build
 /.swiftpm

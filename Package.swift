@@ -10,11 +10,11 @@ let package = Package(
     platforms: [.macOS(.v13)],
     // Products define the executables and libraries a package produces, making them visible to other packages.
     products: [
-        .executable(name: "winmux", targets: ["Cli"]),
-        .executable(name: "winmux-marketing-renderer", targets: ["MarketingRenderer"]),
-        .executable(name: "winmux-window-capture", targets: ["WindowCapture"]),
+        .executable(name: "scenemux", targets: ["Cli"]),
+        .executable(name: "scenemux-marketing-renderer", targets: ["MarketingRenderer"]),
+        .executable(name: "scenemux-window-capture", targets: ["WindowCapture"]),
         // Don't use this build for release, use xcode instead
-        .executable(name: "WinMuxApp", targets: ["WinMuxApp"]),
+        .executable(name: "SceneMuxApp", targets: ["SceneMuxApp"]),
         // We only need to expose this as a product for xcode
         .library(name: "AppBundle", targets: ["AppBundle"]),
         .library(name: "SparkleSupport", targets: ["SparkleSupport"]),
@@ -60,7 +60,7 @@ let package = Package(
             ],
         ),
         .executableTarget(
-            name: "WinMuxApp",
+            name: "SceneMuxApp",
             dependencies: [
                 .target(name: "AppBundle"),
                 .target(name: "SparkleSupport"),

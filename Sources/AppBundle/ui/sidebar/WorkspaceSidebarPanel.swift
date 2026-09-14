@@ -3,7 +3,7 @@ import Common
 import CoreGraphics
 import SwiftUI
 
-let workspaceSidebarPanelId = "WinMux.workspaceSidebar"
+let workspaceSidebarPanelId = "SceneMux.workspaceSidebar"
 let workspaceSidebarContentLeadingInset: CGFloat = 12
 let workspaceSidebarContentTrailingInset: CGFloat = 12
 let workspaceSidebarCompactRailHorizontalInset: CGFloat = 7

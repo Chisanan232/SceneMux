@@ -893,7 +893,7 @@ private struct MarketingTerminalWindow: View {
         VStack(spacing: 0) {
             MarketingPlainTitleBar(title: "Terminal — winmux")
             VStack(alignment: .leading, spacing: 8) {
-                Text("$ swift run winmux-marketing-renderer")
+                Text("$ swift run scenemux-marketing-renderer")
                     .foregroundStyle(Color.white.opacity(0.74))
                 Text("Rendering production SwiftUI views…")
                     .foregroundStyle(Color(red: 0.44, green: 0.84, blue: 0.65))

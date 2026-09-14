@@ -1,11 +1,14 @@
 
 <p align="left">
-  <img src="resources/winmux-logo.svg" width="80" alt="WinMux logo">
+  <img src="resources/scenemux-logo.svg" width="80" alt="SceneMux logo">
 </p>
 
-# WinMux
+# SceneMux
 
-<p align="left">A powerful sidebar-first window manager for macOS.</p>
+<p align="left"><strong>Stop managing windows. Start managing work.</strong></p>
+
+<p align="left">A task-oriented desktop application multiplexer for macOS. Every task has a
+scene, and every window has a place in it. Native apps stay native.</p>
 
 > **SceneMux is derived from [WinMux](https://github.com/ZimengXiong/winmux)** (MIT),
 > which is itself derived from [AeroSpace](https://github.com/nikitabobko/AeroSpace) (MIT).
@@ -13,7 +16,11 @@
 > it is not WinMux, not a WinMux distribution, and not endorsed by the WinMux authors.
 > Exact derivation baseline: [`docs/legal/ORIGIN.md`](docs/legal/ORIGIN.md).
 
-https://github.com/user-attachments/assets/51983568-a168-494f-8ae3-5f50ca1efce1
+> **Current status — v0.0.0, Independent Foundation.** This release establishes SceneMux as
+> a standalone, provenance-safe repository with its own identity and its own (currently
+> unconfigured) update channel. Everything documented below is the **inherited WinMux
+> engine**. The task-oriented layer this project exists for — Semantic Homes, Scenes, Slots
+> and Mounts — arrives in v0.1.0 and is not present yet.
 
 ## Highlights
 ### Projects
@@ -84,19 +91,19 @@ For borderless tiling, including no border beside the sidebar:
 ![](resources/screenshots/tab-groups.png)
 Tab groups allow you to have many windows occupy the same footprint, similar to Yabai stacks but with browser-like tab behavior. This is useful when you want to have multiple pieces of reference information next to an editor, multiple tabs in different browser profiles, or, when you simply want multiple fullscreen views without the additional friction and overhead of creating a new workspace.
 
-Unlike stack-only layouts, WinMux tab groups behave more intuitively like you would expect tabs to in browsers, and don't need a keyboard shortcut to activate. You can drag tabs from tab groups into another window's [intent zone](#managed-tiling-mode), or in between workspaces. You can also rearrange tab order within a tab group, and navigate through them with relative and absolute keybindings.
+Unlike stack-only layouts, SceneMux tab groups behave more intuitively like you would expect tabs to in browsers, and don't need a keyboard shortcut to activate. You can drag tabs from tab groups into another window's [intent zone](#managed-tiling-mode), or in between workspaces. You can also rearrange tab order within a tab group, and navigate through them with relative and absolute keybindings.
 
 ### Philosophy
 
 #### Automatic tiling
 
-WinMux tiles newly discovered windows by default. To keep their existing macOS size and position while still using WinMux's sidebar, workspaces, and manual layout commands, disable automatic tiling:
+SceneMux tiles newly discovered windows by default. To keep their existing macOS size and position while still using SceneMux's sidebar, workspaces, and manual layout commands, disable automatic tiling:
 
 ```toml
 automatically-tile-new-windows = false
 ```
 
-This applies to windows discovered when WinMux starts and windows opened later. You can still tile an individual floating window with `winmux layout tiling` or the configured `layout floating tiling` shortcut.
+This applies to windows discovered when SceneMux starts and windows opened later. You can still tile an individual floating window with `scenemux layout tiling` or the configured `layout floating tiling` shortcut.
 
 While dragging a window by its title bar, shake it horizontally to toggle between floating and tiling. The gesture requires several deliberate direction changes in quick succession, and does not activate during resize, sidebar, tab-strip, or tab-group drags. Disable it with:
 
@@ -113,7 +120,7 @@ Monitors share the global project/workspace state. Each monitor can be treated a
 Monitors can not be attached to the same workspace at the same time. They can be on the same project at the same time.
 
 #### App Launching
-WinMux supports single-modifer keybindings (e.g. triggering an action on press of `⌘`)
+SceneMux supports single-modifer keybindings (e.g. triggering an action on press of `⌘`)
 
 I highly recommend that you configure the apps you use every day to be launch with Left/Right Option+Command, or similar shortcuts, otherwise it might be hard to launch common things into the current workspace (and instead, take you to the other workspace where the app is currently active). Here is some of the apps that I have keybinded:
 
@@ -156,30 +163,46 @@ end tell
 ```
 
 ## Installation
-Install WinMux with Homebrew:
+SceneMux has no Homebrew tap and no published binary yet. Build and install it from source:
 
 ```shell
-brew tap ZimengXiong/homebrew https://github.com/ZimengXiong/homebrew
-brew trust ZimengXiong/homebrew
-brew install --cask winmux
-xattr -cr /Applications/WinMux.app
+git clone https://github.com/Chisanan232/SceneMux.git
+cd SceneMux
+make install
 ```
 
-Or download the latest binary from releases and launch.
+`make install` builds a signed Release archive, copies `SceneMux.app` into `/Applications`, and
+launches it. Signing uses your own Apple Development certificate; the build is not notarized, so
+macOS may require you to right-click the app and choose **Open** the first time you launch it.
 
-Release builds are signed with the project's Apple Development certificate. They are not notarized, so macOS may require you to right-click the app and choose **Open** the first time you launch it.
+SceneMux needs Accessibility permission to move and resize other applications' windows. macOS
+prompts for it on first launch.
 
-WinMux checks GitHub Releases for signed updates automatically. You can also select **Check for Updates…** from the menu bar.
+### Updates
+
+There is no update feed at v0.0.0. SceneMux ships with its update channel deliberately
+unconfigured, so it never checks for — and can never install — a build from another project's
+release feed. **Check for Updates…** is hidden from the menu bar until SceneMux publishes a feed
+of its own. Until then, update by pulling and running `make install` again.
 
 ## Migrating
-### From AeroSpace
-If `~/.config/winmux/winmux.toml` already exists, WinMux uses it as-is.
+SceneMux reads one config file: `~/.config/scenemux/scenemux.toml` (or
+`$XDG_CONFIG_HOME/scenemux/scenemux.toml`). If it already exists, SceneMux uses it as-is and
+imports nothing.
 
-If you have an AeroSpace config but no WinMux config yet, WinMux creates one for you on first launch. It copies over your AeroSpace shortcuts/key mapping and fills in the rest with WinMux defaults, including the sidebar and window tabs.
+If it does not exist, SceneMux creates it on first launch by importing the first config it finds,
+in this order:
 
-You do not need to edit anything to get started. After import, WinMux uses `~/.config/winmux/winmux.toml` and leaves your AeroSpace config alone.
+1. `~/.scenemux.toml` — a SceneMux dotfile, copied verbatim.
+2. `~/.config/winmux/winmux.toml`, then `~/.winmux.toml` — an existing WinMux config, copied verbatim.
+3. `~/.config/aerospace/aerospace.toml`, then `~/.aerospace.toml` — an AeroSpace config, with shortcuts and key mapping
+   carried over and the rest filled in from SceneMux defaults, including the sidebar and window tabs.
+4. Nothing — SceneMux writes the bundled starter config.
 
-If neither exists, WinMux creates a new WinMux config with the bundled defaults.
+Every import is a **copy**. SceneMux never writes to, moves, or deletes the file it imported from,
+so an installed WinMux or AeroSpace keeps running off its own config afterwards. SceneMux also
+keeps accepting the inherited `WINMUX_*` exec variables and the `during-winmux-startup` matcher
+key, so an imported WinMux config behaves the same way it did before.
 
 ## Credits
 [WinMux](https://github.com/ZimengXiong/winmux) — the direct upstream this project is derived from.

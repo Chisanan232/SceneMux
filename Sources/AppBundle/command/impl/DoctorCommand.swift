@@ -6,7 +6,7 @@ struct DoctorCommand: Command {
     /*conforms*/ let shouldResetClosedWindowsCache = false
 
     func run(_ env: CmdEnv, _ io: CmdIo) async throws -> Bool {
-        io.out("WinMux doctor — git \(gitShortHash)")
+        io.out("SceneMux doctor — git \(gitShortHash)")
         io.out("")
 
         io.out("Permissions:")
