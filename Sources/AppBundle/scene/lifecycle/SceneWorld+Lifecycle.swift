@@ -131,4 +131,15 @@ extension SceneCore.SceneWorld {
         }
         return try replacing(closing)
     }
+
+    /// Every teardown that has not finished, as plans, in world order.
+    ///
+    /// This is what SceneMux reads at startup. A Scene left `ending` by a quit, a crash or a machine going to
+    /// sleep still holds the attachments whose restores never happened, so deriving a plan from it produces
+    /// exactly the work that remains — never the work already done. Someone whose laptop died mid-teardown
+    /// finds their borrowed chat window sent home on the next launch instead of stranded in a Scene that no
+    /// longer exists.
+    var unfinishedTeardowns: [SceneCore.SceneTeardownPlan] {
+        closingScenes.map(SceneCore.SceneTeardownPlan.init)
+    }
 }
