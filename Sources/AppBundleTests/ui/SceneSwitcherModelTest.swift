@@ -80,4 +80,24 @@ final class SceneSwitcherModelTest: XCTestCase {
         XCTAssertNil(model.snapshot.activeScene, "creating does not enter")
         XCTAssertEqual(port.preparedSubstrates, [])
     }
+
+    /// Renaming edits in place and commits on `⏎`; Esc reverts. The `SceneId` never changes, so nothing that
+    /// refers to a Scene depends on what it is called.
+    func testRenamingCommitsOnReturnAndRevertsOnEscape() throws {
+        let created = try model.runtime.createScene(title: "Debug PROD-12", template: .empty)
+
+        model.beginRename()
+        XCTAssertEqual(model.mode, .renaming(created.id))
+        model.nameField = "Debug PROD-123"
+        model.commitName()
+        XCTAssertEqual(model.results.map(\.title), ["Debug PROD-123"])
+        XCTAssertEqual(model.results.map(\.id), [created.id])
+
+        model.beginRename()
+        model.nameField = "Something else entirely"
+        XCTAssertFalse(model.escape(), "Esc abandons the edit and keeps the panel up")
+        XCTAssertEqual(model.mode, .browsing)
+        XCTAssertEqual(model.results.map(\.title), ["Debug PROD-123"])
+        XCTAssertTrue(model.escape(), "a second Esc, with nothing part-way through, dismisses")
+    }
 }
