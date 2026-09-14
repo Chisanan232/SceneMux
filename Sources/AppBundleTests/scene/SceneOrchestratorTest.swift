@@ -256,4 +256,21 @@ final class SceneOrchestratorTest: XCTestCase {
         // And the next launch agrees, without having to be told any of it again.
         XCTAssertEqual(SceneCore.SceneOrchestrator(store: store).world, orchestrator.world)
     }
+    /// A refusal has to survive as a *value*, because the surfaces above have to behave differently for the
+    /// two reasons a Scene list can be empty — and recovering "was this a refusal?" by reading English back
+    /// out of a diagnostic string is not a thing a UI should have to do.
+    func testARefusalIsAvailableAsAValueAndNotOnlyAsASentence() throws {
+        let store = store(in: try temporaryDirectory())
+        try Data(#"{ "version": 9000, "scenes": [] }"#.utf8).write(to: store.url)
+
+        let orchestrator = SceneCore.SceneOrchestrator(store: store)
+
+        let refusal = try XCTUnwrap(orchestrator.stateRefusal)
+        XCTAssertEqual(
+            refusal.reason,
+            .unsupportedVersion(found: 9000, readable: SceneCore.SceneStateSchema.readable),
+        )
+        XCTAssertEqual(refusal.path, store.url.path)
+        XCTAssertEqual(orchestrator.quarantined, [])
+    }
 }
