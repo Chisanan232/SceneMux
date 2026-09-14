@@ -14,4 +14,15 @@ final class SceneStateStoreTest: XCTestCase {
         addTeardownBlock { try? FileManager.default.removeItem(at: directory) }
         return directory
     }
+
+    func testAFirstRunIsNotTheSameAnswerAsAFileThatCouldNotBeRead() throws {
+        let url = try temporaryDirectory().appending(path: "scene-state.json")
+
+        let load = SceneCore.SceneStateStore(url: url).load()
+
+        // Nothing to apologise for on a first run, and nothing to show the user. This is the case that must
+        // never be confused with a refusal: the next save is entitled to write over nothing.
+        XCTAssertEqual(load, .noStateFile(path: url.path))
+        XCTAssertEqual(load.diagnostics, [])
+    }
 }
