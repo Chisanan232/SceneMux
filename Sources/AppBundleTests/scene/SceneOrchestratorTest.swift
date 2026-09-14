@@ -45,4 +45,16 @@ final class SceneOrchestratorTest: XCTestCase {
         XCTAssertEqual(relaunched.world.activeScene?.state, .active(substrate))
         XCTAssertEqual(relaunched.diagnostics, [])
     }
+
+    func testStateThisBuildCannotReadYieldsNoScenesAndOneLine() throws {
+        let store = store(in: try temporaryDirectory())
+        try Data(#"{ "version": 9000, "scenes": [] }"#.utf8).write(to: store.url)
+
+        let orchestrator = SceneCore.SceneOrchestrator(store: store)
+
+        // Invariant I9: no Scenes, no window operations, and the user is told — not a log file.
+        XCTAssertEqual(orchestrator.world, .empty)
+        XCTAssertEqual(orchestrator.diagnostics.count, 1)
+        XCTAssertTrue(try XCTUnwrap(orchestrator.diagnostics.first).contains("version 9000"))
+    }
 }
