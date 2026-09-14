@@ -41,4 +41,19 @@ final class SceneCommandTest: XCTestCase {
             "ERROR: Can't parse scene target '0'. Expected (<scene-number>|next|prev|list|new|rename|leave|close|switcher)",
         )
     }
+
+    /// The scripted path: create, list, enter. The list is the numbering the bindings use, so the number in the
+    /// table is the number `scene 1` takes.
+    func testCreatingListingAndEnteringFromTheCommandLine() async throws {
+        let created = try await parseCommand("scene new --title 'Debug PROD-123'").cmdOrDie.run(.defaultEnv, .emptyStdin)
+        XCTAssertEqual(created.exitCode, 0)
+        XCTAssertEqual(created.stdout, ["Created Debug PROD-123 as Scene 1. Enter it with 'scene 1'."])
+
+        let listed = try await parseCommand("scene list").cmdOrDie.run(.defaultEnv, .emptyStdin)
+        XCTAssertEqual(listed.stdout, ["1   Debug PROD-123   defined   4 slots   empty"])
+
+        let entered = try await parseCommand("scene 1").cmdOrDie.run(.defaultEnv, .emptyStdin)
+        XCTAssertEqual(entered.stdout, ["Entered Debug PROD-123"])
+        XCTAssertEqual(SceneCore.SceneRuntime.shared.snapshot.activeScene?.title, "Debug PROD-123")
+    }
 }
