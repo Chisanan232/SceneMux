@@ -79,4 +79,18 @@ extension SceneCore.Scene {
     func detaching(_ windowRef: SceneCore.WindowRef) throws -> Self {
         try with(attachments: attachments.filter { $0.windowRef != windowRef })
     }
+
+    /// This Scene in a new lifecycle state, if the lifecycle allows the move.
+    ///
+    /// The only way state changes, so the transition table is not advice. Note what it does *not* do: no
+    /// window is moved, restored or closed here, because this is the model and not the orchestration.
+    /// Reaching `ending` records the intent to resolve every attachment — durably, so it survives a quit —
+    /// and the layer that acts on that intent reads each attachment's ownership to learn what it is allowed
+    /// to do.
+    func transitioning(to newState: SceneCore.SceneState) throws -> Self {
+        guard state.canTransition(to: newState.label) else {
+            throw SceneCore.SceneCoreError.illegalTransition(from: state.label, to: newState.label)
+        }
+        return try with(state: newState)
+    }
 }
