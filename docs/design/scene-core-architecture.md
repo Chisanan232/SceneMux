@@ -234,3 +234,42 @@ means "an empty workspace nobody pinned". That is a *spare screenful*, and it ha
 SceneMux Slot. Inherited names stay as they are — Phase 0's rule against blind renaming applies to this
 too — so SceneMux types carry their own unambiguous names: `Slot`, `SlotId`, `SlotRole`,
 `SlotComposition`, in the SceneMux layer. When prose could be read either way, write "Scene Slot".
+
+## Attachment and Mount
+
+An **Attachment** is the record that a window is participating in a Scene, and on what terms. It is the
+only thing in the model that knows *why* a window is on screen:
+
+| Field | Meaning |
+| --- | --- |
+| `windowRef: WindowRef` | Which window, in a form that survives a restart. See [Persistence](#persistence-intent-not-window-identity) |
+| `slotId: SlotId` | Which Scene Slot it participates in |
+| `ownership: Ownership` | What ending the Scene may do to it. See [Ownership](#ownership) |
+| `homeAtAttachTime: SemanticHome` | The window's Home when it was attached — recorded, never rewritten |
+| `origin: AttachmentOrigin` | `.userAction`, `.admission(rule)` or `.restoredFromState` — how it got here |
+
+**Mount** is the interesting kind of attachment: a window whose Home is *elsewhere* temporarily
+participating in this Scene. LINE has Home `communication`; borrowing it into "Debug PROD-123" mounts
+it. The Scene shows it, the user works with it, and when the Scene ends it goes home.
+
+Formally, for an attachment `a` of a window with Home `h`:
+
+- `a` **is a Mount** when `h` is not the Home this Scene's Slot serves and `a.ownership == .borrowed`;
+- `a` is a plain attachment when the window's Home is native to the Slot, or when the window was created
+  for this Scene.
+
+`homeAtAttachTime` exists for a specific failure mode: the user re-homes an application (say, moves
+Slack from `communication` to `development`) *while* a Scene that borrowed it is still open. What should
+ending the Scene do? Answer: restore to the Home the window has **now**, and use `homeAtAttachTime` only
+to explain to the user what changed — the UX spec shows this as a one-line note on the restore feedback,
+never as a silent divergence. The recorded value is evidence, not a destination.
+
+### The invariants
+
+> 1. **An attachment never mutates the window's Home.** Home changes only by explicit user action on the
+>    application. (Restated from [Semantic Home](#semantic-home) because this is where it is violated.)
+> 2. **An attachment is always to exactly one Scene.** A window participating in a second Scene is
+>    detached from the first, and the user is told. There is no "in two Scenes at once" in v0.1.0 —
+>    except for `.sharedPersistent` windows, which are not attached to any Scene at all.
+> 3. **Ending a Scene resolves every attachment.** No attachment survives its Scene, and the resolution
+>    is determined by ownership alone — never by what is convenient, and never by a guess.
