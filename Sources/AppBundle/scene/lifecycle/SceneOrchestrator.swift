@@ -78,6 +78,20 @@ extension SceneCore {
             try apply(try world.leaving(id))
         }
 
+        /// End a Scene, and hand back what its windows are owed.
+        ///
+        /// The plan is returned only once the intent to carry it out has been written. That order is the whole
+        /// recovery story: a window is never moved on the strength of a decision a crash could erase, so at any
+        /// moment the Scene either still owes a restore or has already had it, and never both or neither.
+        ///
+        /// Closing a Scene that is already closing hands back what is left to do rather than starting again,
+        /// which is what makes retrying after a failure — or after a relaunch — safe to do as often as needed.
+        func close(_ id: SceneId) throws -> SceneTeardownPlan {
+            let closed = try world.closing(id)
+            try apply(closed.world)
+            return closed.plan
+        }
+
         /// Write this world, and only then believe in it.
         ///
         /// The order is the safety property. If the save fails, the change never happened as far as the rest of
