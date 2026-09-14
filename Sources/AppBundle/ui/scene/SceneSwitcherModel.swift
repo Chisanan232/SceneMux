@@ -239,6 +239,13 @@ final class SceneSwitcherModel: ObservableObject {
     func escape() -> Bool {
         switch mode {
             case .browsing:
+                // A narrowed list is part-way through something too: the user is looking for a task and has not
+                // found it yet. So the first Esc widens the search back out and the second closes the panel,
+                // which is what every other search field on this platform does.
+                guard query.isEmpty else {
+                    query = ""
+                    return false
+                }
                 return true
             case .creating, .renaming, .confirmingClose:
                 cancelEditing()
