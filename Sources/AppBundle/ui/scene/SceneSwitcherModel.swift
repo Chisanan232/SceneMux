@@ -166,6 +166,36 @@ final class SceneSwitcherModel: ObservableObject {
         mode = .browsing
     }
 
+    /// What a command asked the surface for, turned into the state that answers it.
+    ///
+    /// `scene switcher` from a shell and `⌃⌥S` on the keyboard arrive here as the same request, which is the
+    /// whole reason `SceneShellRequest` exists: there is one Scene switcher and one idea of what opening it
+    /// means. A request that names a Scene also selects it, so the panel opens looking at the Scene the command
+    /// was about rather than at whatever was selected last time.
+    func apply(_ request: SceneCore.SceneShellRequest) {
+        switch request {
+            case .switcher:
+                errorText = nil
+                mode = .browsing
+            case .newScene:
+                query = ""
+                beginCreate()
+            case .rename(let id):
+                selectScene(id)
+                beginRename()
+            case .confirmClose(let id):
+                selectScene(id)
+                beginClose(id)
+        }
+    }
+
+    /// Point the selection at a particular Scene, clearing a filter that would hide it.
+    private func selectScene(_ id: SceneCore.SceneId) {
+        if !results.contains(where: { $0.id == id }) { query = "" }
+        guard let index = results.firstIndex(where: { $0.id == id }) else { return }
+        selection = index
+    }
+
     /// The `+` on a Scene's row: give the Scene on screen somewhere else to put a window.
     ///
     /// Adding a Slot moves nothing. It is a statement about the task — *the terminal goes here* — which is why
