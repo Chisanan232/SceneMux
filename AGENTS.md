@@ -18,9 +18,13 @@ More than one file can tell you how to work here. When they disagree, the earlie
 3. [`docs/development/release.md`](docs/development/release.md) — release gates.
 4. [`docs/development/ui-verification.md`](docs/development/ui-verification.md) — how to verify
    native UI.
-5. [`docs/legal/LICENSE_POLICY.md`](docs/legal/LICENSE_POLICY.md) and
+5. [`docs/design/scene-core-architecture.md`](docs/design/scene-core-architecture.md) and
+   [`docs/design/scene-core-ux.md`](docs/design/scene-core-ux.md) — what Scene, Semantic Home, Mount,
+   Slot, ownership and admission mean, and how they appear on screen. They outrank your judgement
+   about what those words ought to mean; a ticket outranks them.
+6. [`docs/legal/LICENSE_POLICY.md`](docs/legal/LICENSE_POLICY.md) and
    [`docs/legal/ORIGIN.md`](docs/legal/ORIGIN.md) — licensing and provenance.
-6. This file, for orientation.
+7. This file, for orientation.
 
 `CLAUDE.md` and `.claude/skills/` are thin pointers into the documents above, never a second source
 of truth.
