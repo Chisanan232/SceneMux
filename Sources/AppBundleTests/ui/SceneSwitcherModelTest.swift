@@ -52,4 +52,15 @@ final class SceneSwitcherModelTest: XCTestCase {
         XCTAssertNil(model.selectedScene)
     }
 
+    /// A Scene is findable by what it holds, not only by what it is called: its Slot labels are part of the
+    /// haystack, because a user who labelled a Slot *Review* will look for it by that word.
+    func testASceneIsFoundByItsSlotLabelsToo() throws {
+        let scene = try model.runtime.createScene(title: "Debug PROD-123", template: .empty)
+        try model.runtime.enter(scene.id)
+        try model.runtime.addSlot(role: .editor, label: "Release notes")
+
+        model.query = "release"
+
+        XCTAssertEqual(model.results.map(\.title), ["Debug PROD-123"])
+    }
 }
