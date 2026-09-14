@@ -41,4 +41,16 @@ final class SlotCommandTest: XCTestCase {
             """,
         )
     }
+
+    /// Slots belong to the Scene on screen, so every subcommand refuses when there is none — including `list`,
+    /// which has nothing to list rather than an empty list to show.
+    func testEverySlotSubcommandNeedsASceneOnScreen() async throws {
+        try await parseCommand("scene new --title 'Debug PROD-123' --template empty").cmdOrDie.run(.defaultEnv, .emptyStdin)
+
+        for command in ["slot list", "slot new --role editor", "slot compose --slot 1", "slot remove --slot 1"] {
+            let result = try await parseCommand(command).cmdOrDie.run(.defaultEnv, .emptyStdin)
+            XCTAssertEqual(result.exitCode, 1, command)
+            XCTAssertEqual(result.stderr, ["No Scene is on screen, so there was nothing to do."], command)
+        }
+    }
 }
