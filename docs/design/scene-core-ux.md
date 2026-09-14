@@ -405,3 +405,70 @@ If the app quit while a Scene was `ending`, the next launch shows the Scene as `
 
 A window that no longer exists is skipped with the "could not be found" HUD. Nothing is closed to reach a
 tidy state — the Scene reaches `ended` with an honest report instead (invariant I14).
+
+## Keyboard first, pointer equal
+
+### Two kinds of shortcut, and why the distinction matters
+
+**Global bindings** are declared in the user's config under `[mode.main.binding]`, like every other binding
+in this app, and work while any application is focused. **Panel-local keys** work only while a SceneMux
+panel already has key focus. Confusing the two produces a product that steals shortcuts from the user's
+editor, so they are specified separately.
+
+### Global bindings: the `ctrl-alt` namespace
+
+Every combination below was checked against `resources/default-config.toml` at `13d6ee1a`: the inherited
+default config binds `alt`, `alt-shift`, `alt-cmd`, `alt-cmd-shift`, `cmd-shift`, `ctrl`, `ctrl-shift`,
+`ctrl-cmd-shift`, `cmd-ctrl` and `ctrl-f` — and **not one `ctrl-alt` combination.** So Scene Core takes
+`ctrl-alt` as its own namespace and collides with nothing a user of `v0.0.0` already has.
+
+| Binding | Command | Action |
+| --- | --- | --- |
+| `ctrl-alt-s` | `scene switcher` | Toggle the Scene switcher. The entry point for everything |
+| `ctrl-alt-n` | `scene new` | Create a Scene — the switcher opens with the name field focused |
+| `ctrl-alt-1…9` | `scene <n>` | Enter the *n*-th Scene |
+| `ctrl-alt-h` / `ctrl-alt-l` | `scene prev` / `scene next` | Previous / next Scene — mirroring `ctrl-h`/`ctrl-l` for workspaces and `alt-cmd-h`/`alt-cmd-l` for projects |
+| `ctrl-alt-0` | `scene leave` | Leave the active Scene. Moves nothing |
+| `ctrl-alt-backspace` | `scene close` | Close the active Scene — opens the confirmation panel; never closes anything directly |
+| `ctrl-alt-shift-1…5` | `slot <n>` | Send the focused window to the *n*-th Slot of the active Scene |
+| `ctrl-alt-shift-m` | `slot move` | Open the switcher in *move-to-slot* mode: type a role, `⏎` |
+| `ctrl-alt-shift-n` | `slot new` | Add a Slot to the active Scene |
+| `ctrl-alt-shift-c` | `slot compose` | Cycle the focused window's Slot: single → split → tabs |
+
+These are *defaults*, expressed in the inherited config language, and therefore rebindable by the user like
+anything else. The Scene commands are also plain CLI commands (`scenemux scene …`), which is what makes the
+whole flow scriptable and testable — the same property the inherited `palette` command has, which likewise
+ships with no default binding.
+
+### Panel-local keys
+
+Inside the switcher or a focused sidebar: `↑`/`↓` move the selection, `→`/`←` expand and collapse,
+type-to-filter narrows, `⏎` activates the selection, `⇥` moves between sections, `⌘⏎` enters a Scene without
+closing the switcher, `⌘⌫` closes the selected Scene, `F2` or a second `⏎` renames in place, and `esc`
+dismisses — reverting an in-progress edit rather than committing it.
+
+The switcher is the keyboard surface, and the **sidebar never takes key focus on its own.** It expands on
+hover and it is driven by the pointer; a window manager's rail that grabbed the keyboard from the focused
+application would be a defect, not a feature.
+
+### The pointer path, in full
+
+Everything above is also reachable without the keyboard, because a design where the mouse is a lesser
+citizen is not a macOS design:
+
+| Operation | Pointer path |
+| --- | --- |
+| Enter a Scene | Click its row, or its badge on the collapsed rail |
+| Create / rename | `+ New Scene`; double-click a title to rename |
+| Leave / close | The Scene row's context menu, or the menu bar item |
+| Put a window in a Slot | Drag its row onto the Slot row |
+| Borrow a window | The same drag, when the Homes differ — the drop hint says so |
+| Reorder Slots | Drag a Slot row within its Scene |
+| Compose | Click the composition chip, or drop a window onto another window row in the same Slot |
+| Detach | Drag a window row out of the Scene, or *Remove from Scene* in its context menu |
+
+Drag targets follow the rules the inherited sidebar already establishes (`WorkspaceSidebarDropTargets.swift`,
+`WorkspaceSidebarDropDelegate.swift`) so that both sidebars feel like one product. Two Scene-specific rules:
+a drop between two Slots is **not** a target, because a window belongs in a role rather than between roles;
+and a drop onto a `.sharedPersistent` window is refused with the "shared — left untouched" HUD, because I7
+says that window is not SceneMux's to move.
