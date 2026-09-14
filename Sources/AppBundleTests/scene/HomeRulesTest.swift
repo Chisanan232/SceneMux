@@ -22,4 +22,16 @@ final class HomeRulesTest: XCTestCase {
         XCTAssertEqual(rules.home(of: App.browser), .personal)
         XCTAssertEqual(rules.home(of: App.music), .personal)
     }
+
+    /// The user's own rule wins, and the resolution says so. Two sentences the UI has to be able to tell
+    /// apart: "SceneMux thinks your browser is personal" is worth arguing with, "you told SceneMux your
+    /// browser is development work" is not.
+    func testAUserOverrideWinsAndIsAttributedToTheUser() {
+        let rules = SceneCore.HomeRules(overrides: [App.browser: .development])
+
+        XCTAssertEqual(rules.home(of: App.browser), .development)
+        XCTAssertEqual(rules.source(of: App.browser), .userOverride)
+        XCTAssertEqual(rules.home(of: App.terminal), .development)
+        XCTAssertEqual(rules.source(of: App.terminal), .shippedDefault)
+    }
 }
