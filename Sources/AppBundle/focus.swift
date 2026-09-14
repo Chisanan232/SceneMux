@@ -113,8 +113,8 @@ func replaceWorkspaceNameInFocusState(oldName: String, newName: String) {
 
 /// Global focus.
 /// Commands must be cautious about accessing this property directly. There are legitimate cases.
-/// But, in general, commands must firstly check --window-id, --workspace, WINMUX_WINDOW_ID env and
-/// WINMUX_WORKSPACE env before accessing the global focus.
+/// But, in general, commands must firstly check --window-id, --workspace, SCENEMUX_WINDOW_ID env and
+/// SCENEMUX_WORKSPACE env before accessing the global focus.
 @MainActor var focus: LiveFocus { _focus.live }
 
 @MainActor func setFocus(to newFocus: LiveFocus) -> Bool {
