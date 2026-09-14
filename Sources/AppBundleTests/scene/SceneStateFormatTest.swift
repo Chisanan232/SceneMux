@@ -20,4 +20,15 @@ final class SceneStateFormatTest: XCTestCase {
             .loaded(scenes: [scene], quarantined: []),
         )
     }
+
+    func testTheFileIsAVersionAndTheScenesAndNothingElse() throws {
+        let written = try SceneCore.SceneStateFormat.encoded([])
+
+        let json = try XCTUnwrap(try JSONSerialization.jsonObject(with: written) as? [String: Any])
+
+        // The version has to be a sibling of the payload rather than inside it: a build that cannot read
+        // this file still has to be able to read the number that says so.
+        XCTAssertEqual(Set(json.keys), ["version", "scenes"])
+        XCTAssertEqual(json["version"] as? Int, SceneCore.SceneStateSchema.current)
+    }
 }
