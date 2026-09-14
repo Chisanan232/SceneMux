@@ -40,8 +40,8 @@ SceneMux inherits its Git history from WinMux, which had already reached
 ordering, update-feed resolution, and "latest release" lookups. They are
 recorded as provenance only.
 
-The exact derivation baseline is recorded separately under `docs/legal/`
-(HORO-1096).
+The exact derivation baseline is recorded in
+[`docs/legal/ORIGIN.md`](../legal/ORIGIN.md).
 
 ## Campaign work-item allocation
 
