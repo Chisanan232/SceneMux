@@ -9,6 +9,16 @@ final class SceneValidationTest: XCTestCase {
         XCTAssertEqual(scene.title, "Debug PROD-123")
     }
 
+    func testTwoSlotsCannotShareAnIdentityEvenThoughTheyMayShareARole() {
+        let shared = SceneCore.SlotId.generate()
+        let first = SceneCoreFixtures.slot(id: shared, role: .terminal, order: 0)
+        let second = SceneCoreFixtures.slot(id: shared, role: .terminal, order: 1)
+
+        XCTAssertThrowsError(try SceneCoreFixtures.scene(slots: [first, second])) { error in
+            XCTAssertEqual(error as? SceneCore.SceneCoreError, .duplicateSlotId(shared))
+        }
+    }
+
     func testASceneNobodyCouldNameIsRejected() {
         XCTAssertThrowsError(try SceneCoreFixtures.scene(title: " \t ")) { error in
             XCTAssertEqual(error as? SceneCore.SceneCoreError, .emptySceneTitle)
