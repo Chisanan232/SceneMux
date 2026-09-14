@@ -227,13 +227,27 @@ Scene state follows the user rather than fighting them.
 
 | `SlotComposition` | Engine realisation |
 | --- | --- |
-| `.single` | The window is bound into the workspace's tiling tree at the Slot's ordinal position |
-| `.split(.horizontal / .vertical)` | Sibling windows joined with `join-with` in that orientation — never `split`, which is a no-op in this engine |
-| `.tabbed` | A `TilingContainer` with `Layout.tabGroup`, the shape `baseline-verification.md` measured |
+| `.single`, or any Slot holding one window | The window is bound straight into the workspace's root tiling container. Never wrapped in a container of its own: `normalizeContainers()` flattens a single-child container, so the wrapper would evaporate moments later and the Slot would look like a bug |
+| `.split(.horizontal / .vertical)` | A nested `TilingContainer` with `Layout.tiles` in that orientation, the Slot's windows bound into it — the shape `join-with` produces, built the way `JoinWithCommand` builds it. Never `split`, which is a no-op in this engine |
+| `.tabbed` | A nested `TilingContainer` with `Layout.tabGroup`, the shape `baseline-verification.md` measured. Built once, with every member bound into it — a tab group dissolves if its members are moved in one at a time |
 
-The nested case the golden journey needs — one window filling the left half, two stacked on the right —
-is exactly the `join-with right` shape recorded in the baseline document, so it is known to work on real
-geometry rather than assumed.
+The nested case the golden journey needs — four windows across a band of the screen, two chat windows
+sharing the fifth place as tabs — is exactly the `join-with` shape recorded in the baseline document, so it
+is known to work on real geometry rather than assumed.
+
+### When the engine has the last word
+
+`enableNormalizationOppositeOrientationForNestedContainers` is on by default, and it flips a nested
+container whose orientation equals its parent's. A `.split(.horizontal)` Slot under a horizontal root
+therefore comes out vertical, whatever SceneMux asked for.
+
+SceneMux does not re-project to force it back. It would lose the same argument on the next normalization
+pass, and a layout that oscillates is worse than one that is merely not what was asked. Instead the
+adapter reads the settled structure back and reports it: the Slot's placement carries the composition the
+engine arrived at, and the projection's diagnostics say so in the user's own words — *"SceneMux composed
+the terminal Slot of "Debug PROD-123" as a vertical split instead of a horizontal split, because the
+window engine normalized it."* The user can then change their configuration or ask for the other
+orientation, which are both things they can actually do; being quietly lied to is not.
 
 ### A naming collision, stated so nobody trips on it
 
