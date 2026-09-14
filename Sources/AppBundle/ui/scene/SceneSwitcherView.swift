@@ -55,6 +55,9 @@ struct SceneSwitcherView: View {
         // did not exist yet. Without this, committing a name left the panel with no keyboard owner: typing
         // went nowhere and the user had to click the field to search again.
         .onChange(of: model.mode) { _ in fieldFocused = true }
+        // And whenever something outside the panel had the keyboard — a menu, another application — and the
+        // panel has it back. Without this the panel stayed on screen looking usable while typing went nowhere.
+        .onChange(of: model.focusToken) { _ in fieldFocused = true }
     }
 
     private var header: some View {
