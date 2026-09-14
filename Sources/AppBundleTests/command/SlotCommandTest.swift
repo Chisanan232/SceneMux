@@ -74,4 +74,21 @@ final class SlotCommandTest: XCTestCase {
         XCTAssertEqual(removed.stdout, ["Removed the terminal slot. No window moved."])
         XCTAssertEqual(SceneCore.SceneRuntime.shared.snapshot.activeScene?.slots.map(\.title), ["Review"])
     }
+
+    /// A role the domain does not have is refused with the roles it does have. The check is here and not in the
+    /// argument parser because the role vocabulary belongs to the Scene domain, which the parser cannot see —
+    /// and a user should not have to learn that to get a usable error.
+    func testAnUnknownRoleIsRefusedWithTheRealRoles() async throws {
+        try await parseCommand("scene new --title 'Debug PROD-123' --template empty").cmdOrDie.run(.defaultEnv, .emptyStdin)
+        try await parseCommand("scene 1").cmdOrDie.run(.defaultEnv, .emptyStdin)
+
+        let result = try await parseCommand("slot new --role browser").cmdOrDie.run(.defaultEnv, .emptyStdin)
+
+        XCTAssertEqual(result.exitCode, 1)
+        XCTAssertEqual(result.stderr, ["""
+            Can't parse role 'browser'.
+            Possible values: editor|terminal|preview|observability|communication
+            """])
+        XCTAssertEqual(SceneCore.SceneRuntime.shared.snapshot.activeScene?.slots, [])
+    }
 }
