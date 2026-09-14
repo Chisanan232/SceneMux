@@ -3,8 +3,8 @@ import Foundation
 import TOMLKit
 
 let legacyConfigDotfileName = ".winmux.toml"
-let generatedConfigDirectoryName = "winmux"
-let generatedConfigFileName = "winmux.toml"
+let generatedConfigDirectoryName = "scenemux"
+let generatedConfigFileName = "scenemux.toml"
 let aerospaceLegacyConfigDotfileName = ".aerospace.toml"
 let aerospaceConfigDirectoryName = "aerospace"
 let aerospaceConfigFileName = "aerospace.toml"
