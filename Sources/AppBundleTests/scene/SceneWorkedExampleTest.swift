@@ -71,6 +71,18 @@ final class SceneWorkedExampleTest: XCTestCase {
         return try XCTUnwrap(scene.attachment(for: window)).ownership.teardownEffect
     }
 
+    func testTheMusicPlayerIsNotInTheSceneAtAll() throws {
+        // Invariant I7 at its source. A `.sharedPersistent` window has no attachment, so there is nothing
+        // for teardown to resolve and no record that could give SceneMux permission to move it — which is
+        // also why the sidebar lists it in its own Shared section rather than under a Scene.
+        let scene = try debugScene()
+
+        let music = try SceneCoreFixtures.windowRef(App.music)
+
+        XCTAssertNil(scene.attachment(for: music))
+        XCTAssertEqual(scene.attachments.count, 6)
+    }
+
     func testWhetherAWindowIsAMountDoesNotFollowFromComparingItsHome() throws {
         // Both directions of the correction recorded in the architecture doc, in one test. LINE's Home
         // *matches* its Slot's role and it is still a Mount; the browser's Home *differs* from its Slot's
