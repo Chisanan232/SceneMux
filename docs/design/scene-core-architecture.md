@@ -84,8 +84,17 @@ A Scene owns, as its own state:
 | `title: String` | What the human calls the task. Free text; the only field the user reads. |
 | `slots: [Slot]` | The semantic layout intent, ordered. See [Slot](#slot). |
 | `attachments: [Attachment]` | Which windows are participating, and on what terms. See [Attachment and Mount](#attachment-and-mount). |
-| `state: SceneState` | `defined`, `active`, `ending` or `ended`. See [Lifecycle](#lifecycle). |
-| `substrate: SubstrateBinding?` | Non-`nil` only while `active`: which engine `Workspace` this Scene is currently projected onto. An adapter detail, never an identity. |
+| `state: SceneState` | `defined`, `active(SubstrateBinding)`, `ending` or `ended`. See [Lifecycle](#lifecycle). |
+
+The substrate — which engine `Workspace` an active Scene is currently projected onto, an adapter detail and
+never an identity — is carried *inside* `SceneState.active` rather than as a sixth field.
+
+> **Clarified on 2026-09-14, during HORO-1102.** An earlier version of this table listed
+> `substrate: SubstrateBinding?` beside `state`. Two fields make invariant I3 — an active Scene has exactly
+> one binding, and no other state has one — something a reviewer has to check, and something a `leave` that
+> forgets one line can break: a `defined` Scene left holding a stale workspace binding. As the payload of
+> `.active` the invariant is structural, the illegal combination does not compile, and `leave` cannot half
+> happen. Nothing else about the model changes; the projection is still one-directional and still derived.
 
 `SceneId` and `SlotId` follow the shape the engine already uses for identity — `RawRepresentable`,
 `Codable`, `Hashable` value types, as `WorkspaceId` and `WorkspaceProjectId` are in
@@ -188,7 +197,7 @@ A Slot holds:
 | `id: SlotId` | Stable identity, generated once, unique within the Scene |
 | `role: SlotRole` | One of the five above. Two Slots may share a role — "two terminals" is legitimate |
 | `label: String?` | Optional user text, shown instead of the role name when set |
-| `composition: SlotComposition` | `.single`, `.split(Orientation)` or `.tabbed` — how *several* windows share this Slot |
+| `composition: SlotComposition` | `.single`, `.split(SlotOrientation)` or `.tabbed` — how *several* windows share this Slot |
 | `order: Int` | Where the Slot sits relative to its siblings. An ordering, not a coordinate |
 
 There is no frame, no origin, no size, no monitor id anywhere in a Slot. Geometry is the engine's
@@ -219,7 +228,7 @@ Scene state follows the user rather than fighting them.
 | `SlotComposition` | Engine realisation |
 | --- | --- |
 | `.single` | The window is bound into the workspace's tiling tree at the Slot's ordinal position |
-| `.split(.h / .v)` | Sibling windows joined with `join-with` in that orientation — never `split`, which is a no-op in this engine |
+| `.split(.horizontal / .vertical)` | Sibling windows joined with `join-with` in that orientation — never `split`, which is a no-op in this engine |
 | `.tabbed` | A `TilingContainer` with `Layout.tabGroup`, the shape `baseline-verification.md` measured |
 
 The nested case the golden journey needs — one window filling the left half, two stacked on the right —
@@ -233,7 +242,24 @@ calls a deliberately-kept empty workspace a "retained empty slot", and `Workspac
 means "an empty workspace nobody pinned". That is a *spare screenful*, and it has nothing to do with a
 SceneMux Slot. Inherited names stay as they are — Phase 0's rule against blind renaming applies to this
 too — so SceneMux types carry their own unambiguous names: `Slot`, `SlotId`, `SlotRole`,
-`SlotComposition`, in the SceneMux layer. When prose could be read either way, write "Scene Slot".
+`SlotComposition`, `SlotOrientation`, in the SceneMux layer. When prose could be read either way, write
+"Scene Slot". `SlotOrientation` is the domain's own `.horizontal` / `.vertical`, deliberately not the
+engine's `Orientation` with its `.h` / `.v`: the domain names no engine type at all, which is invariant
+I12 and is checked by `script/test_scene_domain_layering.py`.
+
+There is a second collision, and it is a hard one: **`SwiftUI.Scene`**. Three inherited files in
+`Sources/AppBundle/ui/` already return `some Scene` from SwiftUI window builders
+(`ui/settings/ShortcutSettingsView.swift`, `ui/menubar/MenuBar.swift`, `ui/hud/MessageView.swift`), and a
+module-scope `struct Scene` in `AppBundle` would shadow the protocol they mean — turning `some Scene` into
+`some` applied to a non-protocol type. Qualifying those inherited files as `some SwiftUI.Scene` would fix
+the build by editing inherited UI code, which rule 3 below exists to prevent.
+
+So the domain types live in a namespace: **`enum SceneCore`**, with the types nested inside it and written
+`SceneCore.Scene`, `SceneCore.Slot`, `SceneCore.Attachment` at every use site. This is what the Phase 1
+tickets mean by "a SceneMux-owned namespace". It costs a prefix and buys three things: `SwiftUI.Scene`
+keeps meaning `SwiftUI.Scene` with no inherited file touched, any future collision between product
+vocabulary and Apple's (`Slot`, `Attachment`) is pre-empted, and the SceneMux layer is visible at every
+call site in a codebase where everything around it is inherited.
 
 ## Attachment and Mount
 
@@ -254,9 +280,13 @@ it. The Scene shows it, the user works with it, and when the Scene ends it goes 
 
 Formally, for an attachment `a` of a window with Home `h`:
 
-- `a` **is a Mount** when `h` is not the Home this Scene's Slot serves and `a.ownership == .borrowed`;
-- `a` is a plain attachment when the window's Home is native to the Slot, or when the window was created
-  for this Scene.
+- `a` **is a Mount** when `a.ownership == .borrowed` — the user lent this window to the Scene, and `h` is
+  where it goes back to;
+- `a` is a plain attachment when `a.ownership == .sceneOwned` — the window is part of this task.
+
+Note that the test is the recorded ownership and not a comparison against `h`. LINE mounted into a
+`communication` Slot is a Mount even though the Slot's role matches its Home, because *borrowing* is what
+the user did. See [Ownership](#ownership).
 
 `homeAtAttachTime` exists for a specific failure mode: the user re-homes an application (say, moves
 Slack from `communication` to `development`) *while* a Scene that borrowed it is still open. What should
@@ -287,13 +317,34 @@ answers, and the differences between them are the whole point.
 
 Assignment rules, in order:
 
-1. an explicit user choice on that attachment wins;
-2. a window whose Home differs from the Slot's serving Home is `.borrowed`;
-3. a window the user placed into a Slot of its own Home, inside a Scene, is `.sceneOwned`;
-4. a window the user has pinned as shared, or that is not attached to any Scene, is `.sharedPersistent`;
-5. **anything else is `.sharedPersistent`.**
+1. the **action** that created the attachment decides: an explicit *mount* is `.borrowed`, an explicit
+   *attach* is `.sceneOwned`. This is a user decision, recorded — never a deduction;
+2. a window the user has pinned as shared, or that is not attached to any Scene, is `.sharedPersistent`;
+3. **anything else is `.sharedPersistent`.**
 
-Rule 5 is the fail-safe, and it is chosen because of what the three classes permit: the most conservative
+> **Corrected on 2026-09-14, during HORO-1102.** An earlier version of these rules inferred ownership by
+> comparing a window's Home with "the Slot's serving Home". Implementing the domain model showed that rule
+> is wrong in *both* directions against the golden journey below. LINE has Home `communication` and is
+> mounted into a `communication` Slot — the Homes *match*, so the old rule made it `.sceneOwned`, when the
+> whole point of step 5 is that LINE is `.borrowed`. The browser has Home `personal` and is attached to a
+> `preview` Slot — the Homes *differ*, so the old rule made it `.borrowed`, when step 7 requires it to be
+> `.sceneOwned` and left in place.
+>
+> The reason no comparison can work is that the journey's two groups are not distinguishable by Home at
+> all: Grafana (`observability`) is scene-owned and LINE (`communication`) is borrowed, and both are
+> non-`development` windows in a `development` task. What separates them is the user's intent — *lent for
+> this task* versus *part of this task* — which the UX already expresses as two distinct verbs, and which
+> the golden journey itself uses: steps 3 and 4 say a window "goes into" or "is attached to" a Slot, while
+> step 5 says LINE and Slack are "**mounted**".
+>
+> So ownership is recorded from the action, not inferred from placement. Comparing Home against a Slot's
+> role still has a job, but a smaller and safer one: the UI uses it to *propose* mount rather than attach
+> when the user drags a window whose Home looks foreign to the Slot — a default in an interaction the user
+> can see and override, owned by the Semantic Home and mounting ticket, not a rule that silently decides
+> what may be moved. This also satisfies HORO-1102's invariant that ownership "is not inferred only from
+> visual placement".
+
+Rule 3 is the fail-safe, and it is chosen because of what the three classes permit: the most conservative
 class is the one SceneMux may not touch at all. So an attachment whose ownership cannot be determined —
 corrupt state, an unrecognised persisted value, a window that vanished and came back — degrades to "leave
 it completely alone". The failure mode of a bug in this area is therefore *SceneMux does nothing*, which
@@ -543,7 +594,9 @@ indistinguishable from "it is broken".
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-Three rules hold this together, and each one is checkable in review:
+Three rules hold this together, and each one is checkable in review — the first of them is also checked by
+`script/test_scene_domain_layering.py` on every pull request, because a rule that only a reviewer enforces
+is a rule that survives exactly as long as reviewers keep noticing:
 
 1. **`scene/domain/` imports `Foundation` and nothing else.** No `AppKit`, no `Common`, no engine type.
    The domain model is where the product's meaning lives, and it must be testable without a window
@@ -591,7 +644,7 @@ the test.
 | --- | --- |
 | I1 | A window's Semantic Home is unchanged by any attach, mount, enter, leave or close. Only an explicit user action on the application changes it |
 | I2 | At most one Scene is `active` (v0.1.0) |
-| I3 | An `active` Scene has exactly one `substrate` binding; a `defined`, `ending` or `ended` Scene has none |
+| I3 | An `active` Scene has exactly one substrate binding; a `defined`, `ending` or `ended` Scene has none. Structural: the binding is the payload of `SceneState.active` |
 | I4 | A window has at most one attachment across all Scenes |
 | I5 | `leave` moves, resizes, focuses and closes nothing |
 | I6 | No lifecycle transition closes a window. A close happens only from an explicit per-window user confirmation |

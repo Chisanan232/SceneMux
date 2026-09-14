@@ -34,6 +34,8 @@ jobs:
         run: python3 script/test_validate_appcast.py
       - name: License inventory
         run: python3 script/license-inventory.py
+      - name: Scene domain layering
+        run: python3 script/test_scene_domain_layering.py
 
   # The Swift build and the unit tests. The toolchain is pinned by .swift-version and installed
   # with swiftly, the same way script/setup.sh resolves it locally, so CI and a developer machine
