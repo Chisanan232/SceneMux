@@ -28,13 +28,12 @@ extension SceneCore {
 
         /// Build one Slot on the substrate.
         ///
-        /// - Parameter position: the Slot's place among the substrate's children, counted over occupied
-        ///   Slots only. Empty Slots take no position, so they cannot leave a gap in the tiling.
-        func place(
-            _ group: SceneLayoutGroup,
-            at position: Int,
-            on binding: SubstrateBinding,
-        ) -> SceneSlotPlacement
+        /// Called once per occupied Slot, in the Scene's own Slot order, and that order *is* the layout
+        /// order — there is no positional argument, because an engine has no notion of "the Slot at index 2"
+        /// to receive one. A Slot's place is simply where its windows ended up among the substrate's
+        /// children, so an implementation that appends in call order produces the order the Scene asked for.
+        /// Empty Slots are never placed, which is exactly why they cannot leave a gap in the tiling.
+        func place(_ group: SceneLayoutGroup, on binding: SubstrateBinding) -> SceneSlotPlacement
 
         /// Let the engine finish — normalize, lay out — and report what each Slot's composition became.
         ///

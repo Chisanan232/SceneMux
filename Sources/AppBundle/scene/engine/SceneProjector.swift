@@ -43,8 +43,8 @@ extension SceneCore {
             for group in plan.groups where !group.isOccupied {
                 placements[group.slotId] = .empty
             }
-            for (position, group) in plan.occupiedGroups.enumerated() {
-                placements[group.slotId] = port.place(group, at: position, on: plan.substrate)
+            for group in plan.occupiedGroups {
+                placements[group.slotId] = port.place(group, on: plan.substrate)
             }
 
             for (slotId, composition) in port.settle(plan.substrate) {
