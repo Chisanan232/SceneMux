@@ -81,9 +81,11 @@ extension SceneCore {
                         lines.append("SceneMux found none of the windows for \(slot) (\(list(missing))), "
                             + "and left it empty.")
                     case .partlyRealised(let composition, let missing):
+                        // No adjustment line follows. A Slot that lost a window is thinner because of the
+                        // window, not because the engine normalized anything, and saying both would blame
+                        // the wrong thing.
                         lines.append("SceneMux could not find \(list(missing)) for \(slot), "
                             + "and composed what remained as \(composition).")
-                        appendAdjustment(&lines, composition, group, slot)
                     case .realised(let composition):
                         appendAdjustment(&lines, composition, group, slot)
                     case .empty:
