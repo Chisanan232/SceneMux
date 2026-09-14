@@ -731,7 +731,7 @@ rest.
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-Three rules hold this together, and each one is checkable in review — the first of them is also checked by
+Three rules hold this together, and each one is checkable in review — the first two are also checked by
 `script/test_scene_domain_layering.py` on every pull request, because a rule that only a reviewer enforces
 is a rule that survives exactly as long as reviewers keep noticing:
 
@@ -742,7 +742,10 @@ is a rule that survives exactly as long as reviewers keep noticing:
 2. **Scene Core never names an engine type outside `scene/engine/`.** It speaks to `SceneEnginePort`, a
    protocol expressed in Scene vocabulary — "make this Scene's projection current", "place this window in
    this Slot", "put this window back on this Home surface". `WinMuxSceneEngineAdapter` is the single file
-   that knows both languages, and it is the only place an upstream rename can reach.
+   that knows both languages, and it is the only place an upstream rename can reach. The guard holds
+   `scene/engine/` to that literally: every file in it but the adapter imports `Foundation` only and names
+   no engine type, and the adapter is checked to still name one — an exemption protecting nothing would
+   mean the seam had quietly moved somewhere unguarded.
 3. **The engine is not modified to know about Scenes.** Not one inherited type gains a `sceneId`. This is
    the Phase 0 rule about mergeability applied to Phase 1: an `upstream` merge that touches
    `NewWindowBinding.swift` or `WorkspaceProjects.swift` must still merge into code its author would
