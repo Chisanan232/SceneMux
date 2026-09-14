@@ -125,6 +125,15 @@ struct SceneSwitcherView: View {
                         model.select(at: index)
                         perform { _ = model.enter(row.id) }
                     }
+                    // The pointer path for the two ways out of a Scene. `Close Scene…` opens the
+                    // confirmation like every other close path; nothing here moves a window by itself.
+                    .contextMenu {
+                        Button("Rename…") { model.select(at: index); model.beginRename() }
+                        if row.isActive {
+                            Button("Leave Scene") { perform { _ = model.leave() } }
+                        }
+                        Button("Close Scene…") { model.select(at: index); model.beginClose(row.id) }
+                    }
                     if index == model.selection {
                         expansion(of: row)
                     }
