@@ -474,3 +474,37 @@ Drag targets follow the rules the inherited sidebar already establishes (`Worksp
 a drop between two Slots is **not** a target, because a window belongs in a role rather than between roles;
 and a drop onto a `.sharedPersistent` window is refused with the "shared — left untouched" HUD, because I7
 says that window is not SceneMux's to move.
+
+## Accessibility and macOS-native behaviour
+
+### Accessibility
+
+Scene Core's UI is how a person decides what happens to their windows, so it cannot be pointer-and-eyesight
+only. Requirements, each verifiable:
+
+| Requirement | What it means concretely |
+| --- | --- |
+| Every row has an accessibility label | `"Debug PROD-123, scene, active, 6 windows"`; a Slot: `"Communication slot, 2 windows, tabbed"`; a window: `"LINE, Communication, mounted"` — the same facts the row shows, never a window title |
+| Every control has a role and a value | Rows are buttons with a selected state; the composition chip is a pop-up button; the rail badges are buttons, not decorative images |
+| Hierarchy is expressed structurally | Scene → Slot → window is an outline with disclosure state, so VoiceOver announces depth instead of the user inferring it from indentation |
+| No meaning by colour alone | Every state differs in shape and in text as well as in fill. See [Scene appearance](#scene-appearance-by-state) |
+| Full keyboard access | Every operation has a keyboard path; focus order follows the visual order; the focused row has a visible focus ring, not just a fill change |
+| Reduced transparency | `NSWorkspace.shared.accessibilityDisplayShouldReduceTransparency` replaces the glass material with an opaque surface. The inherited `chrome-style = 'solid'` config path already does this and is reused |
+| Reduced motion | `accessibilityDisplayShouldReduceMotion` drops the `MotionToken` springs to instant state changes. Nothing in this design depends on an animation to be understood |
+| Increased contrast | Stroke and text tokens step up to their high-contrast values; the dashed mounted edge remains distinguishable |
+| Dynamic text | Rows lay out from the text's measured height rather than a hardcoded row height, so a larger system font does not clip |
+| Announcements | Restore, refusal and recovery HUDs post an accessibility announcement — otherwise a user with VoiceOver gets no notification that borrowed windows went home |
+
+### macOS-native behaviour
+
+| Behaviour | Requirement |
+| --- | --- |
+| Focus | Sidebar, switcher and HUD are non-activating panels; SceneMux does not become the active application to show them. The `WinMuxPanelLayer` conventions already in the codebase are followed |
+| Modality | Nothing is application-modal. The close-confirmation is a panel, not a sheet that blocks the desktop |
+| `esc` | Dismisses any Scene surface and reverts an in-progress edit. Never commits |
+| Spaces and full screen | Panels join all Spaces and are suppressed over native full-screen windows through the existing `FullscreenChromeSuppression` path |
+| Displays | Everything is laid out in points and follows the inherited sidebar's per-display configuration. No pixel constants; nothing breaks when a display is unplugged, because no geometry is stored |
+| Appearance | Light and dark both supported through the existing tokens; the accent hue follows the system accent where the user has not chosen a Scene colour |
+| Menu bar | The menu bar item shows the active Scene's title, truncated in the middle, and *No Scene* when none is active. It is the one always-visible piece of Scene state |
+| System conventions | `⏎` to rename, `⌘⌫` to delete a selection, `⇥` to traverse, double-click to edit in place, and context menus on every row — because a macOS user already knows these |
+| Permissions | No new permission is requested. Scene Core needs exactly the Accessibility grant the engine already requires, and asks for nothing else |
