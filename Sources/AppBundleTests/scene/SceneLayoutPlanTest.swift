@@ -99,4 +99,18 @@ final class SceneLayoutPlanTest: XCTestCase {
 
         XCTAssertEqual(plan.groups.map(\.needsContainer), [false, false, true])
     }
+
+    /// Invariant I15: a projection may touch the Scene's own windows and nothing else, which is only checkable
+    /// if the plan says out loud which those are.
+    func testAPlanNamesEveryWindowItMayTouchAndNoOther() throws {
+        let scene = try SceneCoreFixtures.debugScene()
+
+        let plan = SceneCore.SceneLayoutPlan(scene, on: substrate)
+
+        XCTAssertEqual(
+            plan.windows.map(\.bundleId),
+            [App.terminal, App.ide, App.browser, App.grafana, App.line, App.slack],
+        )
+        XCTAssertFalse(plan.windows.map(\.bundleId).contains(App.music))
+    }
 }
