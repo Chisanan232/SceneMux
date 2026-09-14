@@ -42,11 +42,11 @@ targets:
         DEVELOPMENT_TEAM: ${XCODEGEN_WINMUX_DEVELOPMENT_TEAM}
       configs:
         Debug:
-          PRODUCT_NAME: WinMux-Debug
-          PRODUCT_BUNDLE_IDENTIFIER: com.zimengxiong.winmux.debug
+          PRODUCT_NAME: SceneMux-Debug
+          PRODUCT_BUNDLE_IDENTIFIER: com.chisanan232.scenemux.debug
         Release:
-          PRODUCT_NAME: WinMux
-          PRODUCT_BUNDLE_IDENTIFIER: com.zimengxiong.winmux
+          PRODUCT_NAME: SceneMux
+          PRODUCT_BUNDLE_IDENTIFIER: com.chisanan232.scenemux
           SWIFT_TREAT_WARNINGS_AS_ERRORS: YES
           GCC_TREAT_WARNINGS_AS_ERRORS: YES
     entitlements:
