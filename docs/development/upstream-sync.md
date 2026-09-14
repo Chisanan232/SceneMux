@@ -94,7 +94,7 @@ re-brand SceneMux back to WinMux — the exact regression `script/test_update_fe
 identity work in HORO-1097 exist to prevent.
 
 **2. Inherited engine internals — take the upstream side.**
-Names like `WinMuxPackage`, `WinMuxAny`, `applyWinMuxLayer` and `JSONEncoder.winMuxDefault` are
+Names like `WinMuxAny`, `WinMuxShell`, `applyWinMuxLayer` and `JSONEncoder.winMuxDefault` are
 deliberately left inherited so that these hunks apply cleanly. Do not rename them to reduce a
 conflict; renaming *causes* the next one. Never run a global `s/WinMux/SceneMux/g`.
 
