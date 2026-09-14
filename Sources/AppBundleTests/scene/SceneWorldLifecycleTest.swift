@@ -250,4 +250,23 @@ final class SceneWorldLifecycleTest: XCTestCase {
         // A report that arrives late must not detach a window from a Scene somebody is still using.
         XCTAssertEqual(try world.resolving(.restored, for: line, in: scene.id), world)
     }
+
+    func testEveryOperationRefusesASceneTheWorldDoesNotHave() throws {
+        let world = try SceneCore.SceneWorld(scenes: [try SceneCoreFixtures.debugScene()])
+        let never = SceneCore.SceneId.generate()
+        let unknown = SceneCore.SceneLifecycleError.unknownScene(never)
+
+        XCTAssertThrowsError(try world.entering(never, on: substrate)) {
+            XCTAssertEqual($0 as? SceneCore.SceneLifecycleError, unknown)
+        }
+        XCTAssertThrowsError(try world.leaving(never)) {
+            XCTAssertEqual($0 as? SceneCore.SceneLifecycleError, unknown)
+        }
+        XCTAssertThrowsError(try world.closing(never)) {
+            XCTAssertEqual($0 as? SceneCore.SceneLifecycleError, unknown)
+        }
+        XCTAssertThrowsError(try world.resolving(.restored, for: try SceneCoreFixtures.windowRef(), in: never)) {
+            XCTAssertEqual($0 as? SceneCore.SceneLifecycleError, unknown)
+        }
+    }
 }
