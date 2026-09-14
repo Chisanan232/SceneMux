@@ -23,6 +23,17 @@ extension SceneCore {
         /// Where the Slot sits relative to its siblings. An ordering, not a coordinate.
         let order: Int
 
+        /// What to call this Slot on screen: the user's label when they set one, the role otherwise.
+        ///
+        /// A label that is missing *or* blank falls back to the role, so a persisted empty string — or a
+        /// rename someone abandoned by clearing the field — can never leave a Slot with no name to show.
+        var displayName: String {
+            guard let label, !label.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                return role.description
+            }
+            return label
+        }
+
         var description: String { "\(role)#\(order)" }
     }
 }
