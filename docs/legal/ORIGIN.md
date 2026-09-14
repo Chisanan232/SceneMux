@@ -99,6 +99,12 @@ git config remote.upstream.tagOpt --no-tags
 * SceneMux does not promise to track upstream. Divergence is expected: SceneMux
   is a task-oriented orchestration layer, not a WinMux rebrand.
 
+The mechanics — `script/upstream.sh`, when to adopt upstream work, how to decide a
+conflict, and when a fix belongs upstream instead of here — live in
+`docs/development/upstream-sync.md`. This section states the policy; that document
+carries it out. `script/upstream.sh` reads the baseline commit out of the table
+above, so this file stays the single source of truth for the provenance facts.
+
 ## Attribution rules
 
 * Upstream notices are never removed merely because the product brand changed.
