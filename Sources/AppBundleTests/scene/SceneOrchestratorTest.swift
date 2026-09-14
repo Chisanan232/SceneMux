@@ -24,6 +24,17 @@ final class SceneOrchestratorTest: XCTestCase {
         SceneCore.SceneStateStore(url: directory.appending(path: SceneCore.SceneStateStore.filename))
     }
 
+    /// Take away permission to write in this directory, and give it back before the directory is removed.
+    ///
+    /// The honest way to test a failed save: a full disk, a read-only home directory, a sandbox denial. All of
+    /// them arrive as a write that throws, and none of them may be allowed to lose a window.
+    private func makeUnwritable(_ directory: URL) throws {
+        addTeardownBlock {
+            try? FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: directory.path)
+        }
+        try FileManager.default.setAttributes([.posixPermissions: 0o500], ofItemAtPath: directory.path)
+    }
+
     func testAFirstRunHasNoScenesAndNothingToSay() throws {
         let orchestrator = SceneCore.SceneOrchestrator(store: store(in: try temporaryDirectory()))
 
