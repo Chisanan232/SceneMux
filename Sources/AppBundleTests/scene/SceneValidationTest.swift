@@ -19,6 +19,20 @@ final class SceneValidationTest: XCTestCase {
         }
     }
 
+    func testAFinishedSceneCannotStillOwnWindows() throws {
+        let slot = SceneCoreFixtures.slot()
+        let attachment = SceneCoreFixtures.attachment(
+            windowRef: try SceneCoreFixtures.windowRef(),
+            slotId: slot.id,
+        )
+
+        XCTAssertThrowsError(
+            try SceneCoreFixtures.scene(slots: [slot], attachments: [attachment], state: .ended),
+        ) { error in
+            XCTAssertEqual(error as? SceneCore.SceneCoreError, .attachmentsInEndedScene)
+        }
+    }
+
     func testOneWindowCannotHaveTwoAnswersAboutWhatMayHappenToIt() throws {
         // Invariant I4. Two attachments would mean two ownerships for one window, and therefore two
         // different answers to "what may ending this Scene do to it?" with nothing to choose between them.
