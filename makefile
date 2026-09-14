@@ -154,16 +154,18 @@ release:
 	else \
 	    echo "Skipping notarization because NOTARIZE=$(NOTARIZE)"; \
 	fi; \
+	assets=("$$zip_path"); \
+	if [ "$(APPCAST)" = "1" ]; then assets+=("$$appcast_path"); fi; \
 	if [ "$(PUBLISH)" != "1" ]; then \
 	    echo "Skipping GitHub release publish because PUBLISH=$(PUBLISH)"; \
 	elif /usr/bin/which gh >/dev/null 2>&1; then \
 	    if gh release view "$(RELEASE_TAG)" --repo "$(RELEASE_REPO)" >/dev/null 2>&1; then \
-	        gh release upload "$(RELEASE_TAG)" "$$zip_path" "$$appcast_path" --repo "$(RELEASE_REPO)" --clobber; \
+	        gh release upload "$(RELEASE_TAG)" "$${assets[@]}" --repo "$(RELEASE_REPO)" --clobber; \
 	    else \
 	        if [ "$(RELEASE_NOTES)" = "auto" ]; then \
-	            gh release create "$(RELEASE_TAG)" "$$zip_path" "$$appcast_path" --repo "$(RELEASE_REPO)" --title "$$app_name $(VERSION)" --generate-notes; \
+	            gh release create "$(RELEASE_TAG)" "$${assets[@]}" --repo "$(RELEASE_REPO)" --title "$$app_name $(VERSION)" --generate-notes; \
 	        else \
-	            gh release create "$(RELEASE_TAG)" "$$zip_path" "$$appcast_path" --repo "$(RELEASE_REPO)" --title "$$app_name $(VERSION)" --notes "$(RELEASE_NOTES)"; \
+	            gh release create "$(RELEASE_TAG)" "$${assets[@]}" --repo "$(RELEASE_REPO)" --title "$$app_name $(VERSION)" --notes "$(RELEASE_NOTES)"; \
 	        fi; \
 	    fi; \
 	else \
