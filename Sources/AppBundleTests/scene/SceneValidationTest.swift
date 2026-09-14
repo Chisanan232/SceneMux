@@ -19,6 +19,30 @@ final class SceneValidationTest: XCTestCase {
         }
     }
 
+    func testOneWindowCannotHaveTwoAnswersAboutWhatMayHappenToIt() throws {
+        // Invariant I4. Two attachments would mean two ownerships for one window, and therefore two
+        // different answers to "what may ending this Scene do to it?" with nothing to choose between them.
+        let window = try SceneCoreFixtures.windowRef()
+        let editor = SceneCoreFixtures.slot(role: .editor, order: 0)
+        let terminal = SceneCoreFixtures.slot(role: .terminal, order: 1)
+        let borrowed = SceneCoreFixtures.attachment(
+            windowRef: window,
+            slotId: editor.id,
+            ownership: .borrowed,
+        )
+        let owned = SceneCoreFixtures.attachment(
+            windowRef: window,
+            slotId: terminal.id,
+            ownership: .sceneOwned,
+        )
+
+        XCTAssertThrowsError(
+            try SceneCoreFixtures.scene(slots: [editor, terminal], attachments: [borrowed, owned]),
+        ) { error in
+            XCTAssertEqual(error as? SceneCore.SceneCoreError, .duplicateAttachment(window))
+        }
+    }
+
     func testAnAttachmentToASlotTheSceneDoesNotHaveIsRejected() throws {
         let elsewhere = SceneCore.SlotId.generate()
         let stray = SceneCoreFixtures.attachment(
