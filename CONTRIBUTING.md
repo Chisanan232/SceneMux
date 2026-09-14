@@ -8,6 +8,7 @@ SceneMux is developed ticket by ticket, and the same rules apply to humans and t
 | [`docs/development/ui-verification.md`](docs/development/ui-verification.md) | How native AppKit/SwiftUI UI is verified, and screenshot discipline |
 | [`docs/development/release.md`](docs/development/release.md) | Release preconditions, tagging, GitHub Releases, postconditions |
 | [`docs/release/RELEASE_MAPPING.md`](docs/release/RELEASE_MAPPING.md) | The one-to-one mapping between Git tags, GitHub Releases and Jira Fix Versions |
+| [`docs/development/upstream-sync.md`](docs/development/upstream-sync.md) | The `origin`/`upstream` convention, when to adopt upstream work, how to decide a conflict, and when a fix belongs upstream |
 | [`docs/legal/ORIGIN.md`](docs/legal/ORIGIN.md) | Where this code comes from, the exact derivation baseline, and the upstream sync policy |
 | [`docs/legal/LICENSE_POLICY.md`](docs/legal/LICENSE_POLICY.md) | How a new dependency or contribution is reviewed |
 | [`AGENTS.md`](AGENTS.md) | The orientation an automated contributor needs, and the precedence order of all of the above |
