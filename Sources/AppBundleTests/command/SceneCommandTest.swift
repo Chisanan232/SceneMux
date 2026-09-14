@@ -56,4 +56,25 @@ final class SceneCommandTest: XCTestCase {
         XCTAssertEqual(entered.stdout, ["Entered Debug PROD-123"])
         XCTAssertEqual(SceneCore.SceneRuntime.shared.snapshot.activeScene?.title, "Debug PROD-123")
     }
+
+    /// Closing never happens on the strength of one word. With a surface listening, the command asks it to
+    /// confirm and changes nothing itself; with nobody listening — a script — it prints what closing would do
+    /// and refuses until `--yes` says so out loud.
+    func testCloseAsksBeforeItMovesAnything() async throws {
+        try await parseCommand("scene new --title 'Debug PROD-123'").cmdOrDie.run(.defaultEnv, .emptyStdin)
+        try await parseCommand("scene 1").cmdOrDie.run(.defaultEnv, .emptyStdin)
+
+        let scripted = try await parseCommand("scene close").cmdOrDie.run(.defaultEnv, .emptyStdin)
+        XCTAssertEqual(scripted.exitCode, 1)
+        XCTAssertEqual(scripted.stdout, ["Close “Debug PROD-123”?"])
+        XCTAssertEqual(scripted.stderr, ["Pass --yes to close it."])
+        XCTAssertEqual(SceneCore.SceneRuntime.shared.snapshot.scenes.map(\.state), [.active])
+
+        var asked: [SceneCore.SceneShellRequest] = []
+        SceneCore.SceneRuntime.shared.presenter = { asked.append($0) }
+        let interactive = try await parseCommand("scene close").cmdOrDie.run(.defaultEnv, .emptyStdin)
+        XCTAssertEqual(interactive.exitCode, 0)
+        XCTAssertEqual(asked, [.confirmClose(SceneCore.SceneRuntime.shared.snapshot.scenes[0].id)])
+        XCTAssertEqual(SceneCore.SceneRuntime.shared.snapshot.scenes.map(\.state), [.active])
+    }
 }
