@@ -37,6 +37,22 @@ extension SceneCore {
             try data.write(to: url, options: .atomic)
         }
 
+        /// Read what is there, as an outcome. Never throws, and never guesses.
+        ///
+        /// A missing file and a file this build cannot read are different answers, and the difference is the
+        /// one that matters: the first is a first run, the second is something the user has to be told about.
+        /// Collapsing them — a `try?` that yields "no Scenes" either way — is how state gets silently
+        /// replaced by an empty file on the next save.
+        func load() -> SceneStateLoad {
+            guard FileManager.default.fileExists(atPath: url.path) else {
+                return .noStateFile(path: url.path)
+            }
+            guard let data = try? Data(contentsOf: url) else {
+                return .refused(SceneStateRefusal(reason: .unreadable, path: url.path, preservedAt: nil))
+            }
+            return SceneStateFormat.read(data, from: url.path)
+        }
+
         /// The real location: `~/Library/Application Support/SceneMux/scene-state.json`.
         ///
         /// The directory is `sceneMuxAppName`, which is `SceneMux-Debug` in a debug build — so developing
