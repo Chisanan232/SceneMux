@@ -50,4 +50,18 @@ final class SceneShellWindowRowTest: XCTestCase {
         XCTAssertNil(row.reversibility)
         XCTAssertEqual(row.accessibilityLabel, "IDE, Development")
     }
+
+    /// A window whose application the desktop cannot name still gets a row. The bundle id is the honest
+    /// fallback — and it is the only other thing a Scene knows about the window, since it holds no title.
+    func testAnUnnameableApplicationFallsBackToItsBundleId() throws {
+        let row = SceneCore.SceneShellWindowRow(
+            attachment: SceneCoreFixtures.attachment(
+                windowRef: try SceneCoreFixtures.windowRef(App.grafana),
+                slotId: .generate(),
+            ),
+            naming: naming,
+        )
+
+        XCTAssertEqual(row.applicationName, App.grafana)
+    }
 }
