@@ -250,4 +250,51 @@ final class WinMuxSceneEngineAdapterTest: XCTestCase {
                 + "a horizontal split, because the window engine normalized it."],
         )
     }
+
+    /// The golden journey of `docs/design/scene-core-ux.md`, laid out for real: five Slots, six windows, and
+    /// actual rectangles on an actual monitor.
+    ///
+    /// This is the test that would catch a Slot mapping that type-checks and reports success while putting
+    /// nothing anywhere. It asks the engine for the geometry it really applied — the four solo Slots side by
+    /// side across one band of the screen, the two lent chat windows sharing the fifth place as tabs — and
+    /// deliberately asserts relations rather than pixel counts, because the numbers belong to whichever
+    /// monitor is running the test.
+    func testTheGoldenJourneyIsLaidOutAcrossTheSubstrate() async throws {
+        config.enableNormalizationFlattenContainers = true
+        // So that "side by side" is a matter of touching edges rather than of the inner gap's arithmetic.
+        config.gaps = .zero
+        for (id, bundleId) in [App.terminal, App.ide, App.browser, App.grafana, App.line, App.slack].enumerated() {
+            TestWindow.new(id: UInt32(id + 1), parent: elsewhere, app: TestApp(bundleId: bundleId))
+        }
+        let workspace = focus.workspace
+
+        let report = project(try SceneCoreFixtures.debugScene(), onto: workspace.name)
+        try await workspace.layoutWorkspace()
+
+        XCTAssertTrue(report.isFullyRealised, report.diagnostics.joined(separator: " "))
+        XCTAssertEqual(
+            workspace.rootTilingContainer.layoutDescription,
+            .h_tiles([
+                .window(1),
+                .window(2),
+                .window(3),
+                .window(4),
+                .v_tab_group([
+                    .window(5),
+                    .window(6),
+                ]),
+            ]),
+        )
+
+        let solo = (1 ... 4).map { Window.get(byId: UInt32($0)).orDie().lastAppliedLayoutPhysicalRect.orDie() }
+        XCTAssertEqual(solo.map(\.minX), solo.map(\.minX).sorted())
+        XCTAssertEqual(Set(solo.map(\.minY)).count, 1)
+        XCTAssertEqual(Set(solo.map(\.height)).count, 1)
+        XCTAssertEqual(Set(solo.map(\.width)).count, 1)
+
+        let tabs = workspace.rootTilingContainer.children.last as? TilingContainer
+        let tabsRect = tabs?.lastAppliedLayoutPhysicalRect.orDie()
+        XCTAssertEqual(tabsRect?.minX, solo[3].maxX)
+        XCTAssertEqual(tabsRect?.minY, solo[3].minY)
+    }
 }
