@@ -740,8 +740,8 @@ is a rule that survives exactly as long as reviewers keep noticing:
    server, a monitor, or a running app. This is also what makes the model reviewable by someone who does
    not know the engine.
 2. **Scene Core never names an engine type outside `scene/engine/`.** It speaks to `SceneEnginePort`, a
-   protocol expressed in Scene vocabulary — "make this Scene's projection current", "place this window in
-   this Slot", "put this window back on this Home surface". `WinMuxSceneEngineAdapter` is the single file
+   protocol expressed in Scene vocabulary — "make this Scene's workspace usable", "build this Slot",
+   "settle, and tell me what shape each Slot ended up". `WinMuxSceneEngineAdapter` is the single file
    that knows both languages, and it is the only place an upstream rename can reach. The guard holds
    `scene/engine/` to that literally: every file in it but the adapter imports `Foundation` only and names
    no engine type, and the adapter is checked to still name one — an exemption protecting nothing would
