@@ -50,6 +50,15 @@ extension SceneCore {
             }
         }
 
+        /// The same refusal, naming where the refused file was kept.
+        ///
+        /// A separate step from making the refusal because the format knows *why* it refused and the store
+        /// knows *whether the copy succeeded* — and a refusal that claimed to have preserved a file it did
+        /// not would be the worst sentence in this whole path.
+        func preserved(at path: String) -> SceneStateRefusal {
+            SceneStateRefusal(reason: reason, path: self.path, preservedAt: path)
+        }
+
         private var preservation: String {
             preservedAt.map { " The original was kept at \($0)." } ?? ""
         }
