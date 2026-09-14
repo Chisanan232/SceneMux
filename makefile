@@ -7,6 +7,10 @@ NOTARYTOOL_PROFILE ?=
 RELEASE_DIR ?= .release
 RELEASE_TAG ?= v$(VERSION)
 RELEASE_NOTES ?= auto
+# A bare 'gh' in this repository resolves to the 'upstream' remote, not to SceneMux.
+# Every gh call below is pinned to this repository so a release can never be published
+# against the project SceneMux is derived from.
+RELEASE_REPO ?= Chisanan232/SceneMux
 PUBLISH ?= 1
 APP_INSTALL_DIR ?= /Applications
 ARGS ?=
@@ -137,13 +141,13 @@ release:
 	if [ "$(PUBLISH)" != "1" ]; then \
 	    echo "Skipping GitHub release publish because PUBLISH=$(PUBLISH)"; \
 	elif /usr/bin/which gh >/dev/null 2>&1; then \
-	    if gh release view "$(RELEASE_TAG)" >/dev/null 2>&1; then \
-	        gh release upload "$(RELEASE_TAG)" "$$zip_path" "$$appcast_path" --clobber; \
+	    if gh release view "$(RELEASE_TAG)" --repo "$(RELEASE_REPO)" >/dev/null 2>&1; then \
+	        gh release upload "$(RELEASE_TAG)" "$$zip_path" "$$appcast_path" --repo "$(RELEASE_REPO)" --clobber; \
 	    else \
 	        if [ "$(RELEASE_NOTES)" = "auto" ]; then \
-	            gh release create "$(RELEASE_TAG)" "$$zip_path" "$$appcast_path" --title "$$app_name $(VERSION)" --generate-notes; \
+	            gh release create "$(RELEASE_TAG)" "$$zip_path" "$$appcast_path" --repo "$(RELEASE_REPO)" --title "$$app_name $(VERSION)" --generate-notes; \
 	        else \
-	            gh release create "$(RELEASE_TAG)" "$$zip_path" "$$appcast_path" --title "$$app_name $(VERSION)" --notes "$(RELEASE_NOTES)"; \
+	            gh release create "$(RELEASE_TAG)" "$$zip_path" "$$appcast_path" --repo "$(RELEASE_REPO)" --title "$$app_name $(VERSION)" --notes "$(RELEASE_NOTES)"; \
 	        fi; \
 	    fi; \
 	else \
