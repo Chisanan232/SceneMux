@@ -117,4 +117,25 @@ final class SceneOrchestratorTest: XCTestCase {
         XCTAssertNoThrow(try orchestrator.enter(scene.id, on: substrate))
         XCTAssertEqual(orchestrator.world.activeScene?.state, .active(substrate))
     }
+
+    func testAWindowLeftBehindIsReportedToTheUser() throws {
+        let store = store(in: try temporaryDirectory())
+        let scene = try SceneCoreFixtures.debugScene(state: .active(substrate))
+        try store.save([scene])
+        let orchestrator = SceneCore.SceneOrchestrator(store: store)
+
+        _ = try orchestrator.close(scene.id)
+        try orchestrator.resolve(
+            .leftInPlace(reason: "its Home has no workspace any more"),
+            for: try SceneCoreFixtures.windowRef(App.line),
+            in: scene.id,
+        )
+
+        let diagnostic = try XCTUnwrap(orchestrator.diagnostics.first)
+        XCTAssertTrue(diagnostic.contains("com.linecorp.LINE#0"))
+        XCTAssertTrue(diagnostic.contains("Debug PROD-123"))
+        XCTAssertTrue(diagnostic.contains("its Home has no workspace any more"))
+        // Reported once, and only for the window it happened to.
+        XCTAssertEqual(orchestrator.diagnostics.count, 1)
+    }
 }
