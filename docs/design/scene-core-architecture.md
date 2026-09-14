@@ -509,3 +509,75 @@ attachment to a `SlotId` that no longer exists, an ownership value from a newer 
 are dropped, their windows are left untouched, and the reason is surfaced once in the UI rather than logged
 and forgotten. A user must be able to tell that SceneMux declined to act, or "it did nothing" is
 indistinguishable from "it is broken".
+
+## Layering and the engine seam
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  SceneMux.app                                                       │
+│                                                                     │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │  Scene UI            Sources/AppBundle/scene/ui/              │  │
+│  │  Scene sidebar · Scene switcher · lifecycle feedback           │  │
+│  │  Built on inherited surfaces (NSPanel, SwiftUI, DesignTokens)  │  │
+│  └───────────────────────────┬───────────────────────────────────┘  │
+│                              │ reads a snapshot, sends intents      │
+│  ┌───────────────────────────▼───────────────────────────────────┐  │
+│  │  Scene Core          Sources/AppBundle/scene/                 │  │
+│  │  ┌─────────────────────────────────────────────────────────┐  │  │
+│  │  │  domain/   Scene · Slot · SemanticHome · Attachment ·    │  │  │
+│  │  │            Ownership · SceneState · AdmissionDecision    │  │  │
+│  │  │            Value types. Imports Foundation only.         │  │  │
+│  │  └─────────────────────────────────────────────────────────┘  │  │
+│  │  store/        transitions, invariant checks                   │  │
+│  │  admission/    G1 rules → AdmissionDecision                   │  │
+│  │  persistence/  versioned envelope, atomic write                │  │
+│  │  engine/       SceneEnginePort (protocol)  ◀── the seam        │  │
+│  └───────────────────────────┬───────────────────────────────────┘  │
+│                              │ WinMuxSceneEngineAdapter             │
+│  ┌───────────────────────────▼───────────────────────────────────┐  │
+│  │  WinMux-derived engine    tree/ · command/ · config/ · ui/     │  │
+│  │  Workspaces · tiling tree · tab groups · AX layer · CLI        │  │
+│  │  Inherited. Kept mergeable from upstream.                      │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+Three rules hold this together, and each one is checkable in review:
+
+1. **`scene/domain/` imports `Foundation` and nothing else.** No `AppKit`, no `Common`, no engine type.
+   The domain model is where the product's meaning lives, and it must be testable without a window
+   server, a monitor, or a running app. This is also what makes the model reviewable by someone who does
+   not know the engine.
+2. **Scene Core never names an engine type outside `scene/engine/`.** It speaks to `SceneEnginePort`, a
+   protocol expressed in Scene vocabulary — "make this Scene's projection current", "place this window in
+   this Slot", "put this window back on this Home surface". `WinMuxSceneEngineAdapter` is the single file
+   that knows both languages, and it is the only place an upstream rename can reach.
+3. **The engine is not modified to know about Scenes.** Not one inherited type gains a `sceneId`. This is
+   the Phase 0 rule about mergeability applied to Phase 1: an `upstream` merge that touches
+   `NewWindowBinding.swift` or `WorkspaceProjects.swift` must still merge into code its author would
+   recognise. Where the engine must call outward — the admission hook on window detection — it calls one
+   named function with no Scene types in its signature.
+
+`SceneEnginePort` is introduced *with its adapter and its callers, in the ticket that needs it*. It is not
+added ahead of time as an empty protocol: the repository's own rules forbid abstractions with no callers,
+and an unimplemented seam is a claim rather than a design.
+
+### Reconciliation and the engine adapter
+
+Projection is one-directional: **Scene state → engine tree.** Entering a Scene walks its Slots in order and
+asks the adapter to place each attachment's window; the adapter uses the inherited verbs (`join-with`,
+`layout tab-group`, tree binding) and the engine computes every rectangle.
+
+The one read-back is user-initiated rearrangement. The inherited engine has its own commands and its own
+drag handling, and a user who moves a window with `move right` is expressing intent just as surely as one
+who drags it into a Slot in the sidebar. So after the engine settles, Scene Core re-derives which Slot each
+attached window now belongs to and updates its own state to match. Two consequences:
+
+- SceneMux never fights the user. A window dragged out of the `terminal` Slot into the `editor` Slot is
+  recorded as being in the `editor` Slot, not snapped back.
+- A window dragged entirely out of the Scene's substrate is *detached*, not chased. It keeps its Home, it
+  keeps its ownership, and the Scene simply no longer lists it.
+
+Read-back reads *structure* — which container a window ended up in — and never geometry. Nothing in Scene
+state is derived from a rectangle.
