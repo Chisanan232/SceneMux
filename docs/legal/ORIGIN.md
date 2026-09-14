@@ -126,7 +126,7 @@ the product-facing identity: `README.md` presents SceneMux and uses
 Two things about that conversion are deliberate and should not be "tidied":
 
 * **Inherited engine-internal names stay WinMux-oriented.** Symbols such as
-  `WinMuxPackage`, `WinMuxAny`, `applyWinMuxLayer` and
+  `WinMuxAny`, `WinMuxShell`, `applyWinMuxLayer` and
   `JSONEncoder.winMuxDefault` were left alone so that upstream changes still
   apply to the code they were written against. Renaming them would buy nothing
   and would make every future upstream merge conflict. See
