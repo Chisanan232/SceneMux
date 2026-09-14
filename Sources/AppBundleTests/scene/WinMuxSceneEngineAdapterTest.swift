@@ -25,6 +25,15 @@ final class WinMuxSceneEngineAdapterTest: XCTestCase {
         return SceneCore.SceneProjector(port: SceneCore.WinMuxSceneEngineAdapter()).project(plan)
     }
 
+    /// One window per application of `SceneCoreFixtures.debugScene()`, in the order the Scene attaches them,
+    /// so that window id `n` is the `n`th window the golden journey mentions.
+    @discardableResult
+    private func makeGoldenJourneyWindows() -> [TestWindow] {
+        [App.terminal, App.ide, App.browser, App.grafana, App.line, App.slack].enumerated().map { id, bundleId in
+            TestWindow.new(id: UInt32(id + 1), parent: elsewhere, app: TestApp(bundleId: bundleId))
+        }
+    }
+
     /// A Slot holding one window is that window, not a container holding it. `normalizeContainers` flattens a
     /// container down to its only child, so anything else would be undone by the engine moments later.
     func testASingleWindowSlotBindsStraightIntoTheSubstrate() throws {
@@ -263,9 +272,7 @@ final class WinMuxSceneEngineAdapterTest: XCTestCase {
         config.enableNormalizationFlattenContainers = true
         // So that "side by side" is a matter of touching edges rather than of the inner gap's arithmetic.
         config.gaps = .zero
-        for (id, bundleId) in [App.terminal, App.ide, App.browser, App.grafana, App.line, App.slack].enumerated() {
-            TestWindow.new(id: UInt32(id + 1), parent: elsewhere, app: TestApp(bundleId: bundleId))
-        }
+        makeGoldenJourneyWindows()
         let workspace = focus.workspace
 
         let report = project(try SceneCoreFixtures.debugScene(), onto: workspace.name)
