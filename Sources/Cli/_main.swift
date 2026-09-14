@@ -92,8 +92,10 @@ struct Main {
         }
 
         let environment = ProcessInfo.processInfo.environment
-        let windowId = environment[WINMUX_WINDOW_ID].flatMap(UInt32.init)
-        let workspace = environment[WINMUX_WORKSPACE]
+        // The inherited WinMux names are read only as a fallback, so a shell that still
+        // exports them from an imported config keeps addressing the right window.
+        let windowId = (environment[SCENEMUX_WINDOW_ID] ?? environment[WINMUX_WINDOW_ID]).flatMap(UInt32.init)
+        let workspace = environment[SCENEMUX_WORKSPACE] ?? environment[WINMUX_WORKSPACE]
 
         // Handle subscribe command specially
         if parsedArgs is SubscribeCmdArgs {
