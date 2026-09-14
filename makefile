@@ -37,6 +37,9 @@ xcodeproj:
 	./script/install-dep.sh --xcodegen && \
 	./.deps/xcodegen/xcodegen'
 
+# SceneMuxApp is linked against Sparkle.framework with an @loader_path rpath, so the framework has
+# to be copied next to the executable. Without it, .debug/SceneMuxApp dies at dyld time and
+# 'make run' cannot start the app at all.
 build:
 	$(MAKE) generate VERSION="$(VERSION)"
 	/bin/bash -lc 'cd "$(CURDIR)" && \
@@ -46,7 +49,8 @@ build:
 	rm -rf .debug && \
 	mkdir .debug && \
 	cp -r .build/debug/scenemux .debug && \
-	cp -r .build/debug/SceneMuxApp .debug'
+	cp -r .build/debug/SceneMuxApp .debug && \
+	cp -R .build/debug/Sparkle.framework .debug'
 
 build-clean:
 	/bin/bash -lc 'cd "$(CURDIR)" && rm -rf .build .debug'
