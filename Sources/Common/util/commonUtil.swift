@@ -28,7 +28,7 @@ public func dieT<T>(
             Please describe what you did to trigger this error
 
         Message: \(_message)
-        Version: \(winMuxAppVersion)
+        Version: \(sceneMuxAppVersion)
         Git hash: \(gitHash)
         refreshSessionEvent: \(refreshSessionEvent.prettyDescription)
         Date: \(Date.now)

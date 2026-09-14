@@ -11,8 +11,8 @@ private let sceneMuxNewIssueURL = "https://github.com/Chisanan232/SceneMux/issue
         checkForUpdates: (() -> Void)? = nil,
     ) -> some Scene { // todo should it be converted to "SwiftUI struct"?
         MenuBarExtra {
-            let shortIdentification = "\(winMuxAppName) v\(winMuxAppVersion) \(gitShortHash)"
-            let identification      = "\(winMuxAppName) v\(winMuxAppVersion) \(gitHash)"
+            let shortIdentification = "\(winMuxAppName) v\(sceneMuxAppVersion) \(gitShortHash)"
+            let identification      = "\(winMuxAppName) v\(sceneMuxAppVersion) \(gitHash)"
         Text(shortIdentification)
         Button("Copy to clipboard") { identification.copyToClipboard() }
             .keyboardShortcut("C", modifiers: .command)

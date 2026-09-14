@@ -104,7 +104,7 @@ private func initServerArgs() {
         index += 1
         switch current {
             case "--version", "-v":
-                exit(0, out: "\(winMuxAppVersion) \(gitHash)")
+                exit(0, out: "\(sceneMuxAppVersion) \(gitHash)")
             case "--config-path":
                 if let arg = args.getOrNil(atIndex: index) {
                     _serverArgs.configLocation = arg

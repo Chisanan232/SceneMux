@@ -32,7 +32,7 @@ func toggleReleaseServerIfDebug(_ state: EnableCmdArgs.State) async {
     _ = await connection.readNonAtomic()
 }
 
-private let serverVersionAndHash = "\(winMuxAppVersion) \(gitHash)"
+private let serverVersionAndHash = "\(sceneMuxAppVersion) \(gitHash)"
 
 private func newConnection(_ connection: NWConnection) async { // todo add exit codes
     func answerToClient(exitCode: Int32, stdout: String = "", stderr: String = "") async {
