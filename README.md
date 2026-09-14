@@ -120,7 +120,7 @@ Monitors share the global project/workspace state. Each monitor can be treated a
 Monitors can not be attached to the same workspace at the same time. They can be on the same project at the same time.
 
 #### App Launching
-WinMux supports single-modifer keybindings (e.g. triggering an action on press of `⌘`)
+SceneMux supports single-modifer keybindings (e.g. triggering an action on press of `⌘`)
 
 I highly recommend that you configure the apps you use every day to be launch with Left/Right Option+Command, or similar shortcuts, otherwise it might be hard to launch common things into the current workspace (and instead, take you to the other workspace where the app is currently active). Here is some of the apps that I have keybinded:
 
