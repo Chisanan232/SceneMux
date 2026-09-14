@@ -14,7 +14,7 @@ let package = Package(
         .executable(name: "scenemux-marketing-renderer", targets: ["MarketingRenderer"]),
         .executable(name: "scenemux-window-capture", targets: ["WindowCapture"]),
         // Don't use this build for release, use xcode instead
-        .executable(name: "WinMuxApp", targets: ["WinMuxApp"]),
+        .executable(name: "SceneMuxApp", targets: ["SceneMuxApp"]),
         // We only need to expose this as a product for xcode
         .library(name: "AppBundle", targets: ["AppBundle"]),
         .library(name: "SparkleSupport", targets: ["SparkleSupport"]),
@@ -60,7 +60,7 @@ let package = Package(
             ],
         ),
         .executableTarget(
-            name: "WinMuxApp",
+            name: "SceneMuxApp",
             dependencies: [
                 .target(name: "AppBundle"),
                 .target(name: "SparkleSupport"),

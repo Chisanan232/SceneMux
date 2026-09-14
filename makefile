@@ -39,7 +39,7 @@ build:
 	rm -rf .debug && \
 	mkdir .debug && \
 	cp -r .build/debug/scenemux .debug && \
-	cp -r .build/debug/WinMuxApp .debug'
+	cp -r .build/debug/SceneMuxApp .debug'
 
 build-clean:
 	/bin/bash -lc 'cd "$(CURDIR)" && rm -rf .build .debug'
@@ -56,9 +56,9 @@ run:
 	        echo "Missing WinMux config: $$config_path" >&2; \
 	        exit 1; \
 	    fi; \
-	    exec ./.debug/WinMuxApp --config-path "$$config_path" $(ARGS); \
+	    exec ./.debug/SceneMuxApp --config-path "$$config_path" $(ARGS); \
 	else \
-	    exec ./.debug/WinMuxApp $(ARGS); \
+	    exec ./.debug/SceneMuxApp $(ARGS); \
 	fi'
 
 run-clean:
@@ -72,9 +72,9 @@ run-clean:
 	        echo "Missing WinMux config: $$config_path" >&2; \
 	        exit 1; \
 	    fi; \
-	    exec ./.debug/WinMuxApp --config-path "$$config_path" $(ARGS); \
+	    exec ./.debug/SceneMuxApp --config-path "$$config_path" $(ARGS); \
 	else \
-	    exec ./.debug/WinMuxApp $(ARGS); \
+	    exec ./.debug/SceneMuxApp $(ARGS); \
 	fi'
 
 cli:

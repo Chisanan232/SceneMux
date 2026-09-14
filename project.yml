@@ -24,7 +24,7 @@ targets:
         LSUIElement: true
         SUEnableAutomaticChecks: false
     sources:
-      - "Sources/WinMuxApp"
+      - "Sources/SceneMuxApp"
       - "resources"
     dependencies:
       - package: WinMuxPackage
