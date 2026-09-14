@@ -46,4 +46,17 @@ final class SceneLayoutPlanTest: XCTestCase {
 
         XCTAssertEqual(plan.groups.map(\.slotId), [editor.id, terminal.id, preview.id])
     }
+
+    func testASlotsWindowsArriveInAttachmentOrder() throws {
+        let comms = SceneCoreFixtures.slot(role: .communication, composition: .tabbed, order: 0)
+        let scene = try SceneCoreFixtures.scene(slots: [comms])
+            .attaching(SceneCoreFixtures.attachment(windowRef: try .init(bundleId: App.line, ordinalWithinApp: 0),
+                                                    slotId: comms.id))
+            .attaching(SceneCoreFixtures.attachment(windowRef: try .init(bundleId: App.slack, ordinalWithinApp: 0),
+                                                    slotId: comms.id))
+
+        let plan = SceneCore.SceneLayoutPlan(scene, on: substrate)
+
+        XCTAssertEqual(plan.groups.singleOrNil()?.windows.map(\.bundleId), [App.line, App.slack])
+    }
 }
