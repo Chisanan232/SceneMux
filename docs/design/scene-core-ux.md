@@ -67,7 +67,7 @@ Expanded on hover or on focus:
 
 ```
 ┌──────────────────────────────────────────────┐
-│  SCENES                                  ⌘⇧S │
+│  SCENES                                  ⌃⌥S │
 ├──────────────────────────────────────────────┤
 │ ▌ Debug PROD-123                    active   │  ← accent bar, filled row
 │   ├ ⌨  Terminal            1 window          │
@@ -85,7 +85,7 @@ Expanded on hover or on focus:
 │   Review release notes             2 windows │
 │   Onboarding                          empty  │
 │                                              │
-│ + New Scene                              ⌘N  │
+│ + New Scene                             ⌃⌥N  │
 ├──────────────────────────────────────────────┤
 │ SHARED                                       │
 │   Music                          persistent  │
@@ -148,7 +148,8 @@ Three rules keep this honest:
 
 ### Create
 
-`⌘N` in the sidebar, `+ New Scene`, or typing a name that matches nothing in the switcher and confirming.
+`⌃⌥N` from anywhere, `+ New Scene` in the sidebar, or typing a name that matches nothing in the switcher
+and confirming.
 One field, inline, no dialog:
 
 ```
@@ -170,21 +171,22 @@ is untouched, so nothing about a Scene depends on its name.
 
 ### Enter
 
-`⏎` in the switcher, click the Scene row, or `⌘⌥1…9`. On entry: the Scene's Slots project onto the current
+`⏎` in the switcher, click the Scene row, or `⌃⌥1…9`. On entry: the Scene's Slots project onto the current
 workspace, focus lands in the highest-ordered non-empty Slot, and the menu bar item changes to the Scene's
 title. An entered Scene with no attachments shows [the empty-Scene state](#empty-error-and-recovery-states)
 and moves nothing.
 
 ### Leave
 
-`⌘⌥0`, *Leave Scene* in the menu bar item, or entering another Scene. **Nothing moves** — that is invariant
+`⌃⌥0`, *Leave Scene* in the menu bar item, or entering another Scene. **Nothing moves** — that is invariant
 I5, and it is the flow most likely to be "helpfully" broken by a later ticket. The Scene's row drops to
 `defined, with attachments`, the menu bar item returns to *No Scene*, and no HUD appears, because nothing
 happened that the user needs to be told about.
 
 ### Close
 
-`⌘⌫` on a selected Scene, or *Close Scene* in its context menu. This is the only flow that touches windows,
+`⌃⌥⌫` for the active Scene, `⌘⌫` on a selected row in the switcher, or *Close Scene* in a row's context
+menu. This is the only flow that touches windows,
 so it is the only one that asks first:
 
 ```
@@ -254,7 +256,7 @@ silent difference between what the row said yesterday and where the window goes 
 
 ### Creating a Slot
 
-`⌘⇧N` on a selected Scene, or `+` on the Scene's row when expanded. A Slot needs a role and nothing else:
+`⌃⌥⇧N` for the active Scene, or `+` on a Scene's row when expanded. A Slot needs a role and nothing else:
 
 ```
 ┌──────────────────────────────────────────────┐
@@ -275,9 +277,9 @@ want.
 | Path | Interaction |
 | --- | --- |
 | Drag | Drag a window row onto a Slot row. The Slot row shows a drop highlight; dropping between two Slots is not a target, because a window belongs *in* a role, not between roles |
-| Keyboard | Select the window row, `⌘⌥→` / `⌘⌥←` to move it to the next/previous Slot |
-| Command | `⌘⇧M` opens the switcher in *move-to-slot* mode: type a role, `⏎` |
-| From the screen | Focus a window, then `⌘⌥⇧1…5` to send the focused window to the *n*-th Slot of the active Scene |
+| Keyboard | Select the window row in the switcher, then `⌥↑` / `⌥↓` to move it to the previous/next Slot |
+| Command | `⌃⌥⇧M` opens the switcher in *move-to-slot* mode: type a role, `⏎` |
+| From the screen | Focus a window, then `⌃⌥⇧1…5` to send it to the *n*-th Slot of the active Scene |
 
 Dragging a window whose Home differs from the Slot's serving Home shows the drop as a **borrow**: the drop
 highlight is dashed and the drop hint reads *"Mount here · stays a Communication window"*. The user is told
@@ -295,7 +297,7 @@ Composition is a property of the Slot, cycled from its row and shown in its trai
 
 | Path | Interaction |
 | --- | --- |
-| Keyboard | `⌘⇧\` cycles the selected Slot's composition: single → split → tabs |
+| Keyboard | `⌃⌥⇧C` cycles the focused window's Slot: single → split → tabs |
 | Pointer | Click the composition chip in the Slot's trailing area; a three-item dropdown |
 | Drag | Drop a window *onto another window row* inside the same Slot to make it tabbed — the same gesture the inherited tab strip already uses |
 
@@ -348,7 +350,7 @@ read as an invitation rather than a failure:
 │   ◫  Preview                         empty   │
 │   ◷  Observability                   empty   │
 │                                              │
-│   Focus a window and press ⌘⌥⇧1 to put it    │
+│   Focus a window and press ⌃⌥⇧1 to put it    │
 │   in the first slot.                         │
 └──────────────────────────────────────────────┘
 ```
@@ -359,7 +361,7 @@ that is invariant I13, and it is what makes a Slot a plan rather than a leftover
 ### No Scenes at all
 
 First run, and after a state file is discarded. One line and one action — *"No scenes yet. A scene is one
-task: `Debug PROD-123`, `Review the release notes`. ⌘N"* — and, critically, **the app behaves exactly as
+task: `Debug PROD-123`, `Review the release notes`. ⌃⌥N"* — and, critically, **the app behaves exactly as
 `v0.0.0` did.** Every window keeps working, the inherited sidebar keeps working, and nothing about the
 desktop changes because Scene Core has no data.
 
@@ -420,7 +422,7 @@ editor, so they are specified separately.
 Every combination below was checked against `resources/default-config.toml` at `13d6ee1a`: the inherited
 default config binds `alt`, `alt-shift`, `alt-cmd`, `alt-cmd-shift`, `cmd-shift`, `ctrl`, `ctrl-shift`,
 `ctrl-cmd-shift`, `cmd-ctrl` and `ctrl-f` — and **not one `ctrl-alt` combination.** So Scene Core takes
-`ctrl-alt` as its own namespace and collides with nothing a user of `v0.0.0` already has.
+`ctrl-alt` as its own namespace — written `⌃⌥` in the diagrams above — and collides with nothing a user of `v0.0.0` already has.
 
 | Binding | Command | Action |
 | --- | --- | --- |
@@ -444,7 +446,7 @@ ships with no default binding.
 
 Inside the switcher or a focused sidebar: `↑`/`↓` move the selection, `→`/`←` expand and collapse,
 type-to-filter narrows, `⏎` activates the selection, `⇥` moves between sections, `⌘⏎` enters a Scene without
-closing the switcher, `⌘⌫` closes the selected Scene, `F2` or a second `⏎` renames in place, and `esc`
+closing the switcher, `⌥↑`/`⌥↓` move a selected window row between Slots, `⌘⌫` closes the selected Scene, `F2` or a second `⏎` renames in place, and `esc`
 dismisses — reverting an in-progress edit rather than committing it.
 
 The switcher is the keyboard surface, and the **sidebar never takes key focus on its own.** It expands on
