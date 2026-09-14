@@ -21,4 +21,13 @@ final class SceneWorldLifecycleTest: XCTestCase {
         XCTAssertEqual(created.world.scenes, [created.scene])
         XCTAssertNil(created.world.activeScene)
     }
+
+    func testEnteringASceneProjectsItOntoASubstrate() throws {
+        let created = try SceneCore.SceneWorld.empty.creating(title: "Debug PROD-123")
+
+        let world = try created.world.entering(created.scene.id, on: substrate)
+
+        XCTAssertEqual(world.activeScene?.id, created.scene.id)
+        XCTAssertEqual(world.scene(created.scene.id)?.state, .active(substrate))
+    }
 }
