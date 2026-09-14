@@ -594,7 +594,9 @@ indistinguishable from "it is broken".
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-Three rules hold this together, and each one is checkable in review:
+Three rules hold this together, and each one is checkable in review — the first of them is also checked by
+`script/test_scene_domain_layering.py` on every pull request, because a rule that only a reviewer enforces
+is a rule that survives exactly as long as reviewers keep noticing:
 
 1. **`scene/domain/` imports `Foundation` and nothing else.** No `AppKit`, no `Common`, no engine type.
    The domain model is where the product's meaning lives, and it must be testable without a window
