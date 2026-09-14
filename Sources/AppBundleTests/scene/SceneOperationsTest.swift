@@ -33,6 +33,20 @@ final class SceneOperationsTest: XCTestCase {
         XCTAssertEqual(scene.attachments.count, 1)
     }
 
+    func testTwoWindowsSharingASlotAreListedInTheOrderTheyArrived() throws {
+        // A `tabbed` Slot's tab order and a `split`'s pane order are this list's order, so it is part of what
+        // the Scene means rather than an incidental detail of how the attachments are stored.
+        let slot = SceneCoreFixtures.slot(role: .terminal, composition: .tabbed)
+        let first = try SceneCoreFixtures.windowRef("com.apple.Terminal", ordinal: 0)
+        let second = try SceneCoreFixtures.windowRef("com.apple.Terminal", ordinal: 1)
+
+        let scene = try SceneCoreFixtures.scene(slots: [slot])
+            .attaching(SceneCoreFixtures.attachment(windowRef: first, slotId: slot.id))
+            .attaching(SceneCoreFixtures.attachment(windowRef: second, slotId: slot.id))
+
+        XCTAssertEqual(scene.attachments(in: slot.id).map(\.windowRef), [first, second])
+    }
+
     func testDetachingAWindowTheSceneNeverHeldChangesNothing() throws {
         // Detach is what teardown and "the window closed while we were not looking" both call, and neither
         // knows whether the attachment is still there. Idempotence is what lets both call it unconditionally.
