@@ -58,6 +58,8 @@ cmd-history() {
         fail "derivation baseline is NOT an ancestor of HEAD — the inherited history is broken"
     fi
 
+    # Upstream's release tags run v0.1.1 … v0.5.4, so that range is the fingerprint of an inherited
+    # tag. v0.1.0 is excluded because upstream never published it and SceneMux does: it is Phase 1.
     local inherited
     inherited=$(git tag --list 'v0.[1-5].*' | grep -vxE 'v0\.1\.0' || true)
     if [ -z "$inherited" ]; then
