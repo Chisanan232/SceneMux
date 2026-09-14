@@ -5,7 +5,7 @@ func dumpAxRecursive(_ ax: AXUIElement, _ kind: AxKind, recursionDepth: Int = 0)
     if recursionDepth > 5 {
         return [
             "dumpAxRecursive infinite recursion": .bool(true),
-            kAXWinMuxSynthetic: .bool(true),
+            kAXSceneMuxSynthetic: .bool(true),
         ]
     }
     let recursionDepth = recursionDepth + 1
