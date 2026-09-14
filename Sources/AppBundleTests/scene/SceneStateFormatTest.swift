@@ -47,4 +47,14 @@ final class SceneStateFormatTest: XCTestCase {
         XCTAssertTrue(refusal.diagnostic.contains("is version 99"), refusal.diagnostic)
         XCTAssertEqual(read.scenes, [])
     }
+
+    func testBytesThatAreNotJsonCostEverySceneAndSayOneThing() {
+        let read = SceneCore.SceneStateFormat.read(Data("not a state file".utf8), from: path)
+
+        // Invariant I9: zero Scenes, and — just as important — exactly one thing to tell the user, because
+        // "SceneMux forgot my Scenes" with no explanation is indistinguishable from "SceneMux is broken".
+        XCTAssertEqual(read, .refused(.init(reason: .malformed(at: nil), path: path, preservedAt: nil)))
+        XCTAssertEqual(read.scenes, [])
+        XCTAssertEqual(read.diagnostics.count, 1)
+    }
 }
