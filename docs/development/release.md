@@ -75,9 +75,12 @@ Apple credentials and is a human-authorized step — never invent or reuse crede
    gh release create v<version> --repo Chisanan232/SceneMux \
        --title "SceneMux v<version> — <theme>" --notes-file <notes>
    ```
-   or let `make release VERSION=<version>` do it — it pins `--repo` through `RELEASE_REPO`.
+   Publish it yourself rather than letting `make release` do it: with `PUBLISH=1` the target titles
+   the Release `<app name> <version>` (`SceneMux 0.0.0`), which is not the title the mapping
+   requires. Build with `PUBLISH=0`, then create the Release explicitly with the mapped title.
    A bare `gh` here resolves to the `upstream` remote; see the warning in
-   [`workflow.md`](workflow.md#beware-of-gh-base-repo-resolution).
+   [`workflow.md`](workflow.md#beware-of-gh-base-repo-resolution). `make release` pins `--repo`
+   through `RELEASE_REPO` for the same reason.
 5. **Attach the artifacts**: the `.zip` and, once SceneMux publishes an update feed, `appcast.xml`.
 
 ## Postconditions
