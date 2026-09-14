@@ -62,6 +62,20 @@ final class SceneWorldLifecycleTest: XCTestCase {
         }
     }
 
+    func testASceneThatIsClosingCannotBePutBackOnScreen() throws {
+        let scene = try SceneCoreFixtures.debugScene(state: .active(substrate))
+        let closing = try SceneCore.SceneWorld(scenes: [scene]).closing(scene.id).world
+
+        // Its borrowed windows are on their way home. Re-entering it would mean racing the teardown for the
+        // same windows, so the lifecycle simply has no such transition.
+        XCTAssertThrowsError(try closing.entering(scene.id, on: substrate)) { error in
+            XCTAssertEqual(
+                error as? SceneCore.SceneCoreError,
+                .illegalTransition(from: .ending, to: .active),
+            )
+        }
+    }
+
     func testLeavingASceneMovesNothingAndForgetsNothing() throws {
         let scene = try SceneCoreFixtures.debugScene(state: .active(substrate))
         let world = try SceneCore.SceneWorld(scenes: [scene])
