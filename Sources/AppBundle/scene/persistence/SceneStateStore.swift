@@ -22,6 +22,21 @@ extension SceneCore {
             self.url = url
         }
 
+        /// Write these Scenes, replacing whatever was there.
+        ///
+        /// `.atomic` is the whole point: it writes a temporary file and renames it into place, so a crash or a
+        /// full disk part-way through leaves the previous state file intact rather than half a new one. Half a
+        /// state file is the input that invariant I9 exists for, and not producing it is cheaper than
+        /// surviving it.
+        func save(_ scenes: [Scene]) throws {
+            let data = try SceneStateFormat.encoded(scenes)
+            try FileManager.default.createDirectory(
+                at: url.deletingLastPathComponent(),
+                withIntermediateDirectories: true,
+            )
+            try data.write(to: url, options: .atomic)
+        }
+
         /// The real location: `~/Library/Application Support/SceneMux/scene-state.json`.
         ///
         /// The directory is `sceneMuxAppName`, which is `SceneMux-Debug` in a debug build — so developing
