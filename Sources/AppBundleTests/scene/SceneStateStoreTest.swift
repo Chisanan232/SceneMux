@@ -77,4 +77,20 @@ final class SceneStateStoreTest: XCTestCase {
         XCTAssertTrue(refusal.diagnostic.contains(preservedAt), refusal.diagnostic)
         XCTAssertNotEqual(try Data(contentsOf: url), refusedBytes)
     }
+
+    func testSavingOverAndOverLeavesOneStateFileAndNoDebris() throws {
+        let directory = try temporaryDirectory()
+        let store = SceneCore.SceneStateStore(url: directory.appending(path: "scene-state.json"))
+
+        for _ in 0 ..< 5 {
+            try store.save([try SceneCoreFixtures.scene()])
+        }
+
+        // An atomic write works through a temporary file, and Scene state is saved every time a window is
+        // attached. A leak here would quietly fill somebody's Application Support directory for months.
+        XCTAssertEqual(
+            try FileManager.default.contentsOfDirectory(atPath: directory.path),
+            ["scene-state.json"],
+        )
+    }
 }
