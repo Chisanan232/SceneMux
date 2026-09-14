@@ -75,8 +75,11 @@ session, and at the end every remaining window was `floating` (plus one pre-exis
 
 ## Verified inherited behaviour
 
-Measured with `scenemux agent query` (a JSON world snapshot) before and after each command. Gaps are
-32pt outer / 32pt inner on this display.
+Measured with `scenemux agent query` (a JSON world snapshot) before and after each command. Two things
+make the numbers below reproducible: `gaps` defaults to zero, so tiled windows are edge to edge; and
+the tiled area is the monitor's *visible* rect, which on this machine is x ∈ [32, 1727], y ∈ [38,
+1116] — inset by the menu bar at the top and by a left-hand Dock. Three windows therefore divide
+1695pt into exactly 565pt each.
 
 | Behaviour | Command | Observed |
 | --- | --- | --- |
