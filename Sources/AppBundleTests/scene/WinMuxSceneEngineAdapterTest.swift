@@ -304,4 +304,52 @@ final class WinMuxSceneEngineAdapterTest: XCTestCase {
         XCTAssertEqual(tabsRect?.minX, solo[3].maxX)
         XCTAssertEqual(tabsRect?.minY, solo[3].minY)
     }
+
+    /// A Scene laid out on a laptop screen is still that Scene on an ultrawide, because nothing SceneMux
+    /// stores is a rectangle. A Slot is an order and a composition; the engine recomputes every frame from
+    /// whichever monitor it finds. So a display change is a relayout, not a repair — and this is the test
+    /// that would catch an adapter that had cached geometry somewhere to save itself work.
+    func testTheLayoutIntentSurvivesADisplayChange() async throws {
+        config.enableNormalizationFlattenContainers = true
+        config.gaps = .zero
+        makeGoldenJourneyWindows()
+        let workspace = focus.workspace
+        show(workspace, onDisplayOfWidth: 1920)
+
+        _ = project(try SceneCoreFixtures.debugScene(), onto: workspace.name)
+        try await workspace.layoutWorkspace()
+        let laidOut = workspace.rootTilingContainer.layoutDescription
+        let onTheLaptop = (1 ... 4).map { rect(ofWindowId: UInt32($0)) }
+
+        show(workspace, onDisplayOfWidth: 3440)
+        try await workspace.layoutWorkspace()
+
+        XCTAssertEqual(workspace.rootTilingContainer.layoutDescription, laidOut)
+        let onTheUltrawide = (1 ... 4).map { rect(ofWindowId: UInt32($0)) }
+        for (narrow, wide) in zip(onTheLaptop, onTheUltrawide) {
+            XCTAssertGreaterThan(wide.width, narrow.width)
+        }
+        let tabs = workspace.rootTilingContainer.children.last as? TilingContainer
+        XCTAssertEqual(tabs?.lastAppliedLayoutPhysicalRect.orDie().maxX, 3440)
+    }
+
+    private func rect(ofWindowId id: UInt32) -> Rect {
+        Window.get(byId: id).orDie().lastAppliedLayoutPhysicalRect.orDie()
+    }
+
+    /// The same display, resized. Keeping the monitor's id means the workspace stays on the monitor it was
+    /// already on, so what changes between the two halves of the test is the geometry and nothing else.
+    private func show(_ workspace: Workspace, onDisplayOfWidth width: CGFloat) {
+        let rect = Rect(topLeftX: 0, topLeftY: 0, width: width, height: 1080)
+        let display = TestMonitor(
+            monitorAppKitNsScreenScreensId: 1,
+            name: "Display",
+            rect: rect,
+            visibleRect: rect,
+            isMain: true,
+        )
+        setMonitorsForTests([display])
+        XCTAssertTrue(display.setActiveWorkspace(workspace))
+        Workspace.reconcileWorkspaceState()
+    }
 }
