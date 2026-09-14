@@ -281,9 +281,15 @@ want.
 | Command | `⌃⌥⇧M` opens the switcher in *move-to-slot* mode: type a role, `⏎` |
 | From the screen | Focus a window, then `⌃⌥⇧1…5` to send it to the *n*-th Slot of the active Scene |
 
-Dragging a window whose Home differs from the Slot's serving Home shows the drop as a **borrow**: the drop
-highlight is dashed and the drop hint reads *"Mount here · stays a Communication window"*. The user is told
-what borrowing means at the moment they do it, not after.
+When the dragged window's Home looks foreign to the Slot's role, the drop is *proposed* as a **borrow**: the
+drop highlight is dashed and the drop hint reads *"Mount here · stays a Communication window"*. The user is
+told what borrowing means at the moment they do it, not after — and the proposal is only a default. Holding
+`⌥` while dropping takes the other branch, and the hint changes to *"Attach here · this Scene owns it"*.
+
+The comparison chooses which of the two verbs the drop bar offers; it never decides ownership on its own.
+Ownership is whichever verb the drop actually performed, which is why an override is a real override and not
+a suggestion the system quietly reinterprets. See
+[Ownership](scene-core-architecture.md#ownership).
 
 ### Composing several windows in one Slot
 
@@ -466,7 +472,7 @@ citizen is not a macOS design:
 | Create / rename | `+ New Scene`; double-click a title to rename |
 | Leave / close | The Scene row's context menu, or the menu bar item |
 | Put a window in a Slot | Drag its row onto the Slot row |
-| Borrow a window | The same drag, when the Homes differ — the drop hint says so |
+| Borrow a window | The same drag — the drop bar offers *mount* by default when the Homes differ, `⌥` takes the other branch |
 | Reorder Slots | Drag a Slot row within its Scene |
 | Compose | Click the composition chip, or drop a window onto another window row in the same Slot |
 | Detach | Drag a window row out of the Scene, or *Remove from Scene* in its context menu |
