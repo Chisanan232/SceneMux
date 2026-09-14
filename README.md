@@ -163,20 +163,27 @@ end tell
 ```
 
 ## Installation
-Install WinMux with Homebrew:
+SceneMux has no Homebrew tap and no published binary yet. Build and install it from source:
 
 ```shell
-brew tap ZimengXiong/homebrew https://github.com/ZimengXiong/homebrew
-brew trust ZimengXiong/homebrew
-brew install --cask winmux
-xattr -cr /Applications/WinMux.app
+git clone https://github.com/Chisanan232/SceneMux.git
+cd SceneMux
+make install
 ```
 
-Or download the latest binary from releases and launch.
+`make install` builds a signed Release archive, copies `SceneMux.app` into `/Applications`, and
+launches it. Signing uses your own Apple Development certificate; the build is not notarized, so
+macOS may require you to right-click the app and choose **Open** the first time you launch it.
 
-Release builds are signed with the project's Apple Development certificate. They are not notarized, so macOS may require you to right-click the app and choose **Open** the first time you launch it.
+SceneMux needs Accessibility permission to move and resize other applications' windows. macOS
+prompts for it on first launch.
 
-WinMux checks GitHub Releases for signed updates automatically. You can also select **Check for Updates…** from the menu bar.
+### Updates
+
+There is no update feed at v0.0.0. SceneMux ships with its update channel deliberately
+unconfigured, so it never checks for — and can never install — a build from another project's
+release feed. **Check for Updates…** is hidden from the menu bar until SceneMux publishes a feed
+of its own. Until then, update by pulling and running `make install` again.
 
 ## Migrating
 ### From AeroSpace
