@@ -1,12 +1,7 @@
 MIT License
 
-Copyright (c) 2026 Zimeng Xiong (WinMux, the upstream this work derives from)
+Copyright (c) 2026 Zimeng Xiong
 Copyright (c) 2026 SceneMux contributors
-
-SceneMux is a derivative work of WinMux and remains under the same MIT terms.
-The upstream copyright notice above is retained, not replaced; SceneMux claims
-no authorship of the inherited code. See docs/legal/ORIGIN.md for the exact
-derivation baseline and THIRD_PARTY_NOTICES.md for bundled-dependency notices.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
