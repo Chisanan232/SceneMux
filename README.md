@@ -186,14 +186,21 @@ release feed. **Check for Updates…** is hidden from the menu bar until SceneMu
 of its own. Until then, update by pulling and running `make install` again.
 
 ## Migrating
-### From AeroSpace
-If `~/.config/winmux/winmux.toml` already exists, WinMux uses it as-is.
+SceneMux reads its own config at `~/.config/scenemux/scenemux.toml` (or `~/.scenemux.toml`). If
+that file already exists, SceneMux uses it as-is and imports nothing.
 
-If you have an AeroSpace config but no WinMux config yet, WinMux creates one for you on first launch. It copies over your AeroSpace shortcuts/key mapping and fills in the rest with WinMux defaults, including the sidebar and window tabs.
+If it does not exist, SceneMux creates it on first launch by importing the first config it finds,
+in this order:
 
-You do not need to edit anything to get started. After import, WinMux uses `~/.config/winmux/winmux.toml` and leaves your AeroSpace config alone.
+1. `~/.config/winmux/winmux.toml`, then `~/.winmux.toml` — an existing WinMux config, copied verbatim.
+2. `~/.config/aerospace/aerospace.toml`, then `~/.aerospace.toml` — an AeroSpace config, with shortcuts and key mapping
+   carried over and the rest filled in from SceneMux defaults, including the sidebar and window tabs.
+3. Nothing — SceneMux writes the bundled starter config.
 
-If neither exists, WinMux creates a new WinMux config with the bundled defaults.
+Every import is a **copy**. SceneMux never writes to, moves, or deletes the file it imported from,
+so an installed WinMux or AeroSpace keeps running off its own config afterwards. SceneMux also
+keeps accepting the inherited `WINMUX_*` exec variables and the `during-winmux-startup` matcher
+key, so an imported WinMux config behaves the same way it did before.
 
 ## Credits
 [WinMux](https://github.com/ZimengXiong/winmux) — the direct upstream this project is derived from.
