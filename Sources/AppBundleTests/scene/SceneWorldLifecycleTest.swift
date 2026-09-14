@@ -61,4 +61,17 @@ final class SceneWorldLifecycleTest: XCTestCase {
             XCTAssertEqual(error as? SceneCore.SceneLifecycleError, .anotherSceneIsActive(showing.id))
         }
     }
+
+    func testLeavingASceneMovesNothingAndForgetsNothing() throws {
+        let scene = try SceneCoreFixtures.debugScene(state: .active(substrate))
+        let world = try SceneCore.SceneWorld(scenes: [scene])
+
+        let left = try world.leaving(scene.id)
+
+        XCTAssertEqual(left.scene(scene.id)?.state, .defined)
+        XCTAssertNil(left.activeScene)
+        // Still about the same six windows: leaving is not a small teardown, and switching tasks and back
+        // must not send borrowed windows home twice.
+        XCTAssertEqual(left.scene(scene.id)?.attachments, scene.attachments)
+    }
 }
