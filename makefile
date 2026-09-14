@@ -24,9 +24,9 @@ xcodeproj:
 	$(MAKE) generate VERSION="$(VERSION)"
 	/bin/bash -lc 'cd "$(CURDIR)" && \
 	source ./script/setup.sh && \
-	export XCODEGEN_WINMUX_VERSION="$(VERSION)" && \
-	export XCODEGEN_WINMUX_CODE_SIGN_IDENTITY="$(CODESIGN_IDENTITY)" && \
-	export XCODEGEN_WINMUX_DEVELOPMENT_TEAM="$(DEVELOPMENT_TEAM)" && \
+	export XCODEGEN_SCENEMUX_VERSION="$(VERSION)" && \
+	export XCODEGEN_SCENEMUX_CODE_SIGN_IDENTITY="$(CODESIGN_IDENTITY)" && \
+	export XCODEGEN_SCENEMUX_DEVELOPMENT_TEAM="$(DEVELOPMENT_TEAM)" && \
 	./script/install-dep.sh --xcodegen && \
 	./.deps/xcodegen/xcodegen'
 
