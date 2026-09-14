@@ -63,4 +63,21 @@ final class SceneSwitcherModelTest: XCTestCase {
 
         XCTAssertEqual(model.results.map(\.title), ["Debug PROD-123"])
     }
+
+    /// Creating a Scene does not enter it: nothing on the user's screen moves, which is what makes creating a
+    /// Scene free. The new Scene is selected, so the next `⏎` enters the thing that was just named.
+    func testCreatingASceneNamesItWithoutMovingAnything() throws {
+        model.query = "Debug PROD-123"
+
+        model.beginCreate()
+        XCTAssertEqual(model.nameField, "Debug PROD-123", "the field starts as what was searched for")
+        model.template = .empty
+        model.commitName()
+
+        XCTAssertEqual(model.mode, .browsing)
+        XCTAssertEqual(model.query, "")
+        XCTAssertEqual(model.selectedScene?.title, "Debug PROD-123")
+        XCTAssertNil(model.snapshot.activeScene, "creating does not enter")
+        XCTAssertEqual(port.preparedSubstrates, [])
+    }
 }
