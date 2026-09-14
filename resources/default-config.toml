@@ -163,3 +163,12 @@ on-mode-changed = []
     # Scenes: the ctrl-alt namespace, which nothing above uses.
     ctrl-alt-s = 'scene switcher'
     ctrl-alt-n = 'scene new'
+    ctrl-alt-1 = 'scene 1'
+    ctrl-alt-2 = 'scene 2'
+    ctrl-alt-3 = 'scene 3'
+    ctrl-alt-4 = 'scene 4'
+    ctrl-alt-5 = 'scene 5'
+    ctrl-alt-6 = 'scene 6'
+    ctrl-alt-7 = 'scene 7'
+    ctrl-alt-8 = 'scene 8'
+    ctrl-alt-9 = 'scene 9'
