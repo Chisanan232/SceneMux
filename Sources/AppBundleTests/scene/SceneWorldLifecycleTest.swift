@@ -196,4 +196,17 @@ final class SceneWorldLifecycleTest: XCTestCase {
         XCTAssertEqual(world.scene(scene.id)?.attachments, [])
         XCTAssertEqual(world.unfinishedTeardowns, [])
     }
+
+    func testAWindowThatIsAlreadyGoneIsNotSomethingToRestore() throws {
+        let scene = try SceneCoreFixtures.debugScene(state: .active(substrate))
+        let closed = try SceneCore.SceneWorld(scenes: [scene]).closing(scene.id)
+
+        let world = try closed.world
+            .resolving(.windowIsGone, for: try SceneCoreFixtures.windowRef(App.line), in: scene.id)
+            .resolving(.windowIsGone, for: try SceneCoreFixtures.windowRef(App.slack), in: scene.id)
+
+        // Someone quitting LINE while the Scene was open is an ordinary Tuesday, not a Scene that can never
+        // finish closing.
+        XCTAssertEqual(world.scene(scene.id)?.state, .ended)
+    }
 }
