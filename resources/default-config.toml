@@ -174,3 +174,4 @@ on-mode-changed = []
     ctrl-alt-9 = 'scene 9'
     ctrl-alt-h = 'scene prev'
     ctrl-alt-l = 'scene next'
+    ctrl-alt-0 = 'scene leave'
