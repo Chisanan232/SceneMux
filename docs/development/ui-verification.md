@@ -64,6 +64,12 @@ Rules:
   customer names and file paths all leak this way.
 - If a capture picks up something it should not have, delete the file immediately and say so plainly
   in the pull request. A deleted-and-declared mistake is recoverable; a quietly attached one is not.
+- **A region capture of SceneMux's own chrome is not automatically safe.** The tab strip and the HUD
+  panels are drawn with `.ultraThinMaterial`, which samples whatever is behind them, so an unrelated
+  application can bleed through SceneMux's own UI. Capture translucent chrome over a backdrop you
+  control — an empty workspace — and read the result before attaching it. See
+  [`baseline-verification.md`](baseline-verification.md) for a worked example where this looked like a
+  rendering defect.
 
 ## Recording the result
 
