@@ -10,7 +10,7 @@
 /default.profraw
 .DS_Store
 /.xcode-build
-/WinMux.xcodeproj
+/SceneMux.xcodeproj
 # Swift package manager
 /.build
 /.swiftpm
