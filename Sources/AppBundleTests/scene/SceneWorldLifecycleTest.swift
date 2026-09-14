@@ -224,4 +224,21 @@ final class SceneWorldLifecycleTest: XCTestCase {
         XCTAssertEqual(world.scene(scene.id)?.state, .ended)
         XCTAssertEqual(world.scene(scene.id)?.attachments, [])
     }
+
+    func testAnInterruptedTeardownComesBackAsTheWorkThatIsLeft() throws {
+        let scene = try SceneCoreFixtures.debugScene(state: .active(substrate))
+        let closed = try SceneCore.SceneWorld(scenes: [scene]).closing(scene.id)
+        let line = try SceneCoreFixtures.windowRef(App.line)
+        let halfway = try closed.world.resolving(.restored, for: line, in: scene.id)
+
+        // Exactly what a relaunch reads: the Scenes as they were saved, re-derived into plans.
+        let afterARestart = try SceneCore.SceneWorld(scenes: halfway.scenes)
+
+        XCTAssertEqual(afterARestart.closingScenes.map(\.id), [scene.id])
+        XCTAssertEqual(afterARestart.unfinishedTeardowns.count, 1)
+        XCTAssertEqual(
+            afterARestart.unfinishedTeardowns.first?.pending.map(\.windowRef),
+            [try SceneCoreFixtures.windowRef(App.slack)],
+        )
+    }
 }
