@@ -19,6 +19,16 @@ final class SceneValidationTest: XCTestCase {
         }
     }
 
+    func testTwoTerminalsAreAPerfectlyOrdinaryScene() throws {
+        let first = SceneCoreFixtures.slot(role: .terminal, order: 0)
+        let second = SceneCoreFixtures.slot(role: .terminal, order: 1)
+
+        let scene = try SceneCoreFixtures.scene(slots: [first, second])
+
+        XCTAssertEqual(scene.slots.map(\.role), [.terminal, .terminal])
+        XCTAssertNotEqual(first.id, second.id)
+    }
+
     func testASceneNobodyCouldNameIsRejected() {
         XCTAssertThrowsError(try SceneCoreFixtures.scene(title: " \t ")) { error in
             XCTAssertEqual(error as? SceneCore.SceneCoreError, .emptySceneTitle)
