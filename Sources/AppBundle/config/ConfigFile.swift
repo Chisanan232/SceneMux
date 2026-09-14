@@ -219,10 +219,10 @@ func migrateAerospaceConfigForWinMux(_ rawToml: String) throws -> String {
 
     var migrated = aerospaceKeyboardConfigSections(from: rawToml)
     let literalReplacements = [
-        ("AEROSPACE_FOCUSED_WORKSPACE", "WINMUX_FOCUSED_WORKSPACE"),
-        ("AEROSPACE_PREV_WORKSPACE", "WINMUX_PREV_WORKSPACE"),
-        ("AEROSPACE_WINDOW_ID", "WINMUX_WINDOW_ID"),
-        ("AEROSPACE_WORKSPACE", "WINMUX_WORKSPACE"),
+        ("AEROSPACE_FOCUSED_WORKSPACE", SCENEMUX_FOCUSED_WORKSPACE),
+        ("AEROSPACE_PREV_WORKSPACE", SCENEMUX_PREV_WORKSPACE),
+        ("AEROSPACE_WINDOW_ID", SCENEMUX_WINDOW_ID),
+        ("AEROSPACE_WORKSPACE", SCENEMUX_WORKSPACE),
         ("accordion-padding", "tab-group-padding"),
         ("h_accordion", "h_tab_group"),
         ("v_accordion", "v_tab_group"),

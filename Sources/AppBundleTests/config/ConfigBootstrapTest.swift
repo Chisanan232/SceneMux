@@ -164,7 +164,7 @@ final class ConfigBootstrapTest: XCTestCase {
         XCTAssertTrue(migratedText.contains("enabled = true"))
         XCTAssertTrue(migratedText.contains("layout tab-group tiles"))
         XCTAssertTrue(migratedText.contains("layout h_tab_group v_tab_group"))
-        XCTAssertTrue(migratedText.contains("$WINMUX_WINDOW_ID"))
+        XCTAssertTrue(migratedText.contains("$SCENEMUX_WINDOW_ID"))
         XCTAssertFalse(migratedText.contains("exec-on-workspace-change"))
         XCTAssertFalse(migratedText.contains("accordion"))
         XCTAssertFalse(migratedText.contains("AEROSPACE_"))
