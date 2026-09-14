@@ -44,4 +44,47 @@ final class WinMuxSceneEngineAdapterTest: XCTestCase {
         XCTAssertEqual(report.placement(for: editor.id), .realised(.single))
         XCTAssertTrue(report.isFullyRealised)
     }
+
+    /// A split Slot is built the way `join-with` builds one — a nested container the windows are bound into —
+    /// because `split` is a no-op on this engine while flatten-containers normalization is on, as
+    /// `docs/development/baseline-verification.md` measured. Flattening is left on here for the same reason:
+    /// a shape that only holds while normalization is disabled is not a shape SceneMux can promise.
+    func testASplitSlotBuildsAContainerThatSurvivesNormalization() throws {
+        config.enableNormalizationFlattenContainers = true
+        let ide = TestApp(bundleId: App.ide)
+        let terminal = TestApp(bundleId: App.terminal)
+        TestWindow.new(id: 1, parent: elsewhere, app: ide)
+        TestWindow.new(id: 2, parent: elsewhere, app: terminal)
+        TestWindow.new(id: 3, parent: elsewhere, app: terminal)
+        let editor = SceneCoreFixtures.slot(role: .editor, order: 0)
+        let terminals = SceneCoreFixtures.slot(role: .terminal, composition: .split(.vertical), order: 1)
+        let scene = try SceneCoreFixtures.scene(slots: [editor, terminals])
+            .attaching(SceneCoreFixtures.attachment(
+                windowRef: try .init(bundleId: App.ide, ordinalWithinApp: 0),
+                slotId: editor.id,
+            ))
+            .attaching(SceneCoreFixtures.attachment(
+                windowRef: try .init(bundleId: App.terminal, ordinalWithinApp: 0),
+                slotId: terminals.id,
+            ))
+            .attaching(SceneCoreFixtures.attachment(
+                windowRef: try .init(bundleId: App.terminal, ordinalWithinApp: 1),
+                slotId: terminals.id,
+            ))
+
+        let report = project(scene, onto: name)
+
+        XCTAssertEqual(
+            Workspace.get(byName: name).rootTilingContainer.layoutDescription,
+            .h_tiles([
+                .window(1),
+                .v_tiles([
+                    .window(2),
+                    .window(3),
+                ]),
+            ]),
+        )
+        XCTAssertEqual(report.placement(for: terminals.id), .realised(.split(.vertical)))
+        XCTAssertTrue(report.isFullyRealised)
+    }
 }
