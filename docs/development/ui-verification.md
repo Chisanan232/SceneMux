@@ -47,6 +47,12 @@ Be aware of what launching a tiling window manager means: **it will rearrange ev
 display.** Do not start an interactive pass on a machine that is mid-presentation, screen-sharing, or
 holding unsaved work in windows you cannot afford to have moved.
 
+If the only Mac available is one you are working on, use the containment recipe in
+[`baseline-verification.md`](baseline-verification.md) — `--read-only` first, a config that opts out
+of everything automatic, and every mutating command targeted by `--window-id` at a throwaway window.
+It was enough to exercise tiling, tab groups and workspace moves without a single pre-existing window
+changing frame.
+
 ## Screenshot discipline
 
 Screenshots are required for UI changes and for both release gates. They are also the easiest way to
