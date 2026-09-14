@@ -11,8 +11,8 @@ private let sceneMuxNewIssueURL = "https://github.com/Chisanan232/SceneMux/issue
         checkForUpdates: (() -> Void)? = nil,
     ) -> some Scene { // todo should it be converted to "SwiftUI struct"?
         MenuBarExtra {
-            let shortIdentification = "\(winMuxAppName) v\(sceneMuxAppVersion) \(gitShortHash)"
-            let identification      = "\(winMuxAppName) v\(sceneMuxAppVersion) \(gitHash)"
+            let shortIdentification = "\(sceneMuxAppName) v\(sceneMuxAppVersion) \(gitShortHash)"
+            let identification      = "\(sceneMuxAppName) v\(sceneMuxAppVersion) \(gitHash)"
         Text(shortIdentification)
         Button("Copy to clipboard") { identification.copyToClipboard() }
             .keyboardShortcut("C", modifiers: .command)
@@ -37,7 +37,7 @@ private let sceneMuxNewIssueURL = "https://github.com/Chisanan232/SceneMux/issue
         Button("File an issue...") {
             openURLString(sceneMuxNewIssueURL)
         }
-        Button("Quit \(winMuxAppName)") {
+        Button("Quit \(sceneMuxAppName)") {
             Task {
                 defer { terminateApp() }
                 try await terminationHandler.beforeTermination()

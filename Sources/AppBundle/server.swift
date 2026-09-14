@@ -76,7 +76,7 @@ private func newConnection(_ connection: NWConnection) async { // todo add exit 
         guard let token: RunSessionGuard = await .isServerEnabled(orIsEnableCommand: command) else {
             await answerToClient(
                 exitCode: 1,
-                stderr: "\(winMuxAppName) server is disabled and doesn't accept commands. " +
+                stderr: "\(sceneMuxAppName) server is disabled and doesn't accept commands. " +
                     "You can use 'scenemux enable on' to enable the server",
             )
             continue
