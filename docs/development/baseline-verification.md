@@ -90,6 +90,8 @@ the tiled area is the monitor's *visible* rect, which on this machine is x ∈ [
 | Vertical tiling | `layout v_tiles` | three full-width rows at y = 38 / 398 / 757, each h = 359 |
 | Tab grouping | `layout tab-group` | one group `tabgroup-101990`, `tabs [101990, 101991, 101992]`, inactive members parked off the visible area |
 | Tab focus | `focus tab-next` | `activeWindowId` advanced through the group in order |
+| Focus by id | `focus --window-id <id>` | exact, in both directions, every time |
+| Directional focus | `focus right`, `focus right --ignore-floating` | the bare form left the tiling tree; with `--ignore-floating` it stepped between tiling siblings deterministically |
 | Nested composition | `join-with right` | `101990` left half 848x1078; `101991`/`101992` stacked right, 848x539 at y = 38 and y = 577 — this is the split-plus-tab shape Phase 1 Slots need |
 | Workspace navigation | `move-node-to-workspace 3`, `workspace 3` | workspace 3 created on demand; hidden members parked at negative x; on switching back they returned to exactly the earlier tiled geometry |
 | Multi-monitor | `list-monitors`, `list-workspaces --all` | two monitors, each with its own active workspace |
