@@ -27,4 +27,13 @@ final class SceneWorldTest: XCTestCase {
             XCTAssertEqual(error as? SceneCore.SceneLifecycleError, .moreThanOneActiveScene)
         }
     }
+
+    func testASceneTheWorldDoesNotHaveCannotBeReplaced() throws {
+        let outsider = try SceneCoreFixtures.scene(title: "Never created")
+        let world = try SceneCore.SceneWorld(scenes: [try SceneCoreFixtures.scene()])
+
+        XCTAssertThrowsError(try world.replacing(outsider)) { error in
+            XCTAssertEqual(error as? SceneCore.SceneLifecycleError, .unknownScene(outsider.id))
+        }
+    }
 }
