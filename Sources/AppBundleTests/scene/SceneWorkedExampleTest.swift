@@ -9,15 +9,7 @@ import XCTest
 /// and the music player is not in the Scene at all. These tests exist because the journey is the product's
 /// promise, and a model that cannot say it is the wrong model however well its parts test individually.
 final class SceneWorkedExampleTest: XCTestCase {
-    private enum App {
-        static let terminal = "com.apple.Terminal"
-        static let ide = "com.jetbrains.intellij"
-        static let browser = "com.google.Chrome"
-        static let grafana = "com.grafana.grafana"
-        static let line = "com.linecorp.LINE"
-        static let slack = "com.tinyspeck.slackmacgap"
-        static let music = "com.apple.Music"
-    }
+    private typealias App = SceneCoreFixtures.App
 
     private func debugScene() throws -> SceneCore.Scene {
         let terminal = SceneCoreFixtures.slot(role: .terminal, order: 0)

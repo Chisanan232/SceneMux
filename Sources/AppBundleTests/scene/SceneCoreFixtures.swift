@@ -7,6 +7,18 @@ import Foundation
 /// about ownership overrides ownership and nothing else, which keeps what it is testing visible in its own
 /// first two lines.
 enum SceneCoreFixtures {
+    /// The applications of the golden journey, by bundle id. Ordinary desktop applications, deliberately —
+    /// the journey has to work for the tools people already have open.
+    enum App {
+        static let terminal = "com.apple.Terminal"
+        static let ide = "com.jetbrains.intellij"
+        static let browser = "com.google.Chrome"
+        static let grafana = "com.grafana.grafana"
+        static let line = "com.linecorp.LINE"
+        static let slack = "com.tinyspeck.slackmacgap"
+        static let music = "com.apple.Music"
+    }
+
     static func windowRef(
         _ bundleId: String = "com.apple.Terminal",
         ordinal: Int = 0,
