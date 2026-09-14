@@ -154,4 +154,20 @@ final class SceneWorldLifecycleTest: XCTestCase {
         XCTAssertEqual(closed.world.scene(scene.id)?.attachments, [])
         XCTAssertEqual(closed.plan.cleanupCandidates.map(\.windowRef), [terminal])
     }
+
+    func testARestoredWindowIsNotRestoredTwice() throws {
+        let scene = try SceneCoreFixtures.debugScene(state: .active(substrate))
+        let closed = try SceneCore.SceneWorld(scenes: [scene]).closing(scene.id)
+        let line = try SceneCoreFixtures.windowRef(App.line)
+
+        let once = try closed.world.resolving(.restored, for: line, in: scene.id)
+        let twice = try once.resolving(.restored, for: line, in: scene.id)
+
+        // Invariant I8: restored once per attachment. The report arriving twice — a retry that crossed with a
+        // success — finds nothing left to do, because the attachment it was about is gone.
+        XCTAssertEqual(once.scene(scene.id)?.attachments.map(\.windowRef), [
+            try SceneCoreFixtures.windowRef(App.slack),
+        ])
+        XCTAssertEqual(twice, once)
+    }
 }
