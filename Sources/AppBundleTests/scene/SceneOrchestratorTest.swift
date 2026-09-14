@@ -23,4 +23,12 @@ final class SceneOrchestratorTest: XCTestCase {
     private func store(in directory: URL) -> SceneCore.SceneStateStore {
         SceneCore.SceneStateStore(url: directory.appending(path: SceneCore.SceneStateStore.filename))
     }
+
+    func testAFirstRunHasNoScenesAndNothingToSay() throws {
+        let orchestrator = SceneCore.SceneOrchestrator(store: store(in: try temporaryDirectory()))
+
+        XCTAssertEqual(orchestrator.world, .empty)
+        XCTAssertEqual(orchestrator.diagnostics, [])
+        XCTAssertEqual(orchestrator.unfinishedTeardowns, [])
+    }
 }
