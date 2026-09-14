@@ -25,4 +25,22 @@ final class SceneStateStoreTest: XCTestCase {
         XCTAssertEqual(load, .noStateFile(path: url.path))
         XCTAssertEqual(load.diagnostics, [])
     }
+
+    func testScenesComeBackFromDiskExactlyAsTheyWereSaved() throws {
+        let slot = SceneCoreFixtures.slot()
+        let scene = try SceneCoreFixtures.scene(
+            slots: [slot],
+            attachments: [
+                SceneCoreFixtures.attachment(
+                    windowRef: try SceneCoreFixtures.windowRef(),
+                    slotId: slot.id,
+                ),
+            ],
+        )
+        let store = SceneCore.SceneStateStore(url: try temporaryDirectory().appending(path: "state.json"))
+
+        try store.save([scene])
+
+        XCTAssertEqual(store.load(), .loaded(scenes: [scene], quarantined: []))
+    }
 }
