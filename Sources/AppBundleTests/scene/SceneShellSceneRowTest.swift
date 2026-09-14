@@ -24,4 +24,23 @@ final class SceneShellSceneRowTest: XCTestCase {
         XCTAssertEqual(empty.titleEmphasis, .secondary)
         XCTAssertEqual(empty.trailing, "empty")
     }
+
+    /// Exactly one Scene is on screen, so exactly one row gets the accent bar. A Scene mid-teardown says
+    /// `restoring…` rather than freezing silently, because restoring borrowed windows takes real time against
+    /// other applications and a row that looked unchanged would read as a hang.
+    func testOnlyTheActiveSceneIsAccentedAndAnEndingSceneSaysItIsRestoring() throws {
+        let active = row(try SceneCoreFixtures.debugScene(
+            state: .active(SceneCore.SubstrateBinding(workspaceName: "3")),
+        ))
+        let ending = row(try SceneCoreFixtures.debugScene(state: .ending))
+
+        XCTAssertTrue(active.isActive)
+        XCTAssertTrue(active.showsAccentBar)
+        XCTAssertEqual(active.badge, .filled)
+        XCTAssertEqual(active.trailing, "active")
+
+        XCTAssertFalse(ending.showsAccentBar)
+        XCTAssertEqual(ending.badge, .restoring)
+        XCTAssertEqual(ending.trailing, "restoring…")
+    }
 }
