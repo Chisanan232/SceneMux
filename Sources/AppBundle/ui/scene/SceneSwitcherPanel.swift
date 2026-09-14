@@ -69,7 +69,11 @@ final class SceneSwitcherPanel: NSPanelHud {
             display: true,
             animate: false,
         )
-        hostingView.rootView = AnyView(SceneSwitcherView(model: model, runtime: model.runtime))
+        hostingView.rootView = AnyView(
+            SceneSwitcherView(model: model, runtime: model.runtime, perform: { [weak self] body in
+                self?.inSession(body)
+            }),
+        )
         orderFrontRegardless()
         NSApp.activate(ignoringOtherApps: true)
         makeKey()

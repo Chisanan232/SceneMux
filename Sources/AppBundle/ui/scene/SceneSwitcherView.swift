@@ -15,6 +15,10 @@ let sceneSwitcherMaxHeight: CGFloat = 460
 struct SceneSwitcherView: View {
     @ObservedObject var model: SceneSwitcherModel
     @ObservedObject var runtime: SceneCore.SceneRuntime
+    /// How a change that can reach the engine is run — the panel's refresh session, and a plain call in a
+    /// preview. The pointer paths need it for the same reason the keys do: it is the session that moves the
+    /// windows.
+    var perform: (@escaping @MainActor () -> Void) -> Void = { body in body() }
     @FocusState private var fieldFocused: Bool
 
     var body: some View {
@@ -25,7 +29,7 @@ struct SceneSwitcherView: View {
                 SceneSwitcherCloseConfirmation(
                     summary: summary,
                     onCancel: model.cancelEditing,
-                    onConfirm: model.confirmClose,
+                    onConfirm: { perform { model.confirmClose() } },
                 )
             } else {
                 field
@@ -117,7 +121,10 @@ struct SceneSwitcherView: View {
                         hotkeyLabel: row.index <= 9 ? "⌃⌥\(row.index)" : nil,
                     )
                     .onTapGesture(count: 2) { model.select(at: index); model.beginRename() }
-                    .onTapGesture { model.select(at: index); _ = model.enter(row.id) }
+                    .onTapGesture {
+                        model.select(at: index)
+                        perform { _ = model.enter(row.id) }
+                    }
                     if index == model.selection {
                         expansion(of: row)
                     }
@@ -132,9 +139,9 @@ struct SceneSwitcherView: View {
     @ViewBuilder
     private func expansion(of row: SceneCore.SceneShellSceneRow) -> some View {
         ForEach(row.slots) { slot in
-            SceneSwitcherSlotRow(row: slot, onCompose: { model.cycleComposition(of: slot.id) })
+            SceneSwitcherSlotRow(row: slot, onCompose: { perform { model.cycleComposition(of: slot.id) } })
                 .contextMenu {
-                    Button("Remove slot") { model.removeSlot(slot.id) }
+                    Button("Remove slot") { perform { model.removeSlot(slot.id) } }
                 }
             ForEach(slot.windows) { window in
                 SceneSwitcherWindowRow(row: window)
@@ -153,7 +160,7 @@ struct SceneSwitcherView: View {
                     .font(.system(size: 10, weight: .semibold, design: .rounded))
                     .foregroundStyle(Color.white.opacity(GlassToken.textQuaternary))
                 ForEach(SceneCore.SlotRole.allCases, id: \.self) { role in
-                    chip(role.rawValue, isOn: false, action: { model.addSlot(role: role) })
+                    chip(role.rawValue, isOn: false, action: { perform { model.addSlot(role: role) } })
                 }
             }
             .padding(.leading, 24)
