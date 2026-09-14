@@ -301,13 +301,34 @@ answers, and the differences between them are the whole point.
 
 Assignment rules, in order:
 
-1. an explicit user choice on that attachment wins;
-2. a window whose Home differs from the Slot's serving Home is `.borrowed`;
-3. a window the user placed into a Slot of its own Home, inside a Scene, is `.sceneOwned`;
-4. a window the user has pinned as shared, or that is not attached to any Scene, is `.sharedPersistent`;
-5. **anything else is `.sharedPersistent`.**
+1. the **action** that created the attachment decides: an explicit *mount* is `.borrowed`, an explicit
+   *attach* is `.sceneOwned`. This is a user decision, recorded — never a deduction;
+2. a window the user has pinned as shared, or that is not attached to any Scene, is `.sharedPersistent`;
+3. **anything else is `.sharedPersistent`.**
 
-Rule 5 is the fail-safe, and it is chosen because of what the three classes permit: the most conservative
+> **Corrected on 2026-09-14, during HORO-1102.** An earlier version of these rules inferred ownership by
+> comparing a window's Home with "the Slot's serving Home". Implementing the domain model showed that rule
+> is wrong in *both* directions against the golden journey below. LINE has Home `communication` and is
+> mounted into a `communication` Slot — the Homes *match*, so the old rule made it `.sceneOwned`, when the
+> whole point of step 5 is that LINE is `.borrowed`. The browser has Home `personal` and is attached to a
+> `preview` Slot — the Homes *differ*, so the old rule made it `.borrowed`, when step 7 requires it to be
+> `.sceneOwned` and left in place.
+>
+> The reason no comparison can work is that the journey's two groups are not distinguishable by Home at
+> all: Grafana (`observability`) is scene-owned and LINE (`communication`) is borrowed, and both are
+> non-`development` windows in a `development` task. What separates them is the user's intent — *lent for
+> this task* versus *part of this task* — which the UX already expresses as two distinct verbs, and which
+> the golden journey itself uses: steps 3 and 4 say a window "goes into" or "is attached to" a Slot, while
+> step 5 says LINE and Slack are "**mounted**".
+>
+> So ownership is recorded from the action, not inferred from placement. Comparing Home against a Slot's
+> role still has a job, but a smaller and safer one: the UI uses it to *propose* mount rather than attach
+> when the user drags a window whose Home looks foreign to the Slot — a default in an interaction the user
+> can see and override, owned by the Semantic Home and mounting ticket, not a rule that silently decides
+> what may be moved. This also satisfies HORO-1102's invariant that ownership "is not inferred only from
+> visual placement".
+
+Rule 3 is the fail-safe, and it is chosen because of what the three classes permit: the most conservative
 class is the one SceneMux may not touch at all. So an attachment whose ownership cannot be determined —
 corrupt state, an unrecognised persisted value, a window that vanished and came back — degrades to "leave
 it completely alone". The failure mode of a bug in this area is therefore *SceneMux does nothing*, which
