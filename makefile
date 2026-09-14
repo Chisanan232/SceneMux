@@ -87,7 +87,7 @@ release:
 	set -euo pipefail && \
 	source ./script/setup.sh && \
 	test -n "$(VERSION)" && \
-	app_name="WinMux"; \
+	app_name="SceneMux"; \
 	release_dir="$(RELEASE_DIR)"; \
 	archive_path="$$release_dir/$$app_name-$(VERSION).xcarchive"; \
 	derived_data_path="$$release_dir/$$app_name-$(VERSION).deriveddata"; \
@@ -154,7 +154,7 @@ install:
 	$(MAKE) release VERSION="$(VERSION)" CODESIGN_IDENTITY="$(CODESIGN_IDENTITY)" DEVELOPMENT_TEAM="$(DEVELOPMENT_TEAM)" PUBLISH=0
 	/bin/bash -lc 'cd "$(CURDIR)" && \
 	set -euo pipefail && \
-	app_name="WinMux"; \
+	app_name="SceneMux"; \
 	release_dir="$(RELEASE_DIR)"; \
 	app_path="$$release_dir/$$app_name-$(VERSION).xcarchive/Products/Applications/$$app_name.app"; \
 	install_dir="$(APP_INSTALL_DIR)"; \
