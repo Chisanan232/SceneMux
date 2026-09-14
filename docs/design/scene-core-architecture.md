@@ -84,8 +84,17 @@ A Scene owns, as its own state:
 | `title: String` | What the human calls the task. Free text; the only field the user reads. |
 | `slots: [Slot]` | The semantic layout intent, ordered. See [Slot](#slot). |
 | `attachments: [Attachment]` | Which windows are participating, and on what terms. See [Attachment and Mount](#attachment-and-mount). |
-| `state: SceneState` | `defined`, `active`, `ending` or `ended`. See [Lifecycle](#lifecycle). |
-| `substrate: SubstrateBinding?` | Non-`nil` only while `active`: which engine `Workspace` this Scene is currently projected onto. An adapter detail, never an identity. |
+| `state: SceneState` | `defined`, `active(SubstrateBinding)`, `ending` or `ended`. See [Lifecycle](#lifecycle). |
+
+The substrate — which engine `Workspace` an active Scene is currently projected onto, an adapter detail and
+never an identity — is carried *inside* `SceneState.active` rather than as a sixth field.
+
+> **Clarified on 2026-09-14, during HORO-1102.** An earlier version of this table listed
+> `substrate: SubstrateBinding?` beside `state`. Two fields make invariant I3 — an active Scene has exactly
+> one binding, and no other state has one — something a reviewer has to check, and something a `leave` that
+> forgets one line can break: a `defined` Scene left holding a stale workspace binding. As the payload of
+> `.active` the invariant is structural, the illegal combination does not compile, and `leave` cannot half
+> happen. Nothing else about the model changes; the projection is still one-directional and still derived.
 
 `SceneId` and `SlotId` follow the shape the engine already uses for identity — `RawRepresentable`,
 `Codable`, `Hashable` value types, as `WorkspaceId` and `WorkspaceProjectId` are in
@@ -630,7 +639,7 @@ the test.
 | --- | --- |
 | I1 | A window's Semantic Home is unchanged by any attach, mount, enter, leave or close. Only an explicit user action on the application changes it |
 | I2 | At most one Scene is `active` (v0.1.0) |
-| I3 | An `active` Scene has exactly one `substrate` binding; a `defined`, `ending` or `ended` Scene has none |
+| I3 | An `active` Scene has exactly one substrate binding; a `defined`, `ending` or `ended` Scene has none. Structural: the binding is the payload of `SceneState.active` |
 | I4 | A window has at most one attachment across all Scenes |
 | I5 | `leave` moves, resizes, focuses and closes nothing |
 | I6 | No lifecycle transition closes a window. A close happens only from an explicit per-window user confirmation |
