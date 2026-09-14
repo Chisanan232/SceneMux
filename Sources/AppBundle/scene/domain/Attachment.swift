@@ -13,6 +13,11 @@ extension SceneCore {
         /// Which Slot of the owning Scene it participates in.
         let slotId: SlotId
         /// What ending the Scene may do to it.
+        ///
+        /// `.borrowed` and `.sceneOwned` are the two an attach action produces. `.sharedPersistent` reaches
+        /// an attachment only by degradation — `Ownership.failSafe` — because a window the user shares with
+        /// the whole desktop is not attached to any Scene in the first place. It stays representable here
+        /// precisely so that state SceneMux cannot understand can be read as "leave this one alone".
         let ownership: Ownership
         /// The window's Home at the moment it was attached. Recorded, never rewritten.
         ///
