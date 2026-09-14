@@ -1,6 +1,11 @@
 import Foundation
 
 extension SceneCore.Scene {
+    /// The Slot with this id, if the Scene has one.
+    func slot(_ id: SceneCore.SlotId) -> SceneCore.Slot? {
+        slots.first { $0.id == id }
+    }
+
     /// A copy of this Scene with some parts replaced, re-validated on the way through.
     ///
     /// Every operation below funnels through here, which is why none of them can produce a Scene the
