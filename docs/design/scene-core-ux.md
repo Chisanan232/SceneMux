@@ -43,3 +43,77 @@ All five already exist in the app; Scene Core adds to them rather than inventing
 Nothing in Scene Core needs a new window class, a modal sheet that blocks the app, or a full-screen
 takeover. The sidebar and the switcher are panels precisely so that they can appear over another
 application's window without stealing its focus — which is what a window manager's own UI must do.
+
+## The Scene sidebar
+
+Three levels, and only three: **Scene → Slot → window.** The inherited sidebar shows
+project → workspace → window; the Scene sidebar is the same rail, the same hover expansion, the same row
+metrics, with the levels renamed to the things the user is actually managing.
+
+Collapsed (the resting state — a rail of Scene badges, no titles):
+
+```
+┌────┐
+│ ▓▓ │  ← active Scene, filled badge
+│ ░░ │  ← defined Scene with attachments
+│ ·· │  ← defined Scene, empty
+│    │
+│ +  │  ← new Scene
+└────┘
+ 44pt
+```
+
+Expanded on hover or on focus:
+
+```
+┌──────────────────────────────────────────────┐
+│  SCENES                                  ⌘⇧S │
+├──────────────────────────────────────────────┤
+│ ▌ Debug PROD-123                    active   │  ← accent bar, filled row
+│   ├ ⌨  Terminal            1 window          │
+│   │   └ Terminal                Development  │
+│   ├ ✎  Editor              1 window          │
+│   │   └ IDE                     Development  │
+│   ├ ◫  Preview             1 window          │
+│   │   └ Browser                 Personal     │
+│   ├ ◷  Observability       1 window          │
+│   │   └ Grafana                 Observability│
+│   └ ✉  Communication       2 windows · tabs  │
+│       ├ LINE          Communication · mounted│
+│       └ Slack         Communication · mounted│
+│                                              │
+│   Review release notes             2 windows │
+│   Onboarding                          empty  │
+│                                              │
+│ + New Scene                              ⌘N  │
+├──────────────────────────────────────────────┤
+│ SHARED                                       │
+│   Music                          persistent  │
+└──────────────────────────────────────────────┘
+ 260pt
+```
+
+Row anatomy, per level:
+
+| Level | Leading | Title | Trailing | Notes |
+| --- | --- | --- | --- | --- |
+| Scene | State badge | Scene title, editable in place | `active` / *n* windows / `empty` | `RadiusToken.row`; accent bar on the active Scene only |
+| Slot | Role glyph | Slot label, or the role name when unlabelled | Window count, and `· tabs` / `· split` when composed | An empty Slot is shown, dimmed — it is where something *will* go |
+| Window | App icon (`AppIconProvider`) | Application name | **Semantic Home**, plus `· mounted` when borrowed | Never the window title. See [Privacy](#privacy-in-the-ui) |
+
+Three deliberate choices:
+
+- **The Shared section is separate and last.** `.sharedPersistent` windows are not in any Scene, and
+  putting them under one would imply a Scene could reclaim them. They are listed so the user can see that
+  SceneMux knows about them and is leaving them alone.
+- **Slot rows show composition, not layout.** `· tabs` and `· split` say *how these windows share a
+  region*. No proportion, no orientation degrees, no pixel count.
+- **The window row's trailing text is the Home category.** It is the one piece of information that a
+  window's row must carry, because it is the thing borrowing must not change.
+
+### Privacy in the UI
+
+No surface in this specification displays a window title, and no evidence gathered while verifying it may
+either — `AGENTS.md` forbids logging window contents, and a screenshot of a sidebar full of window titles
+is a leak of the user's work. Rows are identified by application name and icon. The inherited sidebar's
+own window rows and its `WindowTitleCache` are unchanged; Scene Core simply does not adopt them.
