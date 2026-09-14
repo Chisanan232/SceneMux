@@ -422,7 +422,8 @@ editor, so they are specified separately.
 Every combination below was checked against `resources/default-config.toml` at `13d6ee1a`: the inherited
 default config binds `alt`, `alt-shift`, `alt-cmd`, `alt-cmd-shift`, `cmd-shift`, `ctrl`, `ctrl-shift`,
 `ctrl-cmd-shift`, `cmd-ctrl` and `ctrl-f` — and **not one `ctrl-alt` combination.** So Scene Core takes
-`ctrl-alt` as its own namespace — written `⌃⌥` in the diagrams above — and collides with nothing a user of `v0.0.0` already has.
+`ctrl-alt` as its own namespace — written `⌃⌥` in the diagrams above — and collides with nothing a user
+of `v0.0.0` already has.
 
 | Binding | Command | Action |
 | --- | --- | --- |
@@ -446,8 +447,9 @@ ships with no default binding.
 
 Inside the switcher or a focused sidebar: `↑`/`↓` move the selection, `→`/`←` expand and collapse,
 type-to-filter narrows, `⏎` activates the selection, `⇥` moves between sections, `⌘⏎` enters a Scene without
-closing the switcher, `⌥↑`/`⌥↓` move a selected window row between Slots, `⌘⌫` closes the selected Scene, `F2` or a second `⏎` renames in place, and `esc`
-dismisses — reverting an in-progress edit rather than committing it.
+closing the switcher, `⌥↑`/`⌥↓` move a selected window row between Slots, `⌘⌫` closes the selected Scene,
+`F2` or a second `⏎` renames in place, and `esc` dismisses — reverting an in-progress edit rather than
+committing it.
 
 The switcher is the keyboard surface, and the **sidebar never takes key focus on its own.** It expands on
 hover and it is driven by the pointer; a window manager's rail that grabbed the keyboard from the focused
