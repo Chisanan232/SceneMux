@@ -42,5 +42,26 @@ extension SceneCore {
                 case .ended: .ended
             }
         }
+
+        /// Whether the lifecycle permits moving from this state to `target`.
+        ///
+        /// The transition table of `docs/design/scene-core-architecture.md`, and the whole of it:
+        ///
+        /// - `defined` → `active` is *enter*, `defined` → `ending` is *close*;
+        /// - `active` → `defined` is *leave*, `active` → `ending` is *close*;
+        /// - `ending` → `ending` is a restart part-way through closing, so the remaining restores are
+        ///   re-attempted — which is why it is permitted rather than a no-op;
+        /// - `ending` → `ended` is the end.
+        ///
+        /// `ended` is terminal: a task that finished stays finished, and a Scene is cheap to create. Nothing
+        /// re-enters a closed Scene, so nothing has to reason about what its old attachments used to mean.
+        func canTransition(to target: Label) -> Bool {
+            switch (label, target) {
+                case (.defined, .active), (.defined, .ending): true
+                case (.active, .defined), (.active, .ending): true
+                case (.ending, .ending), (.ending, .ended): true
+                default: false
+            }
+        }
     }
 }
