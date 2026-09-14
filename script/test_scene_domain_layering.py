@@ -10,6 +10,12 @@ reason: it decides what happens to a window and must never be able to do it. A
 lifecycle that could reach a `MacWindow` would eventually reach one, and then
 "nothing here touches a window" would be a comment rather than a fact.
 
+`scene/shell/` — what the panels draw — is held to the rule as well, because it is
+the layer a UI ticket touches most often and therefore the one most likely to acquire
+a `Window` "just to read the title". It may name Scene Core freely and the engine not
+at all, which is also what keeps invariant I11 enforceable: a row that cannot reach a
+window cannot put a window title in a screenshot.
+
 `scene/engine/` is where the two worlds finally meet, so the rule there is about
 width rather than height: exactly one file — the adapter — may name an engine
 type, and everything else in the layer stays on the Scene side of the seam. A
@@ -29,6 +35,7 @@ SOURCES = REPO / "Sources"
 SCENE = SOURCES / "AppBundle" / "scene"
 DOMAIN = SCENE / "domain"
 LIFECYCLE = SCENE / "lifecycle"
+SHELL = SCENE / "shell"
 ENGINE = SCENE / "engine"
 
 # The one file in the repository allowed to hold both vocabularies at once.
@@ -68,6 +75,7 @@ class SceneDomainLayeringTest(unittest.TestCase):
             cls.domain_types.update(DECLARATION.findall(path.read_text()))
 
         cls.lifecycle_files = swift_files(LIFECYCLE)
+        cls.shell_files = swift_files(SHELL)
         cls.engine_files = [path for path in swift_files(ENGINE) if path != ADAPTER]
 
         # Two exclusion sets, because the two layers are allowed different things. The
@@ -95,6 +103,13 @@ class SceneDomainLayeringTest(unittest.TestCase):
     def test_the_lifecycle_layer_exists(self):
         self.assertTrue(self.lifecycle_files, f"no Swift files under {LIFECYCLE}")
         self.assertIn("SceneWorld", {n for p in self.lifecycle_files for n in DECLARATION.findall(p.read_text())})
+
+    def test_the_shell_layer_exists(self):
+        self.assertTrue(self.shell_files, f"no Swift files under {SHELL}")
+        self.assertIn(
+            "SceneShellSnapshot",
+            {n for p in self.shell_files for n in DECLARATION.findall(p.read_text())},
+        )
 
     def test_the_engine_layer_exists_and_has_exactly_one_adapter(self):
         self.assertTrue(self.engine_files, f"no Swift files under {ENGINE} besides the adapter")
@@ -148,6 +163,27 @@ class SceneDomainLayeringTest(unittest.TestCase):
                 "window is this layer's job, and doing it is not",
             )
 
+
+    def test_shell_imports_foundation_only(self):
+        for path in self.shell_files:
+            for module in IMPORT.findall(path.read_text()):
+                self.assertEqual(
+                    module,
+                    "Foundation",
+                    f"{path.relative_to(REPO)} imports {module}; what the panels draw is "
+                    "a value, and a value needs no AppKit",
+                )
+
+    def test_shell_names_no_engine_type(self):
+        for path in self.shell_files:
+            named = set(IDENTIFIER.findall(strip_comments(path.read_text())))
+            trespassers = sorted(named & self.engine_types_beyond_scene_core)
+            self.assertEqual(
+                trespassers,
+                [],
+                f"{path.relative_to(REPO)} names engine types {trespassers}; a row describes a "
+                "window rather than reaching one, which is what keeps window titles out of it",
+            )
 
     def test_the_engine_layer_imports_foundation_only_apart_from_the_adapter(self):
         for path in self.engine_files:
