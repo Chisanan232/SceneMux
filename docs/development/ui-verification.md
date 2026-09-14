@@ -50,8 +50,9 @@ holding unsaved work in windows you cannot afford to have moved.
 If the only Mac available is one you are working on, use the containment recipe in
 [`baseline-verification.md`](baseline-verification.md) — `--read-only` first, a config that opts out
 of everything automatic, and every mutating command targeted by `--window-id` at a throwaway window.
-It was enough to exercise tiling, tab groups and workspace moves without a single pre-existing window
-changing frame.
+It was enough to exercise tiling, tab groups and workspace moves without moving a window the pass did
+not target. Read the two limits recorded there as well: directional focus escapes the containment, and
+a display reconfiguration mid-pass will park windows off-screen.
 
 ## Screenshot discipline
 
