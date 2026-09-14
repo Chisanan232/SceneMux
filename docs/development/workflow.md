@@ -101,10 +101,14 @@ atomic commit.
 | What | Command | Requirement |
 | --- | --- | --- |
 | Build | `make build VERSION=0.0.0` | exit 0, zero errors, zero warnings |
-| Tests | `swift test` | zero failures |
+| Tests | `source ./script/setup.sh && swift test` | zero failures |
 | Update-feed isolation | `python3 script/test_update_feed_isolation.py` | pass |
 | Appcast validation | `python3 script/test_validate_appcast.py` | pass |
 | License inventory | `python3 script/license-inventory.py` | pass |
+
+Source `script/setup.sh` before running `swift` directly. It defines a `swift` function that runs
+`swiftly run swift`, which resolves the toolchain pinned in `.swift-version`. A bare `swift` is
+whichever toolchain Xcode happens to ship — a different compiler from the one CI and `make build` use.
 
 `swift build --target AppBundleTests` **compiles** the tests without running them. It is not a
 substitute for `swift test`.
