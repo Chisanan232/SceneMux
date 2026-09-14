@@ -90,6 +90,27 @@ final class SceneOrchestratorTest: XCTestCase {
         XCTAssertEqual(grown.attachments, [])
     }
 
+    func testASlotHoldingWindowsIsNotRemovedWhileAnEmptyOneIs() throws {
+        // Removing a Slot must never be a way to lose an attachment: the attachment is what says SceneMux owes
+        // that window a restore.
+        let store = store(in: try temporaryDirectory())
+        let occupied = SceneCoreFixtures.slot(role: .communication, order: 0)
+        let spare = SceneCoreFixtures.slot(role: .preview, order: 1)
+        let scene = try SceneCoreFixtures.scene(slots: [occupied, spare])
+            .attaching(SceneCoreFixtures.attachment(
+                windowRef: try SceneCoreFixtures.windowRef(App.line),
+                slotId: occupied.id,
+            ))
+        try store.save([scene])
+        let orchestrator = SceneCore.SceneOrchestrator(store: store)
+
+        XCTAssertThrowsError(try orchestrator.removeSlot(occupied.id, from: scene.id)) { error in
+            XCTAssertEqual(error as? SceneCore.SceneCoreError, .slotNotEmpty(occupied.id))
+        }
+        try orchestrator.removeSlot(spare.id, from: scene.id)
+        XCTAssertEqual(orchestrator.world.scene(scene.id)?.slots.map(\.id), [occupied.id])
+    }
+
     func testRenamingASceneTheWorldDoesNotHaveIsRefused() throws {
         // The shell addresses Scenes by index, and an index can name a Scene a restart has already forgotten.
         let orchestrator = SceneCore.SceneOrchestrator(store: store(in: try temporaryDirectory()))
