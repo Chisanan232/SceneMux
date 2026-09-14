@@ -160,5 +160,16 @@ class SceneDomainLayeringTest(unittest.TestCase):
                 )
 
 
+    def test_only_the_adapter_names_an_engine_type(self):
+        for path in self.engine_files:
+            named = set(IDENTIFIER.findall(strip_comments(path.read_text())))
+            trespassers = sorted(named & self.engine_types_beyond_scene_core)
+            self.assertEqual(
+                trespassers,
+                [],
+                f"{path.relative_to(REPO)} names engine types {trespassers}; the seam is "
+                f"{ADAPTER.name} and nothing else, so that it stays narrow enough to reason about",
+            )
+
 if __name__ == "__main__":
     unittest.main()
