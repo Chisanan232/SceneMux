@@ -1,0 +1,32 @@
+import Foundation
+
+/// The Scene lifecycle, as the one place it is decided.
+///
+/// Every transition in the table of `docs/design/scene-core-architecture.md` is a method here, and nothing
+/// else in SceneMux may change a Scene's state. That is the point of the file: a lifecycle spread across a
+/// menu handler, a hotkey, and a sidebar controller is a lifecycle with three slightly different ideas of
+/// what closing a Scene means.
+///
+/// Nothing here touches a window. These operations produce the world afterwards, and — for a close — the
+/// plan describing what the windows are owed. Carrying that plan out is somebody else's job, and it reports
+/// back through `resolving(_:for:in:)`.
+extension SceneCore.SceneWorld {
+    /// A new Scene, `defined` and empty, plus the world containing it.
+    ///
+    /// It arrives with no substrate and no windows because it cannot arrive any other way: there is no
+    /// operation that adds a ready-made Scene to a world, so nothing can enter the world already claiming
+    /// to be on screen and skip the one-active-Scene rule.
+    func creating(
+        title: String,
+        slots: [SceneCore.Slot] = [],
+    ) throws -> (world: Self, scene: SceneCore.Scene) {
+        let scene = try SceneCore.Scene(
+            id: .generate(),
+            title: title,
+            slots: slots,
+            attachments: [],
+            state: .defined,
+        )
+        return (try SceneCore.SceneWorld(scenes: scenes + [scene]), scene)
+    }
+}
