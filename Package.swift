@@ -12,7 +12,7 @@ let package = Package(
     products: [
         .executable(name: "scenemux", targets: ["Cli"]),
         .executable(name: "scenemux-marketing-renderer", targets: ["MarketingRenderer"]),
-        .executable(name: "winmux-window-capture", targets: ["WindowCapture"]),
+        .executable(name: "scenemux-window-capture", targets: ["WindowCapture"]),
         // Don't use this build for release, use xcode instead
         .executable(name: "WinMuxApp", targets: ["WinMuxApp"]),
         // We only need to expose this as a product for xcode
