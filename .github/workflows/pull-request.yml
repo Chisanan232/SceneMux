@@ -32,9 +32,14 @@ jobs:
   # The Swift build and the unit tests. The toolchain is pinned by .swift-version and installed
   # with swiftly, the same way script/setup.sh resolves it locally, so CI and a developer machine
   # compile with the same compiler.
+  #
+  # macos-26, not macos-15: the inherited UI calls the Liquid Glass API `glassEffect` behind a
+  # runtime `if #available(macOS 26.0, *)` check (Sources/AppBundle/ui/core/DesignTokens.swift).
+  # A runtime check still needs the symbol at compile time, so the macOS 26 SDK is required — the
+  # macos-15 image tops out at Xcode 16.4 and cannot build this repository at all.
   build-and-test:
     name: build-and-test
-    runs-on: macos-15
+    runs-on: macos-26
     steps:
       - uses: actions/checkout@v6
       - name: Install swiftly
