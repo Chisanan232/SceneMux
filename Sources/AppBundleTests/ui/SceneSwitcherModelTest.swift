@@ -100,4 +100,26 @@ final class SceneSwitcherModelTest: XCTestCase {
         XCTAssertEqual(model.results.map(\.title), ["Debug PROD-123"])
         XCTAssertTrue(model.escape(), "a second Esc, with nothing part-way through, dismisses")
     }
+
+    /// `⌘⌫` shows the model's own reasoning about ownership and stops there. The Scene is still on screen after
+    /// asking; only confirming ends it.
+    func testClosingAsksWithTheOwnershipSummaryFirst() throws {
+        let scene = try model.runtime.createScene(title: "Debug PROD-123", template: .empty)
+        try model.runtime.enter(scene.id)
+
+        model.beginClose()
+
+        guard case .confirmingClose(let id, let summary) = model.mode else {
+            return XCTFail("expected the confirmation, got \(model.mode)")
+        }
+        XCTAssertEqual(id, scene.id)
+        XCTAssertEqual(summary.title, "Close “Debug PROD-123”?")
+        XCTAssertEqual(model.snapshot.activeScene?.id, scene.id, "asking changes nothing")
+
+        model.confirmClose()
+
+        XCTAssertEqual(model.mode, .browsing)
+        XCTAssertEqual(model.results, [], "an ended Scene is not a row")
+        XCTAssertNil(model.errorText)
+    }
 }
