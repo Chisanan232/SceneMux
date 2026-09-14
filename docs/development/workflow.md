@@ -123,6 +123,11 @@ whichever toolchain Xcode happens to ship — a different compiler from the one 
 `swift build --target AppBundleTests` **compiles** the tests without running them. It is not a
 substitute for `swift test`.
 
+CI runs the suite twice — once as above and once as `swift test -c release`. The table asks only for
+the debug run because it is the fast one, but run the release one locally too when a change touches
+command parsing, configuration bootstrap or anything the settings UI writes back to disk: HORO-1175
+was a crash that existed only under `-O`, and a debug run cannot see that class of defect.
+
 A cold Swift or Xcode build can take longer than ten minutes. Run it in the background and grep the
 log for `error:` and the recorded exit code rather than trusting a truncated tail.
 
