@@ -106,6 +106,12 @@ atomic commit.
 | Appcast validation | `python3 script/test_validate_appcast.py` | pass |
 | License inventory | `python3 script/license-inventory.py` | pass |
 
+Building needs the **macOS 26 SDK**, i.e. Xcode 26 or newer. The inherited UI calls the Liquid Glass
+API `glassEffect` behind a runtime `if #available(macOS 26.0, *)` check, and a runtime check still
+needs the symbol at compile time. On Xcode 16 the build fails in
+`Sources/AppBundle/ui/core/DesignTokens.swift` with `value of type 'Color' has no member
+'glassEffect'`. The deployment target stays macOS 13.
+
 Source `script/setup.sh` before running `swift` directly. It defines a `swift` function that runs
 `swiftly run swift`, which resolves the toolchain pinned in `.swift-version`. A bare `swift` is
 whichever toolchain Xcode happens to ship — a different compiler from the one CI and `make build` use.
