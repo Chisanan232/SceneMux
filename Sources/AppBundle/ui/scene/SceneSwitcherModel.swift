@@ -91,7 +91,12 @@ final class SceneSwitcherModel: ObservableObject {
     /// change, and a panel that vanished silently would leave them with no idea why it did not.
     @discardableResult
     func enterSelected() -> Bool {
-        guard let row = selectedScene else { return false }
+        guard let row = selectedScene else {
+            // Nothing matches what was typed, and the empty state says `⏎ names a new one` — so it does. A key
+            // that a panel promises and then ignores teaches the user to stop trusting the panel.
+            if !query.trimmingCharacters(in: .whitespaces).isEmpty { beginCreate() }
+            return false
+        }
         return enter(row.id)
     }
 
