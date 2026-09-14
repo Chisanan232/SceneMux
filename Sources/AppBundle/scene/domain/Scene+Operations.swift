@@ -37,4 +37,9 @@ extension SceneCore.Scene {
             state: state ?? self.state,
         )
     }
+
+    /// This Scene with one more Slot. Throws if the Slot's id is already taken.
+    func addingSlot(_ slot: SceneCore.Slot) throws -> Self {
+        try with(slots: slots + [slot])
+    }
 }
