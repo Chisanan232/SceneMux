@@ -23,6 +23,12 @@ final class SceneSwitcherModel: ObservableObject {
     /// What the panel is doing, and so what `⏎` and Esc mean.
     @Published private(set) var mode: SceneSwitcherMode = .browsing
 
+    /// The name being typed, while a Scene is being created or renamed. Bound to the one inline field.
+    @Published var nameField: String = ""
+
+    /// Which Slots a Scene created here starts with. Two choices, because a template picker is Phase 2 work.
+    @Published var template: SceneCore.SlotTemplate = .development
+
     /// The last thing that could not be done, in the words the model uses. Cleared by the next action.
     @Published private(set) var errorText: String?
 
@@ -85,6 +91,60 @@ final class SceneSwitcherModel: ObservableObject {
     @discardableResult
     func enter(_ id: SceneCore.SceneId) -> Bool {
         act { try runtime.enter(id) }
+    }
+
+    /// `⌃⌥N`, `+ New Scene`, or typing a name that matches nothing.
+    ///
+    /// The field starts as whatever narrowed the list, because that is almost always the name the user was
+    /// looking for and did not find — typing `Debug PROD-124`, seeing nothing, and pressing the create key
+    /// should not mean typing it again.
+    func beginCreate() {
+        errorText = nil
+        nameField = query.trimmingCharacters(in: .whitespaces)
+        mode = .creating
+    }
+
+    /// `F2`, a second `⏎`, or a double-click on a title.
+    func beginRename() {
+        guard let row = selectedScene else { return }
+        errorText = nil
+        nameField = row.title
+        mode = .renaming(row.id)
+    }
+
+    /// `⏎` in the field: create the Scene, or commit the new title.
+    ///
+    /// Creating does not enter — that is the design's word on it, and it is what makes creating a Scene free:
+    /// nothing on the user's screen moves. An empty name is not an error, it is a change of mind, so it goes
+    /// back to browsing without a complaint.
+    func commitName() {
+        let title = nameField.trimmingCharacters(in: .whitespaces)
+        guard !title.isEmpty else { return cancelEditing() }
+        switch mode {
+            case .creating:
+                guard act({ _ = try runtime.createScene(title: title, template: template) }) else { return }
+                query = ""
+                mode = .browsing
+                selectNewest(titled: title)
+            case .renaming(let id):
+                guard act({ try runtime.rename(id, to: title) }) else { return }
+                mode = .browsing
+            case .browsing, .confirmingClose:
+                break
+        }
+    }
+
+    /// Esc in an editing state: back to the list, with nothing changed. Reverting, not committing.
+    func cancelEditing() {
+        nameField = ""
+        errorText = nil
+        mode = .browsing
+    }
+
+    /// Put the selection on a Scene that was just created, so the next `⏎` enters the thing that was named.
+    private func selectNewest(titled title: String) {
+        guard let index = results.lastIndex(where: { $0.title == title }) else { return }
+        selection = index
     }
 
     /// Runs a Scene operation, and turns whatever it refuses into a line the panel can show.
