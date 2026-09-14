@@ -77,7 +77,7 @@ private func newConnection(_ connection: NWConnection) async { // todo add exit 
             await answerToClient(
                 exitCode: 1,
                 stderr: "\(winMuxAppName) server is disabled and doesn't accept commands. " +
-                    "You can use 'winmux enable on' to enable the server",
+                    "You can use 'scenemux enable on' to enable the server",
             )
             continue
         }
