@@ -517,11 +517,28 @@ finishes what it started. The mechanism copies the inherited precedent in
 `tree/frozen/persistedFrozenWorld.swift` — it is already proven in this codebase, and copying it means one
 persistence idiom to review instead of two:
 
-- `~/Library/Application Support/SceneMux/scene-state.json`, beside the inherited `window-state.json`;
+- `~/Library/Application Support/SceneMux/scene-state.json`, beside the inherited `window-state.json`.
+  The directory is `sceneMuxAppName`, so a debug build writes `SceneMux-Debug/` and developing SceneMux
+  cannot corrupt the Scenes of the SceneMux being used to develop it;
 - a `Codable` envelope `{ version: Int, scenes: [...] }` with an explicit integer version;
 - written with `Data.write(to:options: .atomic)`;
 - an unknown version, a decode failure or a missing file all resolve to **no Scenes**, never to a partial
   read.
+
+The implementation splits *what the bytes mean* from *where they live*: `SceneStateFormat` turns `Data` into
+a `SceneStateLoad`, and `SceneStateStore` owns the file. Every corruption case is then reachable from a
+`Data` literal in a test, with no directory to create and no disk to leave dirty.
+
+`SceneStateLoad` has three cases — `noStateFile`, `refused`, `loaded(scenes:quarantined:)` — because a first
+run and an unreadable file are different answers, and the bug worth designing out is the one that treats
+"I could not read your Scenes" as "you have no Scenes" and then saves an empty file over them. Reading also
+never throws: a thrown error invites a `try?`, and a `try?` here is invariant I9's failure mode with the
+diagnostic dropped on the way past.
+
+The version is probed on its own, before the payload. That is what lets a future build say "this file is
+version 3 and I read 1 to 2" instead of reporting a missing field that did not exist when the file was
+written. The migration seam is `SceneStateSchema.oldestReadable`: version 2 means writing `current = 2`,
+leaving `oldestReadable` at 1, and reading the older shape where the envelope decodes its Scenes.
 
 ### Never in the user's config file
 
@@ -535,6 +552,12 @@ Config is *intent the user expressed*; Scene state is *a record of what happened
 The one thing that does belong in the config file is user *intent* about Scene Core: the Home rule table
 and per-application overrides. Those are declarative, hand-editable, and reviewed like every other config
 key.
+
+Home therefore has an owner on each side of that line, and mixing them up is the mistake to avoid. Which
+Home an application *belongs to* is policy: it comes from the config file, the user changes it there, and
+the resolution rules are HORO-1107's. `homeAtAttachTime` is not a second copy of that policy — it is
+evidence, a record of what the policy said at the moment this window was attached, which is why Scene state
+owns it and why re-homing an application later does not rewrite it.
 
 ### What is persisted, and what is refused
 
@@ -560,6 +583,36 @@ attachment to a `SlotId` that no longer exists, an ownership value from a newer 
 are dropped, their windows are left untouched, and the reason is surfaced once in the UI rather than logged
 and forgotten. A user must be able to tell that SceneMux declined to act, or "it did nothing" is
 indistinguishable from "it is broken".
+
+The granularity is the **attachment**, never the Scene. An attachment is only ever *permission* to move a
+window that is already on screen, so leaving one out can never move, resize or close anything — it can only
+make SceneMux do less. Losing a whole Scene over one stale entry would throw away the Slots and the ownership
+records of every other window in it, which is strictly more destructive than the problem. So:
+
+| The file says | What happens |
+| --- | --- |
+| The bytes are not JSON, or the version is unreadable | Refusal. Zero Scenes, one diagnostic |
+| A Scene cannot exist at all — no title, two Slots claiming one identity | Refusal (`impossibleScene`). Nothing to leave out would repair it |
+| An attachment names a Slot the Scene does not have | The Scene loads without it; quarantine record |
+| One window is attached twice | The first attachment is kept, later ones quarantined (I4) |
+| An `ended` Scene still holds attachments | The Scene loads with none; quarantine records |
+| An attachment entry is not readable at all | The Scene loads without it; quarantine record naming the coding *path* |
+| `ownership` is a value this build does not know | Degraded to `.sharedPersistent` by `Ownership.init(from:)` — the attachment is kept and SceneMux may not touch that window |
+
+A refused file is **copied** aside to `scene-state.unreadable.json` before anything else happens. Not moved:
+the original stays where the user — and a newer SceneMux that wrote a version this build cannot read — expects
+to find it. The copy exists for the other direction, because the next save legitimately replaces the original,
+and without a copy that save is the moment the state stopped existing.
+
+An existing copy is never overwritten. If a later refusal has different bytes, the earlier copy is the older
+state, and SceneMux has already told someone it kept it; the newer refusal makes no preservation claim rather
+than replacing it. Declining to promise costs nothing, because the file being refused is still at its own
+path — breaking a promise already made costs the Scenes it was about.
+
+Diagnostics carry coding *paths* and never values. `DecodingError.debugDescription` quotes what it choked on,
+Scene state contains application bundle ids, and a diagnostic is the one thing here meant to be screenshotted
+and pasted into an issue — so `SceneStateCodingPath` keeps `scenes[2].attachments[1].slotId` and drops the
+rest.
 
 ## Layering and the engine seam
 

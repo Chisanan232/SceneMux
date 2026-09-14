@@ -27,3 +27,34 @@ extension SceneCore {
         case illegalTransition(from: SceneState.Label, to: SceneState.Label)
     }
 }
+
+extension SceneCore.SceneCoreError: CustomStringConvertible {
+    /// One clause a person can read, for the diagnostics the UI is required to show when SceneMux declines
+    /// to load part of someone's state. Never a type dump: `unknownSlot(SlotId(rawValue:))` tells a user
+    /// nothing about their own file.
+    ///
+    /// A bundle id may appear here, because that is what the message is *about* and it is what the Scene
+    /// sidebar already shows. A window title never can — no Scene Core value holds one.
+    var description: String {
+        switch self {
+            case .emptyBundleId:
+                "a window reference has no application"
+            case .negativeWindowOrdinal(let ordinal):
+                "a window ordinal is negative (\(ordinal))"
+            case .emptySceneTitle:
+                "the Scene has no title"
+            case .duplicateSlotId(let id):
+                "two Slots claim the same identity (\(id))"
+            case .unknownSlot(let id):
+                "a window is attached to a Slot the Scene does not have (\(id))"
+            case .duplicateAttachment(let windowRef):
+                "one window is attached twice (\(windowRef))"
+            case .slotNotEmpty(let id):
+                "the Slot still holds windows (\(id))"
+            case .attachmentsInEndedScene:
+                "the Scene has ended but still holds windows"
+            case .illegalTransition(let from, let to):
+                "a Scene cannot move from \(from) to \(to)"
+        }
+    }
+}

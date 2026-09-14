@@ -1,0 +1,168 @@
+@testable import AppBundle
+import Common
+import Foundation
+import XCTest
+
+final class SceneStateStoreTest: XCTestCase {
+    /// A directory of this test's own, removed when it finishes.
+    ///
+    /// Nothing here may go near the real state file. A test that read it would be flaky on the machine of
+    /// whoever is actually using SceneMux, and a test that wrote it would take their Scenes away.
+    private func temporaryDirectory() throws -> URL {
+        let directory = FileManager.default.temporaryDirectory
+            .appending(path: "SceneMuxTests-\(UUID().uuidString)", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        addTeardownBlock { try? FileManager.default.removeItem(at: directory) }
+        return directory
+    }
+
+    func testAFirstRunIsNotTheSameAnswerAsAFileThatCouldNotBeRead() throws {
+        let url = try temporaryDirectory().appending(path: "scene-state.json")
+
+        let load = SceneCore.SceneStateStore(url: url).load()
+
+        // Nothing to apologise for on a first run, and nothing to show the user. This is the case that must
+        // never be confused with a refusal: the next save is entitled to write over nothing.
+        XCTAssertEqual(load, .noStateFile(path: url.path))
+        XCTAssertEqual(load.diagnostics, [])
+    }
+
+    func testScenesComeBackFromDiskExactlyAsTheyWereSaved() throws {
+        let slot = SceneCoreFixtures.slot()
+        let scene = try SceneCoreFixtures.scene(
+            slots: [slot],
+            attachments: [
+                SceneCoreFixtures.attachment(
+                    windowRef: try SceneCoreFixtures.windowRef(),
+                    slotId: slot.id,
+                ),
+            ],
+        )
+        let store = SceneCore.SceneStateStore(url: try temporaryDirectory().appending(path: "state.json"))
+
+        try store.save([scene])
+
+        XCTAssertEqual(store.load(), .loaded(scenes: [scene], quarantined: []))
+    }
+
+    func testSavingIntoADirectoryThatIsNotThereYetCreatesIt() throws {
+        let directory = try temporaryDirectory().appending(path: "SceneMux", directoryHint: .isDirectory)
+        let store = SceneCore.SceneStateStore(url: directory.appending(path: "scene-state.json"))
+
+        try store.save([try SceneCoreFixtures.scene()])
+
+        // The real directory is created on demand too — an install that has never saved Scene state does not
+        // have one, and the first attach must not be the thing that fails.
+        XCTAssertTrue(FileManager.default.fileExists(atPath: store.url.path))
+    }
+
+    func testAFileThisBuildCannotReadIsCopiedAsideBeforeASaveCanReplaceIt() throws {
+        let url = try temporaryDirectory().appending(path: "scene-state.json")
+        let refusedBytes = Data(#"{ "version": 1, "scenes": "not an array of Scenes" }"#.utf8)
+        try refusedBytes.write(to: url)
+        let store = SceneCore.SceneStateStore(url: url)
+
+        let load = store.load()
+        try store.save([])
+
+        // The save is entitled to replace the file — SceneMux has to be usable again. What it must not do is
+        // be the moment the state stopped existing, so the refused bytes are kept where a person can get at
+        // them, and the refusal says where.
+        guard case .refused(let refusal) = load else { return XCTFail("Expected a refusal: \(load)") }
+        let preservedAt = try XCTUnwrap(refusal.preservedAt)
+        XCTAssertEqual(
+            URL(filePath: preservedAt).lastPathComponent,
+            SceneCore.SceneStateStore.preservedFilename,
+        )
+        XCTAssertEqual(try Data(contentsOf: URL(filePath: preservedAt)), refusedBytes)
+        XCTAssertTrue(refusal.diagnostic.contains(preservedAt), refusal.diagnostic)
+        XCTAssertNotEqual(try Data(contentsOf: url), refusedBytes)
+    }
+
+    func testASecondRefusalDoesNotThrowAwayTheCopyOfTheFirst() throws {
+        let url = try temporaryDirectory().appending(path: "scene-state.json")
+        let store = SceneCore.SceneStateStore(url: url)
+        let firstBytes = Data(#"{ "version": 9000, "scenes": [] }"#.utf8)
+        try firstBytes.write(to: url)
+        _ = store.load()
+        try store.save([])
+
+        try Data("not JSON at all".utf8).write(to: url)
+        let second = store.load()
+
+        // The version-9000 file is what a newer SceneMux wrote, and SceneMux has already told someone it
+        // kept a copy of it. Overwriting that copy with today's rubbish would be the moment their Scenes
+        // actually stopped existing — so the second refusal keeps quiet instead of making a claim.
+        let preserved = url.deletingLastPathComponent()
+            .appending(path: SceneCore.SceneStateStore.preservedFilename)
+        XCTAssertEqual(try Data(contentsOf: preserved), firstBytes)
+        guard case .refused(let refusal) = second else { return XCTFail("Expected a refusal: \(second)") }
+        XCTAssertNil(refusal.preservedAt)
+    }
+
+    func testSavingOverAndOverLeavesOneStateFileAndNoDebris() throws {
+        let directory = try temporaryDirectory()
+        let store = SceneCore.SceneStateStore(url: directory.appending(path: "scene-state.json"))
+
+        for _ in 0 ..< 5 {
+            try store.save([try SceneCoreFixtures.scene()])
+        }
+
+        // An atomic write works through a temporary file, and Scene state is saved every time a window is
+        // attached. A leak here would quietly fill somebody's Application Support directory for months.
+        XCTAssertEqual(
+            try FileManager.default.contentsOfDirectory(atPath: directory.path),
+            ["scene-state.json"],
+        )
+    }
+
+    func testTheGoldenJourneySurvivesAQuitAndComesBackMeaningTheSameThing() throws {
+        typealias App = SceneCoreFixtures.App
+        let scene = try SceneCoreFixtures.debugScene(state: .active(.init(workspaceName: "3")))
+        let store = SceneCore.SceneStateStore(url: try temporaryDirectory().appending(path: "state.json"))
+
+        try store.save([scene])
+        let load = store.load()
+
+        // The acceptance criterion of this ticket, as the product states it: quit SceneMux in the middle of
+        // debugging PROD-123 and the intent comes back. Whole-value equality would pass on its own, but it
+        // reports "not equal" and nothing else, so the parts the rest of Phase 1 depends on are named here —
+        // if a future encoding drops `homeAtAttachTime`, this says which window forgot where it lives.
+        XCTAssertEqual(load, .loaded(scenes: [scene], quarantined: []))
+        XCTAssertEqual(load.diagnostics, [])
+        let restored = try XCTUnwrap(load.scenes.first)
+        XCTAssertEqual(restored.title, "Debug PROD-123")
+        XCTAssertEqual(restored.state, .active(.init(workspaceName: "3")))
+        XCTAssertEqual(
+            restored.slots.map(\.role),
+            [.terminal, .editor, .preview, .observability, .communication],
+        )
+        XCTAssertEqual(restored.slots.last?.composition, .tabbed)
+        for bundleId in [App.terminal, App.ide, App.browser, App.grafana] {
+            let attachment = try XCTUnwrap(restored.attachment(for: try SceneCoreFixtures.windowRef(bundleId)))
+            XCTAssertEqual(attachment.ownership, .sceneOwned, bundleId)
+        }
+        for bundleId in [App.line, App.slack] {
+            let attachment = try XCTUnwrap(restored.attachment(for: try SceneCoreFixtures.windowRef(bundleId)))
+            // Losing this pair is the failure the user would feel: a borrowed window that came back as the
+            // Scene's own is a window SceneMux would close, and one whose Home was forgotten has nowhere to
+            // be restored to.
+            XCTAssertEqual(attachment.ownership, .borrowed, bundleId)
+            XCTAssertEqual(attachment.homeAtAttachTime, .communication, bundleId)
+        }
+        XCTAssertNil(restored.attachment(for: try SceneCoreFixtures.windowRef(App.music)))
+    }
+
+    func testTheRealStateFileIsSceneMuxOwnedAndNowhereNearSomeonesConfig() throws {
+        let store = try SceneCore.SceneStateStore.inApplicationSupport()
+
+        XCTAssertEqual(store.url.lastPathComponent, "scene-state.json")
+        // `sceneMuxAppName` is `SceneMux-Debug` in a debug build, which is why developing SceneMux cannot
+        // corrupt the Scenes of the SceneMux being used to develop it.
+        XCTAssertEqual(store.url.deletingLastPathComponent().lastPathComponent, sceneMuxAppName)
+        XCTAssertTrue(store.url.path.contains("Application Support"), store.url.path)
+        // Never the user's hand-written, version-controlled config file. Different lifetime, different risk.
+        XCTAssertFalse(store.url.path.contains(".config"), store.url.path)
+        XCTAssertFalse(store.url.path.hasSuffix(".toml"), store.url.path)
+    }
+}
