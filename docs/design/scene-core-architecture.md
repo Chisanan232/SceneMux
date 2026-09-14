@@ -866,7 +866,10 @@ control, any pre-creation containment. See [Non-goals](#non-goals).
 ## How this design is verified
 
 The domain model is verified by unit tests — it imports `Foundation` only, precisely so that the
-invariants above are testable without a window server. The engine adapter and admission are verified
+invariants above are testable without a window server. So is the lifecycle above it: every transition,
+every teardown outcome and the whole interrupted-teardown path are exercised as values, and the
+orchestrator against a real state file in a temporary directory, including a directory it is not allowed
+to write to. The engine adapter and admission are verified
 against the real engine. Everything with a surface is verified natively, per
 [`../development/ui-verification.md`](../development/ui-verification.md): built, launched, driven through
 XCTest/XCUITest, Accessibility automation or a real interactive pass, with window-scoped or artifact-scoped
