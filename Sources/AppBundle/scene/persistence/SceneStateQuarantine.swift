@@ -1,38 +1,63 @@
 import Foundation
 
 extension SceneCore {
-    /// One Scene that was in the state file, parsed as far as its own shape, and then refused by the domain.
+    /// One attachment that was in the state file, parsed as far as its own shape, and then set aside.
     ///
     /// The narrower case the architecture document calls *quarantine*: state that parsed but describes
-    /// something impossible — an attachment to a `SlotId` the Scene does not have, a window attached twice.
-    /// The rest of the file is fine, so the rest of the file loads, and this Scene is set aside with the
-    /// reason instead of being loaded half-formed.
+    /// something impossible — an attachment to a `SlotId` its Scene does not have, the same window attached
+    /// twice, an attachment recorded against a Scene that has already ended. The Scene itself is fine, so
+    /// the Scene loads without that attachment and the reason is surfaced once in the UI.
     ///
-    /// Why a whole Scene and not the offending attachment: a `Scene` cannot exist in an invalid state at all
-    /// — its initialiser refuses one, and its decoder runs the same validation — so there is no partly-valid
-    /// Scene to keep. Dropping the attachment instead would silently discard a *permission* record, which is
-    /// the accident `Scene.removingSlot` refuses a non-empty Slot to prevent. Either way no window is
-    /// touched: a quarantined Scene owns nothing, so nothing is restored, moved or closed on its behalf.
+    /// Why the attachment and not the whole Scene: an attachment is only ever *permission* to move a window
+    /// that is already on screen, so dropping one can never move, resize or close anything — it can only
+    /// make SceneMux do less. Losing the whole Scene over one stale entry would throw away the Slots and
+    /// the ownership records for every other window in it, which is strictly more destructive than the
+    /// problem.
+    ///
+    /// An unrecognised `ownership` value never appears here: `Ownership.init(from:)` already degrades it to
+    /// `.sharedPersistent`, which keeps the attachment and removes SceneMux's permission to act on it.
     struct SceneStateQuarantine: Equatable, Sendable {
-        /// Which entry of the file's `scenes` array it was. The id is not usable — the Scene did not decode.
-        let index: Int
-        /// Where the decode gave up, in field names and indices only, when the decoder said.
-        let codingPath: String?
-        /// The domain's own reason, when it was the domain that refused rather than the shape.
-        let refusedBy: SceneCoreError?
+        enum Reason: Equatable, Sendable {
+            /// The attachment names a Slot the Scene does not have — a Slot removed by a later build, or a
+            /// hand-edited file.
+            case unknownSlot(SlotId)
+            /// The same window is attached twice in one Scene. Invariant I4 allows one attachment; this is
+            /// the second and later ones.
+            case alreadyAttached
+            /// An `ended` Scene is a record of a finished task, so an attachment in one is a leftover.
+            case sceneHasEnded
+            /// The entry is not a readable attachment at all, at this coding path when the decoder said.
+            case unreadable(at: String?)
+        }
 
-        /// One line for the user: which Scene was set aside, and why.
+        /// The Scene it was recorded against. The Scene loaded, so this identity is usable.
+        let sceneId: SceneId
+        /// The Scene's title, so the message names the task the way its owner does.
+        let sceneTitle: String
+        /// Which window, when the entry named one readably. `nil` only for `.unreadable`.
+        let windowRef: WindowRef?
+        let reason: Reason
+
+        /// One line for the user: which window was left out of which Scene, and why.
         var diagnostic: String {
-            "Scene \(index) in the state file was set aside: \(explanation) Its windows were left alone."
+            "SceneMux left \(subject) out of \"\(sceneTitle)\": \(explanation) The window was not touched."
+        }
+
+        private var subject: String {
+            windowRef.map { "\($0)" } ?? "one unreadable attachment"
         }
 
         private var explanation: String {
-            if let refusedBy {
-                "\(refusedBy)."
-            } else if let codingPath {
-                "it does not describe a usable Scene, at \(codingPath)."
-            } else {
-                "it does not describe a usable Scene."
+            switch reason {
+                case .unknownSlot(let slotId):
+                    "the Scene has no Slot \(slotId)."
+                case .alreadyAttached:
+                    "it is attached to that Scene more than once."
+                case .sceneHasEnded:
+                    "that Scene has already ended."
+                case .unreadable(let codingPath):
+                    codingPath.map { "the saved state at \($0) is not a readable attachment." }
+                        ?? "the saved state is not a readable attachment."
             }
         }
     }
