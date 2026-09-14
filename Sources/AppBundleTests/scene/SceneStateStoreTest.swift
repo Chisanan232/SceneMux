@@ -79,6 +79,27 @@ final class SceneStateStoreTest: XCTestCase {
         XCTAssertNotEqual(try Data(contentsOf: url), refusedBytes)
     }
 
+    func testASecondRefusalDoesNotThrowAwayTheCopyOfTheFirst() throws {
+        let url = try temporaryDirectory().appending(path: "scene-state.json")
+        let store = SceneCore.SceneStateStore(url: url)
+        let firstBytes = Data(#"{ "version": 9000, "scenes": [] }"#.utf8)
+        try firstBytes.write(to: url)
+        _ = store.load()
+        try store.save([])
+
+        try Data("not JSON at all".utf8).write(to: url)
+        let second = store.load()
+
+        // The version-9000 file is what a newer SceneMux wrote, and SceneMux has already told someone it
+        // kept a copy of it. Overwriting that copy with today's rubbish would be the moment their Scenes
+        // actually stopped existing — so the second refusal keeps quiet instead of making a claim.
+        let preserved = url.deletingLastPathComponent()
+            .appending(path: SceneCore.SceneStateStore.preservedFilename)
+        XCTAssertEqual(try Data(contentsOf: preserved), firstBytes)
+        guard case .refused(let refusal) = second else { return XCTFail("Expected a refusal: \(second)") }
+        XCTAssertNil(refusal.preservedAt)
+    }
+
     func testSavingOverAndOverLeavesOneStateFileAndNoDebris() throws {
         let directory = try temporaryDirectory()
         let store = SceneCore.SceneStateStore(url: directory.appending(path: "scene-state.json"))
