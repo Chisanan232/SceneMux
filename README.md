@@ -20,7 +20,10 @@ scene, and every window has a place in it. Native apps stay native.</p>
 > a standalone, provenance-safe repository with its own identity and its own (currently
 > unconfigured) update channel. Everything documented below is the **inherited WinMux
 > engine**. The task-oriented layer this project exists for — Semantic Homes, Scenes, Slots
-> and Mounts — arrives in v0.1.0 and is not present yet.
+> and Mounts — arrives in v0.1.0 and is not present yet. What those words will mean, and how
+> they will look, is specified up front in
+> [`docs/design/scene-core-architecture.md`](docs/design/scene-core-architecture.md) and
+> [`docs/design/scene-core-ux.md`](docs/design/scene-core-ux.md).
 
 ## Highlights
 ### Projects
