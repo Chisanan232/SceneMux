@@ -47,7 +47,9 @@ private let sceneMuxNewIssueURL = "https://github.com/Chisanan232/SceneMux/issue
         }.keyboardShortcut("Q", modifiers: .command)
     } label: {
         if viewModel.isEnabled {
-            MenuBarAppIcon().environmentObject(viewModel)
+            SceneMenuBarLabel(runtime: SceneCore.SceneRuntime.shared) {
+                MenuBarAppIcon().environmentObject(viewModel)
+            }
         } else {
             Image(systemName: "pause.circle.fill")
                 .resizable()
