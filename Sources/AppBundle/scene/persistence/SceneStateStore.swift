@@ -48,9 +48,37 @@ extension SceneCore {
                 return .noStateFile(path: url.path)
             }
             guard let data = try? Data(contentsOf: url) else {
-                return .refused(SceneStateRefusal(reason: .unreadable, path: url.path, preservedAt: nil))
+                let refusal = SceneStateRefusal(reason: .unreadable, path: url.path, preservedAt: nil)
+                return .refused(preserving(refusal))
             }
-            return SceneStateFormat.read(data, from: url.path)
+            let outcome = SceneStateFormat.read(data, from: url.path)
+            guard case .refused(let refusal) = outcome else { return outcome }
+            return .refused(preserving(refusal))
+        }
+
+        /// Copy a refused file aside, and say so in the refusal when the copy worked.
+        ///
+        /// A copy and not a move: the original stays exactly where the user expects to find it, so a newer
+        /// SceneMux that wrote a version this build cannot read still finds its own file when it next runs.
+        /// The copy exists for the other direction — the next `save` overwrites the original, and without it
+        /// that save would be the moment the state stopped existing. Recovering from a bad upgrade is then
+        /// still possible from the copy, which is the difference between an inconvenience and a loss.
+        ///
+        /// Best effort by design. If it fails there is nothing useful to do about it and nothing to hide: the
+        /// refusal is returned without a preservation claim rather than with a false one.
+        private func preserving(_ refusal: SceneStateRefusal) -> SceneStateRefusal {
+            let destination = url
+                .deletingLastPathComponent()
+                .appendingPathComponent(Self.preservedFilename, isDirectory: false)
+            do {
+                if FileManager.default.fileExists(atPath: destination.path) {
+                    try FileManager.default.removeItem(at: destination)
+                }
+                try FileManager.default.copyItem(at: url, to: destination)
+            } catch {
+                return refusal
+            }
+            return refusal.preserved(at: destination.path)
         }
 
         /// The real location: `~/Library/Application Support/SceneMux/scene-state.json`.
