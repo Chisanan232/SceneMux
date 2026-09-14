@@ -32,6 +32,13 @@ final class SceneSwitcherModel: ObservableObject {
     /// The last thing that could not be done, in the words the model uses. Cleared by the next action.
     @Published private(set) var errorText: String?
 
+    /// Bumped whenever the keyboard should be put back in the panel's field.
+    ///
+    /// A counter rather than a flag, because what the view needs is an *event*: something outside the panel took
+    /// the keyboard and the field must claim it again. A flag that was already true would publish no change and
+    /// the field would stay dead.
+    @Published private(set) var focusToken: Int = 0
+
     /// The Scenes this panel reads and changes. Injected so a test can point it at a temporary state file.
     let runtime: SceneCore.SceneRuntime
 
@@ -166,6 +173,11 @@ final class SceneSwitcherModel: ObservableObject {
         guard act({ try runtime.close(id) }) else { return }
         mode = .browsing
         selection = min(selection, max(results.count - 1, 0))
+    }
+
+    /// Ask the panel's field for the keyboard back. Called when the panel becomes key again.
+    func requestFieldFocus() {
+        focusToken += 1
     }
 
     /// Esc in an editing state: back to the list, with nothing changed. Reverting, not committing.
