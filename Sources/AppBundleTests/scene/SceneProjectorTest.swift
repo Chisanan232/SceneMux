@@ -90,4 +90,29 @@ final class SceneProjectorTest: XCTestCase {
                 + "a horizontal split, because the window engine normalized it."],
         )
     }
+
+    /// A quit window is an ordinary event, not a failed Scene: the rest of the layout still happens, and the
+    /// missing one is named. The diagnostic blames the window rather than normalization, because that is what
+    /// actually happened.
+    func testAMissingWindowIsNamedWhileTheRestOfTheSlotIsStillPlaced() throws {
+        let port = RecordingSceneEnginePort()
+        let comms = SceneCoreFixtures.slot(role: .communication, composition: .tabbed, order: 0)
+        let line = try SceneCore.WindowRef(bundleId: App.line, ordinalWithinApp: 0)
+        let slack = try SceneCore.WindowRef(bundleId: App.slack, ordinalWithinApp: 0)
+        let scene = try SceneCoreFixtures.scene(slots: [comms])
+            .attaching(SceneCoreFixtures.attachment(windowRef: line, slotId: comms.id))
+            .attaching(SceneCoreFixtures.attachment(windowRef: slack, slotId: comms.id))
+        port.invisibleWindows = [slack]
+
+        let report = SceneCore.SceneProjector(port: port)
+            .project(SceneCore.SceneLayoutPlan(scene, on: substrate))
+
+        XCTAssertEqual(report.placement(for: comms.id), .partlyRealised(.tabbed, missing: [slack]))
+        XCTAssertEqual(report.missingWindows, [slack])
+        XCTAssertEqual(
+            report.diagnostics,
+            ["SceneMux could not find com.tinyspeck.slackmacgap#0 for the communication Slot of "
+                + "\"Debug PROD-123\", and composed what remained as a tab group."],
+        )
+    }
 }
