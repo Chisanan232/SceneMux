@@ -135,7 +135,7 @@ private let agentSkillText = """
     - `addWindowToTabGroup`: `{ "type": "addWindowToTabGroup", "windowId": 123, "tabGroupId": "tabgroup-456", "activeWindowId": 123 }`
     - `moveWindowOutOfTabGroup`: `{ "type": "moveWindowOutOfTabGroup", "windowId": 123 }`
     - `setActiveTab`: `{ "type": "setActiveTab", "tabGroupId": "tabgroup-123", "windowId": 456 }`
-    - `setWinMuxFullscreen`: `{ "type": "setWinMuxFullscreen", "windowId": 123, "value": true, "noOuterGaps": true }`
+    - `setSceneMuxFullscreen`: `{ "type": "setSceneMuxFullscreen", "windowId": 123, "value": true, "noOuterGaps": true }` (the inherited `setWinMuxFullscreen` spelling is still accepted)
     - `setFloating`: `{ "type": "setFloating", "windowId": 123, "value": true }`
     - `closeWindow`: `{ "type": "closeWindow", "windowId": 123, "quitAppIfLastWindow": true }`
     - `parkWindow`: `{ "type": "parkWindow", "pane": { "windowId": 123 }, "workspace": "__agent_parked" }`
@@ -157,7 +157,7 @@ private let agentSkillText = """
 
     Relations for `placePane`: `leftOf`, `rightOf`, `above`, `below`.
 
-    SceneMux fullscreen is not macOS native fullscreen. Use `setWinMuxFullscreen`.
+    SceneMux fullscreen is not macOS native fullscreen. Use `setSceneMuxFullscreen`.
 
     If the user wants a window not to show in the current workspace but does not ask to close it, use `parkWindow` or `moveWindowToWorkspace`, not native minimize.
 
