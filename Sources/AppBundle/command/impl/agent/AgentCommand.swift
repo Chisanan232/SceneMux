@@ -71,7 +71,7 @@ private func describeAgentJsonError(_ error: Error) -> String {
 
 private let agentSkillText = """
     ---
-    name: winmux-agent
+    name: scenemux-agent
     description: Use when arranging WinMux windows through the agent JSON interface. Query to a file, read that exact file, edit it, then apply that exact file.
     ---
 
@@ -81,20 +81,20 @@ private let agentSkillText = """
 
     Required workflow for every user request:
     1. Query the current state into a JSON file:
-       `winmux agent query --path /tmp/winmux-agent.json`
+       `scenemux agent query --path /tmp/scenemux-agent.json`
     2. Read the file you just wrote:
-       `/tmp/winmux-agent.json`
-       Important: `query --path` writes the JSON to the path. It does not print the JSON to stdout. Running `ls /tmp/winmux-agent.json` is not enough; you must read the file contents.
-    3. Edit only the `edit` object inside `/tmp/winmux-agent.json`.
+       `/tmp/scenemux-agent.json`
+       Important: `query --path` writes the JSON to the path. It does not print the JSON to stdout. Running `ls /tmp/scenemux-agent.json` is not enough; you must read the file contents.
+    3. Edit only the `edit` object inside `/tmp/scenemux-agent.json`.
        Treat `schemaVersion`, `snapshotId`, `worldId`, `inventory`, and `reasoning` as read-only context. Do not edit titles, app names, frames, panes, workspace inventory, or the world id.
     4. For a small change, replace the entire `edit.operations` array with only the operations for the current user request. Do not append to operations left by an earlier request.
     5. For a full workspace redesign, edit `edit.layout.workspaces` instead of `edit.operations`.
     6. Apply the same file:
-       `winmux agent apply --path /tmp/winmux-agent.json`
-    7. If apply says the JSON is stale or the `worldId` does not match, discard `/tmp/winmux-agent.json`, run the query command again, read the new file, redo the edit, and apply again.
+       `scenemux agent apply --path /tmp/scenemux-agent.json`
+    7. If apply says the JSON is stale or the `worldId` does not match, discard `/tmp/scenemux-agent.json`, run the query command again, read the new file, redo the edit, and apply again.
     8. Return a short summary of what changed.
 
-    Usually skip the separate check command. `apply` validates before changing anything. Use `winmux agent check --path /tmp/winmux-agent.json` only for complex edits or after a failed apply.
+    Usually skip the separate check command. `apply` validates before changing anything. Use `scenemux agent check --path /tmp/scenemux-agent.json` only for complex edits or after a failed apply.
 
     The file includes a `worldId` freshness guard. If windows move, close, change fullscreen state, or the user manually changes the layout, discard the file and query again.
 
