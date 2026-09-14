@@ -185,6 +185,10 @@ final class SceneSwitcherModel: ObservableObject {
         switch request {
             case .switcher:
                 errorText = nil
+                // The whole list, every time. This model outlives the panel's window, so without clearing the
+                // filter the switcher reopens narrowed by something typed to find a Scene that has already
+                // been entered — a list with tasks missing from it, for no reason the user can see.
+                query = ""
                 mode = .browsing
             case .newScene:
                 query = ""
