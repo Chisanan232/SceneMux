@@ -19,6 +19,18 @@ final class SceneValidationTest: XCTestCase {
         }
     }
 
+    func testAnAttachmentToASlotTheSceneDoesNotHaveIsRejected() throws {
+        let elsewhere = SceneCore.SlotId.generate()
+        let stray = SceneCoreFixtures.attachment(
+            windowRef: try SceneCoreFixtures.windowRef(),
+            slotId: elsewhere,
+        )
+
+        XCTAssertThrowsError(try SceneCoreFixtures.scene(slots: [], attachments: [stray])) { error in
+            XCTAssertEqual(error as? SceneCore.SceneCoreError, .unknownSlot(elsewhere))
+        }
+    }
+
     func testTwoTerminalsAreAPerfectlyOrdinaryScene() throws {
         let first = SceneCoreFixtures.slot(role: .terminal, order: 0)
         let second = SceneCoreFixtures.slot(role: .terminal, order: 1)
