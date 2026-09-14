@@ -136,4 +136,22 @@ final class SceneWorldLifecycleTest: XCTestCase {
         XCTAssertEqual(closed.plan.cleanupCandidates, [])
         XCTAssertEqual(closed.world.scene(scene.id)?.state, .ended)
     }
+
+    func testASceneOfWindowsItOpenedItselfEndsAsItCloses() throws {
+        let slot = SceneCoreFixtures.slot(role: .terminal)
+        let terminal = try SceneCoreFixtures.windowRef(App.terminal)
+        let scene = try SceneCoreFixtures.scene(
+            slots: [slot],
+            attachments: [SceneCoreFixtures.attachment(windowRef: terminal, slotId: slot.id)],
+            state: .active(substrate),
+        )
+
+        let closed = try SceneCore.SceneWorld(scenes: [scene]).closing(scene.id)
+
+        // Nobody is going to report back about a Scene with nothing pending, so waiting for a report would
+        // leave it closing forever. The window is still named in the plan, for a shell to offer closing it.
+        XCTAssertEqual(closed.world.scene(scene.id)?.state, .ended)
+        XCTAssertEqual(closed.world.scene(scene.id)?.attachments, [])
+        XCTAssertEqual(closed.plan.cleanupCandidates.map(\.windowRef), [terminal])
+    }
 }
