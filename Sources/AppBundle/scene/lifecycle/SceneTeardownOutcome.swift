@@ -23,6 +23,9 @@ extension SceneCore {
         /// The explicit fallback. A window whose Home no longer exists must not be moved somewhere invented
         /// for it, and must not hold its Scene open forever either — so it stays put, the Scene finishes, and
         /// the person is told which window stayed and why.
+        ///
+        /// The reason is a clause with no trailing full stop — "its Home has no workspace any more" — because
+        /// the sentence it lands in is composed where the user is told, not here.
         case leftInPlace(reason: String)
         /// The attempt failed and is worth trying again — a busy app, a timeout, a sleeping machine.
         case failed(reason: String)

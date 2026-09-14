@@ -117,7 +117,7 @@ extension SceneCore {
 
             guard world != before, case .leftInPlace(let reason) = outcome, let title else { return }
             diagnostics.append(
-                "SceneMux left \(windowRef) where it was when \"\(title)\" ended: \(reason)",
+                "SceneMux left \(windowRef) where it was when \"\(title)\" ended: \(reason).",
             )
         }
 
