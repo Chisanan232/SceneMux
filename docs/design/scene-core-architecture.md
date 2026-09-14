@@ -268,9 +268,13 @@ it. The Scene shows it, the user works with it, and when the Scene ends it goes 
 
 Formally, for an attachment `a` of a window with Home `h`:
 
-- `a` **is a Mount** when `h` is not the Home this Scene's Slot serves and `a.ownership == .borrowed`;
-- `a` is a plain attachment when the window's Home is native to the Slot, or when the window was created
-  for this Scene.
+- `a` **is a Mount** when `a.ownership == .borrowed` — the user lent this window to the Scene, and `h` is
+  where it goes back to;
+- `a` is a plain attachment when `a.ownership == .sceneOwned` — the window is part of this task.
+
+Note that the test is the recorded ownership and not a comparison against `h`. LINE mounted into a
+`communication` Slot is a Mount even though the Slot's role matches its Home, because *borrowing* is what
+the user did. See [Ownership](#ownership).
 
 `homeAtAttachTime` exists for a specific failure mode: the user re-homes an application (say, moves
 Slack from `communication` to `development`) *while* a Scene that borrowed it is still open. What should
