@@ -109,5 +109,16 @@ git config remote.upstream.tagOpt --no-tags
 * Neither the MIT license nor this document grants any trademark rights in
   "WinMux" or "AeroSpace".
 
+### Known open item
+
+These rules state the target, and the repository does not meet them yet. As of
+this commit the inherited product identity is still in place: `README.md`
+presents the product as "WinMux" and uses `resources/winmux-logo.svg` as its
+logo, and the application's bundle identifiers and product names are still
+upstream's. Converting product-facing identity — and replacing the inherited
+logo rather than rebranding it — is HORO-1097, the next ticket in Phase 0. It is
+recorded here rather than left implicit so that nobody reads the rules above as a
+description of the current state.
+
 See `docs/legal/LICENSE_POLICY.md` for how licensing decisions are made from
 here, and `THIRD_PARTY_NOTICES.md` for the bundled-dependency inventory.
