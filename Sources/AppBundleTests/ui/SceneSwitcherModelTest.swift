@@ -181,6 +181,21 @@ final class SceneSwitcherModelTest: XCTestCase {
         XCTAssertEqual(model.mode, .browsing)
     }
 
+    /// `⏎` on a search that matched nothing starts naming the Scene that was being looked for, which is what the
+    /// panel's empty state tells the user it will do. Nothing is created by the key itself — the name is still
+    /// there to be committed or abandoned.
+    func testReturnOnNoMatchesStartsNamingWhatWasSearchedFor() throws {
+        _ = try model.runtime.createScene(title: "Debug PROD-123", template: .empty)
+        model.query = "Debug PROD-124"
+        XCTAssertEqual(model.results, [])
+
+        XCTAssertFalse(model.enterSelected(), "the panel stays up: there was nothing to enter")
+
+        XCTAssertEqual(model.mode, .creating)
+        XCTAssertEqual(model.nameField, "Debug PROD-124")
+        XCTAssertEqual(model.snapshot.scenes.map(\.title), ["Debug PROD-123"], "and nothing is created yet")
+    }
+
     /// Esc on a narrowed list widens the search first and only closes the panel on the second press. Searching is
     /// part-way through something as much as naming is, and one key that did both would make the user reopen the
     /// panel to see the Scenes their own typing had hidden.
