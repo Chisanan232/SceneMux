@@ -57,4 +57,25 @@ final class SceneOrchestratorTest: XCTestCase {
         XCTAssertEqual(orchestrator.diagnostics.count, 1)
         XCTAssertTrue(try XCTUnwrap(orchestrator.diagnostics.first).contains("version 9000"))
     }
+
+    func testScenesThatCannotAllBeTrueAreRefusedAndTheFileIsKept() throws {
+        let store = store(in: try temporaryDirectory())
+        try store.save([
+            try SceneCoreFixtures.scene(title: "Debug PROD-123", state: .active(substrate)),
+            try SceneCoreFixtures.scene(title: "Review the release", state: .active(.init(workspaceName: "7"))),
+        ])
+        let bytes = try Data(contentsOf: store.url)
+
+        let orchestrator = SceneCore.SceneOrchestrator(store: store)
+
+        // Each Scene decodes perfectly and they cannot both be on screen, so the file is refused as a whole —
+        // and copied aside first, because the next save is what would otherwise destroy it.
+        XCTAssertEqual(orchestrator.world, .empty)
+        let diagnostic = try XCTUnwrap(orchestrator.diagnostics.first)
+        XCTAssertTrue(diagnostic.contains("cannot use together"))
+        XCTAssertTrue(diagnostic.contains("more than one Scene"))
+        let preserved = store.url.deletingLastPathComponent()
+            .appending(path: SceneCore.SceneStateStore.preservedFilename)
+        XCTAssertEqual(try Data(contentsOf: preserved), bytes)
+    }
 }
