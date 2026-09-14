@@ -99,6 +99,12 @@ git config remote.upstream.tagOpt --no-tags
 * SceneMux does not promise to track upstream. Divergence is expected: SceneMux
   is a task-oriented orchestration layer, not a WinMux rebrand.
 
+The mechanics — `script/upstream.sh`, when to adopt upstream work, how to decide a
+conflict, and when a fix belongs upstream instead of here — live in
+`docs/development/upstream-sync.md`. This section states the policy; that document
+carries it out. `script/upstream.sh` reads the baseline commit out of the table
+above, so this file stays the single source of truth for the provenance facts.
+
 ## Attribution rules
 
 * Upstream notices are never removed merely because the product brand changed.
@@ -109,16 +115,25 @@ git config remote.upstream.tagOpt --no-tags
 * Neither the MIT license nor this document grants any trademark rights in
   "WinMux" or "AeroSpace".
 
-### Known open item
+### Current state of the product identity
 
-These rules state the target, and the repository does not meet them yet. As of
-this commit the inherited product identity is still in place: `README.md`
-presents the product as "WinMux" and uses `resources/winmux-logo.svg` as its
-logo, and the application's bundle identifiers and product names are still
-upstream's. Converting product-facing identity — and replacing the inherited
-logo rather than rebranding it — is HORO-1097, the next ticket in Phase 0. It is
-recorded here rather than left implicit so that nobody reads the rules above as a
-description of the current state.
+The rules above now describe the repository, not a target. HORO-1097 converted
+the product-facing identity: `README.md` presents SceneMux and uses
+`resources/scenemux-logo.svg`, the product names are `SceneMux` and
+`SceneMux-Debug`, and the bundle identifiers are `com.chisanan232.scenemux` and
+`com.chisanan232.scenemux.debug`.
+
+Two things about that conversion are deliberate and should not be "tidied":
+
+* **Inherited engine-internal names stay WinMux-oriented.** Symbols such as
+  `WinMuxAny`, `WinMuxShell`, `applyWinMuxLayer` and
+  `JSONEncoder.winMuxDefault` were left alone so that upstream changes still
+  apply to the code they were written against. Renaming them would buy nothing
+  and would make every future upstream merge conflict. See
+  `docs/development/upstream-sync.md`.
+* **`resources/winmux-logo.svg` is retained and unreferenced.** It is inherited
+  content, kept as provenance rather than deleted, and it is not used as SceneMux
+  branding anywhere — which is exactly what the attribution rules above require.
 
 See `docs/legal/LICENSE_POLICY.md` for how licensing decisions are made from
 here, and `THIRD_PARTY_NOTICES.md` for the bundled-dependency inventory.

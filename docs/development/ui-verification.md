@@ -47,6 +47,13 @@ Be aware of what launching a tiling window manager means: **it will rearrange ev
 display.** Do not start an interactive pass on a machine that is mid-presentation, screen-sharing, or
 holding unsaved work in windows you cannot afford to have moved.
 
+If the only Mac available is one you are working on, use the containment recipe in
+[`baseline-verification.md`](baseline-verification.md) — `--read-only` first, a config that opts out
+of everything automatic, and every mutating command targeted by `--window-id` at a throwaway window.
+It was enough to exercise tiling, tab groups and workspace moves without moving a window the pass did
+not target. Read the two limits recorded there as well: directional focus escapes the containment, and
+a display reconfiguration mid-pass will park windows off-screen.
+
 ## Screenshot discipline
 
 Screenshots are required for UI changes and for both release gates. They are also the easiest way to
@@ -64,6 +71,12 @@ Rules:
   customer names and file paths all leak this way.
 - If a capture picks up something it should not have, delete the file immediately and say so plainly
   in the pull request. A deleted-and-declared mistake is recoverable; a quietly attached one is not.
+- **A region capture of SceneMux's own chrome is not automatically safe.** The tab strip and the HUD
+  panels are drawn with `.ultraThinMaterial`, which samples whatever is behind them, so an unrelated
+  application can bleed through SceneMux's own UI. Capture translucent chrome over a backdrop you
+  control — an empty workspace — and read the result before attaching it. See
+  [`baseline-verification.md`](baseline-verification.md) for a worked example where this looked like a
+  rendering defect.
 
 ## Recording the result
 

@@ -44,6 +44,9 @@ this repository on purpose.
   `setWinMuxFullscreen` agent operation is still accepted next to `setSceneMuxFullscreen`.
 - **`upstream` is read-only.** Its push URL is disabled. A bare `gh` command in this repository
   resolves to `upstream`, not to SceneMux — always pass `--repo Chisanan232/SceneMux`.
+  `script/upstream.sh check` asserts the boundary;
+  [`docs/development/upstream-sync.md`](docs/development/upstream-sync.md) says how to adopt upstream
+  work, decide a conflict, and offer a generic fix upstream.
 - **No inherited SemVer tag is a SceneMux release.** SceneMux's release namespace starts at
   `v0.0.0`. See [`docs/release/RELEASE_MAPPING.md`](docs/release/RELEASE_MAPPING.md).
 
