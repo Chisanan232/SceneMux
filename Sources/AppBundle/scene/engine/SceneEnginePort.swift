@@ -17,6 +17,17 @@ extension SceneCore {
     /// is asked only what a projection *became*, never what a Scene is.
     @MainActor
     protocol SceneEnginePort {
+        /// Where a Scene entered right now would be drawn.
+        ///
+        /// Asked rather than assumed, because the answer is the engine's: which workspace is in front of the
+        /// person depends on monitors, Spaces and what they last did, and a shell that worked it out for
+        /// itself would have to name engine types to do it. This is the only way anything above the seam
+        /// learns a substrate, which is what keeps `scene/shell/` free of the engine.
+        ///
+        /// - Returns: the substrate, or nothing when there is nothing usable to draw on — in which case
+        ///   entering a Scene is refused rather than aimed at a guess.
+        func currentSubstrate() -> SubstrateBinding?
+
         /// Make sure the Scene has somewhere to be drawn, and start a fresh projection.
         ///
         /// Called exactly once per projection, before any placement, so an implementation may also use it to
