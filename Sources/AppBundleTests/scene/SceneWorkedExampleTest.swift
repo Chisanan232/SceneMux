@@ -11,50 +11,6 @@ import XCTest
 final class SceneWorkedExampleTest: XCTestCase {
     private typealias App = SceneCoreFixtures.App
 
-    private func debugScene() throws -> SceneCore.Scene {
-        let terminal = SceneCoreFixtures.slot(role: .terminal, order: 0)
-        let editor = SceneCoreFixtures.slot(role: .editor, order: 1)
-        let preview = SceneCoreFixtures.slot(role: .preview, order: 2)
-        let observability = SceneCoreFixtures.slot(role: .observability, order: 3)
-        let comms = SceneCoreFixtures.slot(role: .communication, composition: .tabbed, order: 4)
-
-        return try SceneCoreFixtures.scene(slots: [terminal, editor, preview, observability, comms])
-            .attaching(SceneCoreFixtures.attachment(
-                windowRef: try SceneCoreFixtures.windowRef(App.terminal),
-                slotId: terminal.id,
-                ownership: .sceneOwned,
-            ))
-            .attaching(SceneCoreFixtures.attachment(
-                windowRef: try SceneCoreFixtures.windowRef(App.ide),
-                slotId: editor.id,
-                ownership: .sceneOwned,
-            ))
-            .attaching(SceneCoreFixtures.attachment(
-                windowRef: try SceneCoreFixtures.windowRef(App.browser),
-                slotId: preview.id,
-                ownership: .sceneOwned,
-                homeAtAttachTime: .personal,
-            ))
-            .attaching(SceneCoreFixtures.attachment(
-                windowRef: try SceneCoreFixtures.windowRef(App.grafana),
-                slotId: observability.id,
-                ownership: .sceneOwned,
-                homeAtAttachTime: .observability,
-            ))
-            .attaching(SceneCoreFixtures.attachment(
-                windowRef: try SceneCoreFixtures.windowRef(App.line),
-                slotId: comms.id,
-                ownership: .borrowed,
-                homeAtAttachTime: .communication,
-            ))
-            .attaching(SceneCoreFixtures.attachment(
-                windowRef: try SceneCoreFixtures.windowRef(App.slack),
-                slotId: comms.id,
-                ownership: .borrowed,
-                homeAtAttachTime: .communication,
-            ))
-    }
-
     private func teardownEffect(
         of bundleId: String,
         in scene: SceneCore.Scene,
@@ -67,7 +23,7 @@ final class SceneWorkedExampleTest: XCTestCase {
         // Invariant I7 at its source. A `.sharedPersistent` window has no attachment, so there is nothing
         // for teardown to resolve and no record that could give SceneMux permission to move it — which is
         // also why the sidebar lists it in its own Shared section rather than under a Scene.
-        let scene = try debugScene()
+        let scene = try SceneCoreFixtures.debugScene()
 
         let music = try SceneCoreFixtures.windowRef(App.music)
 
@@ -80,7 +36,7 @@ final class SceneWorkedExampleTest: XCTestCase {
         // *matches* its Slot's role and it is still a Mount; the browser's Home *differs* from its Slot's
         // role and it is still not one. A comparison would get both of these backwards, and getting the
         // browser wrong means promising to move a window the user asked SceneMux to leave in place.
-        let scene = try debugScene()
+        let scene = try SceneCoreFixtures.debugScene()
 
         let line = try XCTUnwrap(scene.attachment(for: try SceneCoreFixtures.windowRef(App.line)))
         let browser = try XCTUnwrap(scene.attachment(for: try SceneCoreFixtures.windowRef(App.browser)))
@@ -94,7 +50,7 @@ final class SceneWorkedExampleTest: XCTestCase {
     func testEndingTheDebugSceneTreatsEachWindowTheWayTheUserLentIt() throws {
         // Ownership alone decides this, which is why LINE goes home while Grafana — a window the user also
         // did not open for this task — stays where the Scene put it.
-        let scene = try debugScene()
+        let scene = try SceneCoreFixtures.debugScene()
 
         XCTAssertEqual(try teardownEffect(of: App.line, in: scene), .restoreToHome)
         XCTAssertEqual(try teardownEffect(of: App.slack, in: scene), .restoreToHome)

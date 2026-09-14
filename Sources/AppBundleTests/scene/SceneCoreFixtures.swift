@@ -61,4 +61,54 @@ enum SceneCoreFixtures {
     ) throws -> SceneCore.Scene {
         try SceneCore.Scene(id: id, title: title, slots: slots, attachments: attachments, state: state)
     }
+
+    /// The golden journey of `docs/design/scene-core-ux.md` as one Scene: "Debug PROD-123", five Slots and
+    /// six windows. The terminal and the IDE are part of the task, the dashboard and the preview browser were
+    /// opened for it, LINE and Slack were lent to it for the duration, and the music player is not in it.
+    ///
+    /// Shared rather than copied, so that a test about persistence and a test about teardown are talking
+    /// about the same journey — and so that changing the journey breaks both of them at once.
+    static func debugScene(state: SceneCore.SceneState = .defined) throws -> SceneCore.Scene {
+        let terminal = slot(role: .terminal, order: 0)
+        let editor = slot(role: .editor, order: 1)
+        let preview = slot(role: .preview, order: 2)
+        let observability = slot(role: .observability, order: 3)
+        let comms = slot(role: .communication, composition: .tabbed, order: 4)
+
+        return try scene(slots: [terminal, editor, preview, observability, comms], state: state)
+            .attaching(attachment(
+                windowRef: try windowRef(App.terminal),
+                slotId: terminal.id,
+                ownership: .sceneOwned,
+            ))
+            .attaching(attachment(
+                windowRef: try windowRef(App.ide),
+                slotId: editor.id,
+                ownership: .sceneOwned,
+            ))
+            .attaching(attachment(
+                windowRef: try windowRef(App.browser),
+                slotId: preview.id,
+                ownership: .sceneOwned,
+                homeAtAttachTime: .personal,
+            ))
+            .attaching(attachment(
+                windowRef: try windowRef(App.grafana),
+                slotId: observability.id,
+                ownership: .sceneOwned,
+                homeAtAttachTime: .observability,
+            ))
+            .attaching(attachment(
+                windowRef: try windowRef(App.line),
+                slotId: comms.id,
+                ownership: .borrowed,
+                homeAtAttachTime: .communication,
+            ))
+            .attaching(attachment(
+                windowRef: try windowRef(App.slack),
+                slotId: comms.id,
+                ownership: .borrowed,
+                homeAtAttachTime: .communication,
+            ))
+    }
 }
