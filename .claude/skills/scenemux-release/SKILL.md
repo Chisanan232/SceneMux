@@ -65,6 +65,9 @@ gh release create v<version> --repo Chisanan232/SceneMux \
     --title "SceneMux v<version> — <theme>" --notes-file <notes>
 ```
 
+Create the Release yourself, as above. `make release PUBLISH=1` would title it `SceneMux <version>`,
+which is not the title the mapping requires.
+
 Published tags are never moved and never force-pushed.
 
 ## 5. Verify the postconditions and record evidence
