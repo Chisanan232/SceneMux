@@ -5,6 +5,21 @@ import XCTest
 final class SceneStateFormatTest: XCTestCase {
     private let path = "/tmp/scene-state.json"
 
+    /// One Scene as JSON, so that a test can then write something into it that the domain would never have
+    /// let it build. Every interesting corruption is state a *previous or later* build wrote, and it cannot be
+    /// reached through `Scene`'s initialiser — that initialiser is exactly what refuses it.
+    private func fileWithTamperedScene(
+        _ scene: SceneCore.Scene,
+        _ tamper: (inout [String: Any]) throws -> Void,
+    ) throws -> Data {
+        let encoded = try JSONSerialization.jsonObject(with: try JSONEncoder().encode(scene))
+        var json = try XCTUnwrap(encoded as? [String: Any])
+        try tamper(&json)
+        return try JSONSerialization.data(
+            withJSONObject: ["version": SceneCore.SceneStateSchema.current, "scenes": [json]],
+        )
+    }
+
     func testASceneSurvivesBeingWrittenAndReadBack() throws {
         let slot = SceneCoreFixtures.slot()
         let attachment = SceneCoreFixtures.attachment(
