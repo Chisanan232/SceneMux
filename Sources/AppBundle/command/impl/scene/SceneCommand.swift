@@ -74,7 +74,8 @@ struct SceneCommand: Command {
             return io.out(firstRun)
         }
         let rows: [[String]] = scenes.map { row in
-            ["\(row.index)", row.title, row.state.rawValue, row.trailing]
+            let slots = row.slots.count == 1 ? "1 slot" : "\(row.slots.count) slots"
+            return ["\(row.index)", row.title, row.state.rawValue, slots, row.trailing]
         }
         return io.out(rows.toPaddingTable(columnSeparator: "   "))
     }
