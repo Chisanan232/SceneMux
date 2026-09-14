@@ -228,7 +228,7 @@ struct ShortcutAutomationSettingsView: View {
                 let url = preferredEditableConfigUrl()
                 try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
                 try configurationText.write(to: url, atomically: true, encoding: .utf8)
-                guard try await reloadConfig(forceConfigUrl: url) else { throw NSError(domain: "WinMux", code: 1, userInfo: [NSLocalizedDescriptionKey: "Saved the rules, but could not reload the config."]) }
+                guard try await reloadConfig(forceConfigUrl: url) else { throw NSError(domain: "SceneMux", code: 1, userInfo: [NSLocalizedDescriptionKey: "Saved the rules, but could not reload the config."]) }
                 model.reload()
             } catch { model.errorMessage = error.localizedDescription }
         }
@@ -445,11 +445,11 @@ private func persistSettingsConfig(section: String?, key: String, renderedValue:
             let updated = updateSettingsScalarConfig(in: current, section: section, key: key, renderedValue: renderedValue)
             let parsed = parseConfig(updated)
             guard parsed.errors.isEmpty else {
-                throw NSError(domain: "WinMux", code: 1, userInfo: [NSLocalizedDescriptionKey: parsed.errors.map(\.description).joined(separator: "\n")])
+                throw NSError(domain: "SceneMux", code: 1, userInfo: [NSLocalizedDescriptionKey: parsed.errors.map(\.description).joined(separator: "\n")])
             }
             try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
             try updated.write(to: url, atomically: true, encoding: .utf8)
-            guard try await reloadConfig(forceConfigUrl: url) else { throw NSError(domain: "WinMux", code: 1, userInfo: [NSLocalizedDescriptionKey: "Saved the setting, but could not reload the config."]) }
+            guard try await reloadConfig(forceConfigUrl: url) else { throw NSError(domain: "SceneMux", code: 1, userInfo: [NSLocalizedDescriptionKey: "Saved the setting, but could not reload the config."]) }
             model.reload()
             WorkspaceSidebarPanel.refreshAll()
         } catch { model.errorMessage = error.localizedDescription }
