@@ -74,6 +74,14 @@ byte-identical frame, layout and workspace afterwards; no window other than the 
 was ever named in a command; and at the end all fifteen remaining windows were `floating`, plus the
 one that was already `macos_native_fullscreen`, with no tab group left behind.
 
+One measurement caveat that a later pass should not have to rediscover: **let the inventory converge
+before recording the "before" snapshot.** A snapshot taken fourteen seconds after the server started
+disagreed with every later one for three windows, which briefly looked like SceneMux having moved
+them. It had not — those early frames were internally impossible, a 2560pt-wide window reported at
+x = 32 on a 1728pt display, and one window reported two different workspaces in consecutive snapshots.
+The first observation of a window can precede the engine's own reconciliation. Snapshot the baseline
+once `agent query` returns the same answer twice.
+
 ## Verified inherited behaviour
 
 Measured with `scenemux agent query` (a JSON world snapshot) before and after each command. Two things
