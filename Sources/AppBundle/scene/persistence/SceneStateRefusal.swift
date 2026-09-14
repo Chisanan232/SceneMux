@@ -15,6 +15,12 @@ extension SceneCore {
             case malformed(at: String?)
             /// A version outside what this build can read. Almost always a newer SceneMux wrote it.
             case unsupportedVersion(found: Int, readable: ClosedRange<Int>)
+            /// The JSON was fine and a Scene in it was not: no title, or two Slots claiming one identity.
+            ///
+            /// Carries the domain's reason as text rather than the `SceneCoreError` itself, so that a refusal
+            /// stays a plain value that can be compared and stored. A quarantined *attachment* is the
+            /// tolerant case; a Scene that cannot exist at all is not repairable by leaving something out.
+            case impossibleScene(String)
         }
 
         let reason: Reason
@@ -39,6 +45,8 @@ extension SceneCore {
                     "The Scene state file at \(path) is version \(found); this build of SceneMux reads "
                         + "\(readable.lowerBound) to \(readable.upperBound). A newer SceneMux most likely "
                         + "wrote it."
+                case .impossibleScene(let reason):
+                    "The Scene state file at \(path) describes a Scene SceneMux cannot use: \(reason)."
             }
         }
 
