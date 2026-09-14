@@ -51,6 +51,10 @@ struct SceneSwitcherView: View {
         .clipShape(RoundedRectangle(cornerRadius: RadiusToken.panel, style: .continuous))
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .onAppear { fieldFocused = true }
+        // Every mode change swaps or removes the field, and SwiftUI does not carry focus into a view that
+        // did not exist yet. Without this, committing a name left the panel with no keyboard owner: typing
+        // went nowhere and the user had to click the field to search again.
+        .onChange(of: model.mode) { _ in fieldFocused = true }
     }
 
     private var header: some View {
