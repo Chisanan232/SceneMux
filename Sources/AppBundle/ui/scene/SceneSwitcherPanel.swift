@@ -165,6 +165,17 @@ final class SceneSwitcherPanel: NSPanelHud {
         super.sendEvent(event)
     }
 
+    /// Put the keyboard back in the field every time this panel is the key window.
+    ///
+    /// Opening the menu bar menu, or clicking into another application and back, takes key status away and gives
+    /// it back — and AppKit does not restore the SwiftUI field's first-responder status when it does. The panel
+    /// was then still on screen, still selecting rows with `↑`/`↓`, and silently ignoring every letter typed at
+    /// it, which is worse than a panel that had closed.
+    override func becomeKey() {
+        super.becomeKey()
+        model.requestFieldFocus()
+    }
+
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { false }
 }
