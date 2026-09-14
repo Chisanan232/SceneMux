@@ -93,6 +93,15 @@ final class SceneSwitcherModel: ObservableObject {
         act { try runtime.enter(id) }
     }
 
+    /// `⌃⌥0` or *Leave Scene*: take the Scene on screen off screen. Nothing moves.
+    ///
+    /// Here rather than only in the command so that the menu bar, the keys and the shell all reach the same
+    /// decision — and so that a refusal has somewhere to be written.
+    @discardableResult
+    func leave() -> Bool {
+        act { try runtime.leave() }
+    }
+
     /// `⌃⌥N`, `+ New Scene`, or typing a name that matches nothing.
     ///
     /// The field starts as whatever narrowed the list, because that is almost always the name the user was
