@@ -89,4 +89,19 @@ final class SceneOrchestratorTest: XCTestCase {
             .appending(path: SceneCore.SceneStateStore.preservedFilename)
         XCTAssertEqual(try Data(contentsOf: preserved), bytes)
     }
+
+    func testAChangeThatCannotBeSavedDoesNotHappen() throws {
+        let directory = try temporaryDirectory()
+        let orchestrator = SceneCore.SceneOrchestrator(store: store(in: directory))
+        let scene = try orchestrator.createScene(title: "Debug PROD-123")
+        try orchestrator.enter(scene.id, on: substrate)
+        let before = orchestrator.world
+        try makeUnwritable(directory)
+
+        // No plan is handed out, so nothing above this can start moving windows on the strength of a decision
+        // that is not on disk.
+        XCTAssertThrowsError(try orchestrator.close(scene.id))
+        XCTAssertEqual(orchestrator.world, before)
+        XCTAssertEqual(orchestrator.world.activeScene?.id, scene.id)
+    }
 }
