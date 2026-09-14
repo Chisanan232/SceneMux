@@ -1,4 +1,11 @@
 # LICENSE
+
+> SceneMux is a derivative work of WinMux and is licensed under [MIT](./LICENSE.txt).
+> The text below is WinMux's own notice, retained unchanged, and remains accurate
+> for the inherited code. The authoritative and complete notice inventory for what
+> SceneMux ships today is [`THIRD_PARTY_NOTICES.md`](../THIRD_PARTY_NOTICES.md);
+> the derivation baseline is recorded in [`docs/legal/ORIGIN.md`](../docs/legal/ORIGIN.md).
+
 WinMux is a derivative work of Aerospace, and is licensed under [MIT](./LICENSE.txt).
 
 [AeroSpace](https://github.com/nikitabobko/AeroSpace) itself is licensed under [MIT](third-party-license/LICENSE-Aerospace.txt).
@@ -36,3 +43,13 @@ swift-collections is used for more advanced Swift collections.
 [ISSoundAdditions GitHub link](https://github.com/InerziaSoft/ISSoundAdditions).
 [ISSoundAdditions MIT license](./third-party-license/LICENSE-ISSoundAdditions.txt).
 ISSoundAdditions is used as a convenient API to change system volume.
+
+**Sparkle**.
+[Sparkle GitHub link](https://github.com/sparkle-project/Sparkle).
+[Sparkle license](./third-party-license/LICENSE-Sparkle.txt).
+Sparkle is used as the application auto-update framework, including EdDSA signature verification of update archives. Its license is MIT for Sparkle itself, plus BSD-2-Clause, MIT and Zlib terms for the bundled bsdiff, sais-lite and Ed25519 C components.
+
+**MASShortcut**.
+[MASShortcut GitHub link](https://github.com/rxhanson/MASShortcut).
+[MASShortcut BSD-2-Clause license](./third-party-license/LICENSE-MASShortcut.txt).
+MASShortcut is used as the keyboard-shortcut recorder control in the settings UI.

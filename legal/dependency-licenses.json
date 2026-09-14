@@ -1,0 +1,128 @@
+{
+  "comment": [
+    "Reviewed license manifest for everything SceneMux distributes. This file is the",
+    "'reviewed' half of the license check: script/license-inventory.py cross-checks it",
+    "against Package.resolved and against the notice texts on disk, so the three can",
+    "never silently drift apart. Adding a dependency without adding it here fails the",
+    "check. See docs/legal/LICENSE_POLICY.md for how a license class is decided.",
+    "",
+    "source values:",
+    "  spm-pin    resolved by Swift Package Manager; must appear in Package.resolved",
+    "  vendored   shipped inside another dependency; not an SPM pin of its own",
+    "  in-repo    a local package committed to this repository",
+    "  derivation inherited codebase this project is derived from"
+  ],
+  "policy": "docs/legal/LICENSE_POLICY.md",
+  "permissive_allowlist": [
+    "0BSD",
+    "Apache-2.0",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "MIT",
+    "Unlicense",
+    "Zlib"
+  ],
+  "dependencies": [
+    {
+      "identity": "winmux",
+      "name": "WinMux",
+      "source": "derivation",
+      "location": "https://github.com/ZimengXiong/winmux",
+      "spdx": "MIT",
+      "notice": "legal/LICENSE.txt",
+      "usage": "Direct upstream. SceneMux is derived from WinMux at baseline commit e0ad328e109cb6d2f86b1bdbc3aea9bf7bc5935e; its window engine is the foundation SceneMux builds on."
+    },
+    {
+      "identity": "aerospace",
+      "name": "AeroSpace",
+      "source": "derivation",
+      "location": "https://github.com/nikitabobko/AeroSpace",
+      "spdx": "MIT",
+      "notice": "legal/third-party-license/LICENSE-Aerospace.txt",
+      "usage": "Ancestral upstream. WinMux is itself a derivative of AeroSpace, so AeroSpace's MIT terms flow through to SceneMux."
+    },
+    {
+      "identity": "antlr4",
+      "name": "ANTLR v4",
+      "source": "spm-pin",
+      "location": "https://github.com/antlr/antlr4",
+      "spdx": "BSD-3-Clause",
+      "notice": "legal/third-party-license/LICENSE-antlr.txt",
+      "usage": "Parser generator for the built-in shell-like configuration language. Its Antlr4Static runtime is statically linked into the app via the in-repo ShellParserGenerated package."
+    },
+    {
+      "identity": "hotkey",
+      "name": "HotKey",
+      "source": "spm-pin",
+      "location": "https://github.com/soffes/HotKey",
+      "spdx": "MIT",
+      "notice": "legal/third-party-license/LICENSE-HotKey.txt",
+      "usage": "Swift wrapper around the macOS Carbon API for listening to global keyboard shortcuts."
+    },
+    {
+      "identity": "issoundadditions",
+      "name": "ISSoundAdditions",
+      "source": "spm-pin",
+      "location": "https://github.com/InerziaSoft/ISSoundAdditions",
+      "spdx": "MIT",
+      "notice": "legal/third-party-license/LICENSE-ISSoundAdditions.txt",
+      "usage": "Convenience API for reading and changing the system output volume."
+    },
+    {
+      "identity": "masshortcut",
+      "name": "MASShortcut",
+      "source": "spm-pin",
+      "location": "https://github.com/rxhanson/MASShortcut",
+      "spdx": "BSD-2-Clause",
+      "notice": "legal/third-party-license/LICENSE-MASShortcut.txt",
+      "usage": "Keyboard-shortcut recorder control used by the settings UI."
+    },
+    {
+      "identity": "sparkle",
+      "name": "Sparkle",
+      "source": "spm-pin",
+      "location": "https://github.com/sparkle-project/Sparkle",
+      "spdx": "MIT AND BSD-2-Clause AND Zlib",
+      "notice": "legal/third-party-license/LICENSE-Sparkle.txt",
+      "usage": "Application auto-update framework, including EdDSA signature verification of update archives.",
+      "note": "Automated scanners report NOASSERTION for Sparkle because its LICENSE is MIT text followed by an EXTERNAL LICENSES section. Reading it gives: Sparkle itself MIT; bsdiff/bspatch and SUSignatureVerifier.m BSD-2-Clause; sais-lite MIT; the portable Ed25519 implementation Zlib. Every component is permissive."
+    },
+    {
+      "identity": "swift-collections",
+      "name": "swift-collections",
+      "source": "spm-pin",
+      "location": "https://github.com/apple/swift-collections",
+      "spdx": "Apache-2.0",
+      "notice": "legal/third-party-license/LICENSE-swift-collections.txt",
+      "usage": "Additional Swift collection types such as ordered and deque containers."
+    },
+    {
+      "identity": "tomlkit",
+      "name": "TOMLKit",
+      "source": "spm-pin",
+      "location": "https://github.com/LebJe/TOMLKit",
+      "spdx": "MIT",
+      "notice": "legal/third-party-license/LICENSE-TOMLKIT.txt",
+      "usage": "Swift wrapper over the tomlplusplus C++ TOML parser; reads the user configuration file."
+    },
+    {
+      "identity": "tomlplusplus",
+      "name": "tomlplusplus",
+      "source": "vendored",
+      "location": "https://github.com/marzer/tomlplusplus",
+      "spdx": "MIT",
+      "notice": "legal/third-party-license/LICENSE-tomlplusplus.txt",
+      "usage": "The actual TOML parser. Shipped as C++ sources inside TOMLKit rather than as a Swift Package Manager pin of its own, so it is recorded here manually."
+    },
+    {
+      "identity": "shellparsergenerated",
+      "name": "ShellParserGenerated",
+      "source": "in-repo",
+      "location": "ShellParserGenerated/",
+      "spdx": "MIT",
+      "notice": "legal/LICENSE.txt",
+      "usage": "ANTLR-generated parser for the configuration language, committed to this repository as a local Swift package. Inherited from the WinMux baseline and covered by the same MIT terms."
+    }
+  ]
+}
