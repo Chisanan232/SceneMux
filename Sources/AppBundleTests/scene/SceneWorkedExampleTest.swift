@@ -71,6 +71,22 @@ final class SceneWorkedExampleTest: XCTestCase {
         return try XCTUnwrap(scene.attachment(for: window)).ownership.teardownEffect
     }
 
+    func testWhetherAWindowIsAMountDoesNotFollowFromComparingItsHome() throws {
+        // Both directions of the correction recorded in the architecture doc, in one test. LINE's Home
+        // *matches* its Slot's role and it is still a Mount; the browser's Home *differs* from its Slot's
+        // role and it is still not one. A comparison would get both of these backwards, and getting the
+        // browser wrong means promising to move a window the user asked SceneMux to leave in place.
+        let scene = try debugScene()
+
+        let line = try XCTUnwrap(scene.attachment(for: try SceneCoreFixtures.windowRef(App.line)))
+        let browser = try XCTUnwrap(scene.attachment(for: try SceneCoreFixtures.windowRef(App.browser)))
+
+        XCTAssertEqual(line.homeAtAttachTime, .communication)
+        XCTAssertTrue(line.isMount)
+        XCTAssertEqual(browser.homeAtAttachTime, .personal)
+        XCTAssertFalse(browser.isMount)
+    }
+
     func testEndingTheDebugSceneTreatsEachWindowTheWayTheUserLentIt() throws {
         // Ownership alone decides this, which is why LINE goes home while Grafana — a window the user also
         // did not open for this task — stays where the Scene put it.
