@@ -3,6 +3,28 @@ import Foundation
 import XCTest
 
 final class SceneLifecycleTest: XCTestCase {
+    func testClosingCanBeResumedAndOnlyFinishesOnceEveryWindowIsResolved() throws {
+        // Invariant I14. A quit part-way through teardown leaves an `ending` Scene that still holds the
+        // windows nobody sent home yet, so re-entering `ending` is how the restart picks the work back up, and
+        // `ended` stays out of reach until the last attachment has been resolved.
+        let slot = SceneCoreFixtures.slot(role: .communication)
+        let window = try SceneCoreFixtures.windowRef("com.linecorp.LINE")
+        let ending = try SceneCoreFixtures.scene(slots: [slot], state: .ending)
+            .attaching(SceneCoreFixtures.attachment(
+                windowRef: window,
+                slotId: slot.id,
+                ownership: .borrowed,
+            ))
+
+        let resumed = try ending.transitioning(to: .ending)
+
+        XCTAssertEqual(resumed.attachments.map(\.windowRef), [window])
+        XCTAssertThrowsError(try resumed.transitioning(to: .ended)) { error in
+            XCTAssertEqual(error as? SceneCore.SceneCoreError, .attachmentsInEndedScene)
+        }
+        XCTAssertEqual(try resumed.detaching(window).transitioning(to: .ended).state, .ended)
+    }
+
     func testAClosedSceneStaysClosed() throws {
         let ended = try SceneCoreFixtures.scene(state: .ended)
 
