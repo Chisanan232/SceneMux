@@ -21,7 +21,13 @@ jobs:
     name: guards
     runs-on: ubuntu-latest
     steps:
+      # fetch-depth: 0 because the provenance check below needs the inherited history: the
+      # derivation baseline is 1795 commits back, and a shallow clone cannot prove ancestry.
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Derivation provenance
+        run: script/upstream.sh history
       - name: Update feed isolation
         run: python3 script/test_update_feed_isolation.py
       - name: Appcast validator self-tests
