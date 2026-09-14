@@ -25,6 +25,18 @@ extension SceneCore {
         /// indistinguishable from "SceneMux is broken".
         private(set) var diagnostics: [String]
 
+        /// Why this run started with no Scenes, when that is why it did.
+        ///
+        /// The same fact as the first diagnostic line, kept as a value as well, because a surface has to *do*
+        /// different things for the two causes: a refusal offers to reveal the preserved file and says no
+        /// windows were changed, where a first run invites the user to create a Scene. Recovering that
+        /// distinction by reading English back out of a string is how a UI ends up inviting someone to build a
+        /// new Scene on top of state SceneMux deliberately refused to touch.
+        private(set) var stateRefusal: SceneStateRefusal?
+
+        /// The attachments the load set aside, so a surface can say which Scene came back smaller.
+        private(set) var quarantined: [SceneStateQuarantine]
+
         /// Start from whatever is on disk, and start safe when that cannot be trusted.
         ///
         /// Three outcomes, and only one of them has Scenes in it. A file that cannot be read yields no Scenes
@@ -35,21 +47,31 @@ extension SceneCore {
         init(store: SceneStateStore) {
             let load = store.load()
             var diagnostics = load.diagnostics
+            var stateRefusal: SceneStateRefusal? = switch load {
+                case .refused(let refusal): refusal
+                case .noStateFile, .loaded: nil
+            }
             let world: SceneWorld
             do {
                 world = try SceneWorld(scenes: load.scenes)
             } catch {
                 world = .empty
-                let refusal = SceneStateRefusal(
+                let refusal = store.preserving(SceneStateRefusal(
                     reason: .impossibleWorld("\(error)"),
                     path: store.url.path,
                     preservedAt: nil,
-                )
-                diagnostics.append(store.preserving(refusal).diagnostic)
+                ))
+                stateRefusal = refusal
+                diagnostics.append(refusal.diagnostic)
             }
             self.store = store
             self.world = world
             self.diagnostics = diagnostics
+            self.stateRefusal = stateRefusal
+            quarantined = switch load {
+                case .loaded(_, let quarantined): quarantined
+                case .noStateFile, .refused: []
+            }
         }
 
         /// The teardowns a previous run did not finish, to be carried out again at startup.
