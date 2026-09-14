@@ -34,6 +34,18 @@ final class WinMuxSceneEngineAdapterTest: XCTestCase {
         }
     }
 
+    /// Entering a Scene has to lay it out in front of the person who asked, so the substrate the seam offers is
+    /// the focused workspace — the one fact about the engine that the shell above it is allowed to have.
+    func testTheOfferedSubstrateIsTheFocusedWorkspace() {
+        let workspace = Workspace.get(byName: name)
+        XCTAssertTrue(workspace.focusWorkspace())
+
+        XCTAssertEqual(
+            SceneCore.WinMuxSceneEngineAdapter().currentSubstrate(),
+            SceneCore.SubstrateBinding(workspaceName: name),
+        )
+    }
+
     /// A Slot holding one window is that window, not a container holding it. `normalizeContainers` flattens a
     /// container down to its only child, so anything else would be undone by the engine moments later.
     func testASingleWindowSlotBindsStraightIntoTheSubstrate() throws {
