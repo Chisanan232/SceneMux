@@ -129,15 +129,19 @@ release:
 	codesign --verify --deep --strict --verbose=2 "$$app_path"; \
 	codesign -dv --verbose=4 "$$app_path" 2>&1 | grep -F "$(EXPECTED_CODESIGN_AUTHORITY_PREFIX)" >/dev/null; \
 	ditto -c -k --sequesterRsrc --keepParent "$$app_path" "$$zip_path"; \
-	sparkle_appcast="$$(find "$$derived_data_path/SourcePackages/artifacts" -type f -name generate_appcast -print -quit)"; \
-	test -n "$$sparkle_appcast"; \
-	appcast_stage="$$(mktemp -d "$$release_dir/appcast-stage.XXXXXX")"; \
-	trap "rm -rf \"$$appcast_stage\"" EXIT; \
-	cp "$$zip_path" "$$appcast_stage/"; \
-	"$$sparkle_appcast" --download-url-prefix "https://github.com/Chisanan232/SceneMux/releases/download/$(RELEASE_TAG)/" "$$appcast_stage"; \
-	python3 script/validate-appcast.py "$$appcast_stage/appcast.xml" "$(VERSION)" "https://github.com/Chisanan232/SceneMux/releases/download/$(RELEASE_TAG)/$$app_name-$(VERSION).zip"; \
-	cp "$$appcast_stage/appcast.xml" "$$appcast_path"; \
-	test -f "$$appcast_path"; \
+	if [ "$(APPCAST)" = "1" ]; then \
+	    sparkle_appcast="$$(find "$$derived_data_path/SourcePackages/artifacts" -type f -name generate_appcast -print -quit)"; \
+	    test -n "$$sparkle_appcast"; \
+	    appcast_stage="$$(mktemp -d "$$release_dir/appcast-stage.XXXXXX")"; \
+	    trap "rm -rf \"$$appcast_stage\"" EXIT; \
+	    cp "$$zip_path" "$$appcast_stage/"; \
+	    "$$sparkle_appcast" --download-url-prefix "https://github.com/Chisanan232/SceneMux/releases/download/$(RELEASE_TAG)/" "$$appcast_stage"; \
+	    python3 script/validate-appcast.py "$$appcast_stage/appcast.xml" "$(VERSION)" "https://github.com/Chisanan232/SceneMux/releases/download/$(RELEASE_TAG)/$$app_name-$(VERSION).zip"; \
+	    cp "$$appcast_stage/appcast.xml" "$$appcast_path"; \
+	    test -f "$$appcast_path"; \
+	else \
+	    echo "Skipping appcast generation because APPCAST=$(APPCAST); SceneMux publishes no update feed yet"; \
+	fi; \
 	if [ "$(NOTARIZE)" = "1" ]; then \
 	    test -n "$(NOTARYTOOL_PROFILE)"; \
 	    xcrun notarytool submit "$$zip_path" --keychain-profile "$(NOTARYTOOL_PROFILE)" --wait; \
