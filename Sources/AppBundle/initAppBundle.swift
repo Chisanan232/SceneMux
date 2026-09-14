@@ -51,6 +51,9 @@ import Foundation
             _ = try await config.afterStartupCommand.runCmdSeq(.defaultEnv, .emptyStdin)
         }
         isWinMuxRuntimeReady = true
+        // Scene Core's surfaces come up only once the engine underneath them is ready: a Scene entered before
+        // the workspaces exist would be projected onto windows the runtime has not seen yet.
+        SceneSwitcherPanel.registerAsPresenter()
         if bootstrappedConfigUrl != nil {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 ShortcutSettingsModel.shared.requestWindowOpen()
