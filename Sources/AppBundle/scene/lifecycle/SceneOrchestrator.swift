@@ -112,6 +112,20 @@ extension SceneCore {
             try apply(try world.replacing(try scene.removingSlot(slotId)))
         }
 
+        /// Move a Slot on to the next shape it can have, and hand back the Slot as it now is.
+        ///
+        /// One operation rather than a setter, because that is what the shell offers: a single key that cycles
+        /// a Slot through side by side, the other way round, stacked and plain. The returned Slot is what the
+        /// caller tells the user about — and it is what the Scene asked for, not necessarily what the engine
+        /// will settle on, which only a projection can report (`SceneLayoutReport`).
+        func cycleComposition(of slotId: SlotId, in id: SceneId) throws -> Slot {
+            guard let scene = world.scene(id) else { throw SceneLifecycleError.unknownScene(id) }
+            guard let slot = scene.slot(slotId) else { throw SceneCoreError.unknownSlot(slotId) }
+            let recomposed = slot.composed(as: slot.composition.cycled)
+            try apply(try world.replacing(try scene.replacingSlot(recomposed)))
+            return recomposed
+        }
+
         /// Put a Scene on screen, projected onto this substrate.
         ///
         /// Pressing the same shortcut twice is not an error and does nothing the second time. Entering while a
