@@ -7,9 +7,20 @@ extension SceneCore {
     /// `.split` joins siblings with `join-with` in that orientation — never with `split`, which is a
     /// no-op while flatten-containers normalization is on — and `.tabbed` is a container with
     /// `Layout.tabGroup`, the shape `docs/development/baseline-verification.md` measured.
-    enum SlotComposition: Sendable, Hashable, Codable {
+    enum SlotComposition: Sendable, Hashable, Codable, CustomStringConvertible {
         case single
         case split(SlotOrientation)
         case tabbed
+
+        /// Worded for the person reading a diagnostic, not for a log grep. When SceneMux has to explain that
+        /// a Slot came out differently from the way it was asked for, "a vertical split" is a sentence and
+        /// `split(SceneMux.SlotOrientation.vertical)` is not.
+        var description: String {
+            switch self {
+                case .single: "a single window"
+                case .split(let orientation): "a \(orientation) split"
+                case .tabbed: "a tab group"
+            }
+        }
     }
 }
