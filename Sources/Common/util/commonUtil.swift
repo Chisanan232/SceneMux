@@ -2,7 +2,7 @@ import AppKit
 import Darwin
 import Foundation
 
-public let socketPath = "/tmp/\(winMuxAppId)-\(unixUserName).sock"
+public let socketPath = "/tmp/\(sceneMuxAppId)-\(unixUserName).sock"
 public let unixUserName = NSUserName()
 public let mainModeId = "main"
 

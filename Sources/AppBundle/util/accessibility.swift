@@ -17,7 +17,7 @@ func requestScreenRecordingPermissionsIfNeeded() {
 }
 
 private func resetAccessibility() {
-    _ = try? Process.run(URL(filePath: "/usr/bin/tccutil"), arguments: ["reset", "Accessibility", winMuxAppId])
+    _ = try? Process.run(URL(filePath: "/usr/bin/tccutil"), arguments: ["reset", "Accessibility", sceneMuxAppId])
 }
 
 protocol ReadableAttr: Sendable {

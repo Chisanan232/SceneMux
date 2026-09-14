@@ -20,7 +20,7 @@ func startUnixSocketServer() {
 func toggleReleaseServerIfDebug(_ state: EnableCmdArgs.State) async {
     if serverArgs.isReadOnly { return }
     if !isDebug { return }
-    let socketFile = "/tmp/\(stableWinMuxAppId)-\(unixUserName).sock"
+    let socketFile = "/tmp/\(stableSceneMuxAppId)-\(unixUserName).sock"
     let connection = NWConnection(to: NWEndpoint.unix(path: socketFile), using: .tcp)
     defer { connection.cancel() }
     if await connection.startBlocking().error != nil { // Can't connect, WinMux.app is not running
