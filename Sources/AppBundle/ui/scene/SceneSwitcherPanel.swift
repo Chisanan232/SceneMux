@@ -53,6 +53,20 @@ final class SceneSwitcherPanel: NSPanelHud {
         model.apply(request)
     }
 
+    /// Enter a Scene from somewhere that is not the panel — the menu bar item.
+    ///
+    /// Through the same model as the keys, so there is one idea of what entering a Scene means, and the panel
+    /// opens only when it was refused: that is where the reason is written, and a menu item that did nothing
+    /// and said nothing would leave the user clicking it again.
+    func enterFromOutside(_ id: SceneCore.SceneId) {
+        inSession { if !self.model.enter(id) { self.show() } }
+    }
+
+    /// Leave the Scene on screen from the menu bar item. Nothing moves, so nothing is shown when it works.
+    func leaveFromOutside() {
+        inSession { if !self.model.leave() { self.show() } }
+    }
+
     func show() {
         guard !isPanelActive else { return }
         isPanelActive = true
