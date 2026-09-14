@@ -432,6 +432,37 @@ Making `ending` an explicit, persisted state fixes that: the intent to restore i
 restart, and it is re-attempted. A restore whose window cannot be found is a no-op and the Scene still
 reaches `ended` — never a close, never a "clean up by closing what I cannot find".
 
+### One orchestrator, and what it hands out
+
+Every transition above is a method on one object, `SceneOrchestrator`, and nothing else in SceneMux may
+change a Scene. A lifecycle reachable from a menu item, a hotkey and a sidebar is a lifecycle with three
+slightly different ideas of what closing a task means, and the difference shows up as somebody's chat
+window left in the wrong place. The orchestrator owns two things: the `SceneWorld` — every Scene, plus the
+rules that hold across all of them, such as "at most one is `active`" — and the state file it lives in.
+
+`SceneWorld` is a value, so every operation is "here is the world afterwards" and either produces one that
+satisfies every rule or throws. There is no partially-applied world to catch anybody out, which is what
+lets the orchestrator save after each operation and know that what it saved makes sense.
+
+The orchestrator decides; it does not act. No method on it moves, resizes, focuses or closes a window —
+the closest it comes is `close`, which hands back a **teardown plan**:
+
+| Part of the plan | What it means |
+| --- | --- |
+| `steps` | Every window in the Scene, in attachment order, each with its ownership and the Home recorded when it was attached |
+| `pending` | The steps somebody still has to carry out: the `.borrowed` windows, which are owed a restore |
+| `cleanupCandidates` | The `.sceneOwned` windows, left exactly where they are, for a shell to *offer* closing (invariant I6) |
+
+The plan names the windows nothing happens to as well as the ones that move, because "SceneMux will send
+LINE and Slack home, leave your terminal and your IDE where they are, and not touch your music player" is
+a sentence a person can check before agreeing to it.
+
+Whoever carries out a step reports back one outcome per window: `restored`, `windowIsGone`, `leftInPlace`
+or `failed`. The first three finish the promise the attachment stood for, so the attachment is dropped;
+`failed` does not, so the attachment stays and the restore is attempted again. That is the whole
+re-entrancy mechanism, and it is why there is no retry counter anywhere: **the attachment is the count.**
+Once the last pending attachment is discharged the Scene reaches `ended` in the same operation.
+
 ### Deliberately not in v0.1.0
 
 - **`suspend` / `resume` as states distinct from `leave` / `enter`.** They would have no observable
