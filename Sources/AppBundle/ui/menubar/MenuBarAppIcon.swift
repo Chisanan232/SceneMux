@@ -7,6 +7,6 @@ struct MenuBarAppIcon: View {
     var body: some View {
         Image(viewModel.experimentalUISettings.iconAppearance == .color ? "MenuBarIcon" : "MenuBarIconMonochrome")
             .renderingMode(viewModel.experimentalUISettings.iconAppearance == .color ? .original : .template)
-            .accessibilityLabel("WinMux")
+            .accessibilityLabel("SceneMux")
     }
 }
