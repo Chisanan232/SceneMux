@@ -166,6 +166,21 @@ final class SceneSwitcherModelTest: XCTestCase {
         XCTAssertEqual(model.nameField, "")
     }
 
+    /// Opening the switcher shows every Scene. The model outlives the panel's window, so a filter typed to find
+    /// one task would otherwise still be narrowing the list the next time the user asks *what am I working on*.
+    func testOpeningTheSwitcherStartsFromTheWholeList() throws {
+        _ = try model.runtime.createScene(title: "Debug PROD-123", template: .empty)
+        _ = try model.runtime.createScene(title: "Review release notes", template: .empty)
+        model.query = "debug"
+        XCTAssertEqual(model.results.map(\.title), ["Debug PROD-123"])
+
+        model.apply(.switcher)
+
+        XCTAssertEqual(model.query, "")
+        XCTAssertEqual(model.results.map(\.title), ["Debug PROD-123", "Review release notes"])
+        XCTAssertEqual(model.mode, .browsing)
+    }
+
     /// A refusal is shown rather than swallowed, and the panel stays up carrying it: the user pressed a key
     /// expecting the screen to change, so silence would leave them with no idea why it did not.
     func testARefusalIsShownOnThePanelAndNothingIsEntered() throws {
