@@ -1,7 +1,7 @@
 # Xcode project configuration. Managed by https://github.com/yonaskolb/XcodeGen
 # Xcode is only used to build the release App Bundle. Debug builds only use Swift Package Manager
 
-name: WinMux
+name: SceneMux
 
 packages:
   WinMuxPackage:
@@ -12,7 +12,7 @@ configs:
   Release: release
 
 targets:
-  WinMux:
+  SceneMux:
     type: application
     platform: macOS
     deploymentTarget: "13.0"

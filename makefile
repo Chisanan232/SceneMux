@@ -98,8 +98,8 @@ release:
 	rm -rf "$$archive_path" "$$zip_path" "$$appcast_path" "$$derived_data_path"; \
 	mkdir -p "$$release_dir"; \
 	xcodebuild-pretty "$$log_path" \
-	    -project WinMux.xcodeproj \
-	    -scheme WinMux \
+	    -project SceneMux.xcodeproj \
+	    -scheme SceneMux \
 	    -configuration Release \
 	    -archivePath "$$archive_path" \
 	    -derivedDataPath "$$derived_data_path" \
@@ -170,4 +170,4 @@ install:
 installed: install
 
 clean:
-	/bin/bash -lc 'cd "$(CURDIR)" && rm -rf .build .debug .deps .derived "$(RELEASE_DIR)" WinMux.xcodeproj'
+	/bin/bash -lc 'cd "$(CURDIR)" && rm -rf .build .debug .deps .derived "$(RELEASE_DIR)" SceneMux.xcodeproj'
