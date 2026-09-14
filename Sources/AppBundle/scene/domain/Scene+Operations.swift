@@ -42,4 +42,20 @@ extension SceneCore.Scene {
     func addingSlot(_ slot: SceneCore.Slot) throws -> Self {
         try with(slots: slots + [slot])
     }
+
+    /// This Scene without that Slot.
+    ///
+    /// Refuses a Slot that still holds windows, rather than dropping their attachments with it. Silently
+    /// discarding an attachment would silently discard the *reason* SceneMux may act on a window — including
+    /// the promise to send a borrowed one home — so removal is only ever available on an empty Slot, and the
+    /// user is asked to move the windows out first.
+    func removingSlot(_ id: SceneCore.SlotId) throws -> Self {
+        guard slot(id) != nil else {
+            throw SceneCore.SceneCoreError.unknownSlot(id)
+        }
+        if !attachments(in: id).isEmpty {
+            throw SceneCore.SceneCoreError.slotNotEmpty(id)
+        }
+        return try with(slots: slots.filter { $0.id != id })
+    }
 }
