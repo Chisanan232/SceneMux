@@ -333,6 +333,30 @@ final class WinMuxSceneEngineAdapterTest: XCTestCase {
         XCTAssertEqual(tabs?.lastAppliedLayoutPhysicalRect.orDie().maxX, 3440)
     }
 
+    /// A split Slot with one window in it is that window, and SceneMux does not apologise for it.
+    ///
+    /// The Slot asked for a vertical split and got a plain window, so this looks like an adjustment and is
+    /// not one: there is nothing to split a single window against. Reporting it would send the user to change
+    /// a normalization setting that had nothing to do with what they saw.
+    func testASplitSlotHoldingOneWindowIsRealisedWithoutComplaint() throws {
+        config.enableNormalizationFlattenContainers = true
+        let terminal = TestApp(bundleId: App.terminal)
+        TestWindow.new(id: 1, parent: elsewhere, app: terminal)
+        let terminals = SceneCoreFixtures.slot(role: .terminal, composition: .split(.vertical), order: 0)
+        let scene = try SceneCoreFixtures.scene(slots: [terminals])
+            .attaching(SceneCoreFixtures.attachment(
+                windowRef: try .init(bundleId: App.terminal, ordinalWithinApp: 0),
+                slotId: terminals.id,
+            ))
+
+        let report = project(scene, onto: name)
+
+        XCTAssertEqual(report.placement(for: terminals.id), .realised(.single))
+        XCTAssertEqual(report.adjustedSlots, [])
+        XCTAssertEqual(report.diagnostics, [])
+        XCTAssertTrue(report.isFullyRealised)
+    }
+
     /// Entering a Scene that is already laid out lands on the same layout rather than on a layout plus the
     /// wreckage of the last one. Each projection builds fresh containers, so the previous ones are left
     /// empty — and an empty container that survived would take a share of the screen and show nothing in it.
