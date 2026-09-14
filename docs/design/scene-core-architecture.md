@@ -405,7 +405,7 @@ row for LINE reads `Communication · mounted`, not `Development`.
 | `create` → `defined` | Title is non-empty after trimming | A `SceneId` is generated; default Slots are created from the chosen template, or none |
 | `enter` (`defined` → `active`) | No other Scene is `active` (v0.1.0); a workspace can be resolved | A `substrate` binding is made; Slot membership is projected onto the tree; focus moves to the highest-ordered non-empty Slot |
 | `leave` (`active` → `defined`) | — | The `substrate` binding is dropped. **Attachments are kept.** No window is moved, restored or closed |
-| `close` (`defined`/`active` → `ending`) | — | Every attachment is resolved by ownership: `.borrowed` restored, `.sceneOwned` left with cleanup offered, `.sharedPersistent` untouched |
+| `close` (`defined`/`active` → `ending`) | — | Every attachment is resolved by ownership: `.borrowed` restored, `.sceneOwned` left with cleanup offered, `.sharedPersistent` untouched. The two that need no work are discharged at once, so a Scene with nothing pending reaches `ended` in this same step |
 | `ending` → `ended` | Every attachment resolved or provably unresolvable | Attachments are cleared; the Scene stays in state as a record |
 | `ending` → `ending` | The app restarted mid-close | The remaining restores are re-attempted; already-restored windows are no-ops |
 
@@ -431,6 +431,76 @@ should go home.
 Making `ending` an explicit, persisted state fixes that: the intent to restore is durable, it survives a
 restart, and it is re-attempted. A restore whose window cannot be found is a no-op and the Scene still
 reaches `ended` — never a close, never a "clean up by closing what I cannot find".
+
+### One orchestrator, and what it hands out
+
+Every transition above is a method on one object, `SceneOrchestrator`, and nothing else in SceneMux may
+change a Scene. A lifecycle reachable from a menu item, a hotkey and a sidebar is a lifecycle with three
+slightly different ideas of what closing a task means, and the difference shows up as somebody's chat
+window left in the wrong place. The orchestrator owns two things: the `SceneWorld` — every Scene, plus the
+rules that hold across all of them, such as "at most one is `active`" — and the state file it lives in.
+
+`SceneWorld` is a value, so every operation is "here is the world afterwards" and either produces one that
+satisfies every rule or throws. There is no partially-applied world to catch anybody out, which is what
+lets the orchestrator save after each operation and know that what it saved makes sense.
+
+The orchestrator decides; it does not act. No method on it moves, resizes, focuses or closes a window —
+the closest it comes is `close`, which hands back a **teardown plan**:
+
+| Part of the plan | What it means |
+| --- | --- |
+| `steps` | Every window in the Scene, in attachment order, each with its ownership and the Home recorded when it was attached |
+| `pending` | The steps somebody still has to carry out: the `.borrowed` windows, which are owed a restore |
+| `cleanupCandidates` | The `.sceneOwned` windows, left exactly where they are, for a shell to *offer* closing (invariant I6) |
+
+The plan names the windows nothing happens to as well as the ones that move, because "SceneMux will send
+LINE and Slack home, leave your terminal and your IDE where they are, and not touch your music player" is
+a sentence a person can check before agreeing to it.
+
+Whoever carries out a step reports back one outcome per window: `restored`, `windowIsGone`, `leftInPlace`
+or `failed`. The first three finish the promise the attachment stood for, so the attachment is dropped;
+`failed` does not, so the attachment stays and the restore is attempted again. That is the whole
+re-entrancy mechanism, and it is why there is no retry counter anywhere: **the attachment is the count.**
+Once the last pending attachment is discharged the Scene reaches `ended` in the same operation.
+
+### Recovery and fallback, stated exactly
+
+Three failures are ordinary enough to have named, deterministic answers, and none of them may cost anybody
+a window.
+
+**A save that fails.** Every change is written before it is believed. If the write fails — a full disk, a
+read-only home directory, a sandbox denial — the operation throws, the in-memory world is unchanged, and
+`close` hands back no plan, so nothing above starts moving windows on the strength of a decision that is
+not on disk. The opposite order is how a borrowed window ends up moved into a Scene that will not exist
+after the next launch, with nothing left anywhere saying where it came from. A no-op — the same shortcut
+pressed twice — writes nothing at all, because a no-op that can fail on a full disk is not a no-op.
+
+**A teardown interrupted.** A Scene left `ending` by a quit, a crash or a machine going to sleep still holds
+the attachments whose restores never happened, so at startup the remaining work is *derived* from state
+rather than remembered separately: one plan per closing Scene, containing only what is still owed. Someone
+whose laptop died mid-teardown finds their borrowed chat window sent home on the next launch instead of
+stranded in a Scene that no longer exists. Re-deriving is also why retrying is always safe: a window that
+was already restored is no longer attached, so there is nothing left to do to it (invariant I8).
+
+**A Home that cannot be resolved.** A borrowed window whose Home surface no longer exists is *not* moved
+somewhere invented for it, and does not hold its Scene open forever either. It stays exactly where it is,
+the outcome is `leftInPlace`, the Scene finishes, and the user is told which window stayed and why. This is
+the only teardown outcome that ends a Scene without keeping the promise the attachment stood for, so it is
+the one that must always produce a line somebody reads.
+
+**A window that is not the same window.** A `WindowRef` is a bundle id and an ordinal within that
+application — deliberately, because invariant I11 keeps titles, frames and `CGWindowID`s out of state. The
+cost is that after an application relaunches, the window now sitting at that ordinal is *not provably* the
+one the Scene borrowed. So a mismatch is treated as absence, not as a target: the step reports
+`windowIsGone` and the Scene finishes, rather than sending whatever now occupies the ordinal off to a Home
+it never came from. Restoring the wrong window is worse than restoring none, and the layer that can tell
+the difference is the one holding the Accessibility handle.
+
+**State that cannot all be true.** A file can decode perfectly and still describe Scenes that contradict
+each other — two claiming one identity, two saved as being on screen. That is discovered above the store,
+by the world's own rules, and it is refused exactly as an unreadable file is: zero Scenes, zero window
+operations, one diagnostic (invariant I9), and a copy of the bytes kept out of the way of the next save.
+Starting safe must never mean starting destructive.
 
 ### Deliberately not in v0.1.0
 
@@ -706,7 +776,7 @@ the test.
 | I9 | Unreadable or unrecognised persisted state yields zero Scenes and zero window operations |
 | I10 | An unrecognised window receives `ignore`; SceneMux leaves it exactly where the inherited engine put it |
 | I11 | No Scene state contains a window title, a window frame, a monitor id or a `CGWindowID` |
-| I12 | `scene/domain/` imports `Foundation` only; no engine type is named outside `scene/engine/` |
+| I12 | `scene/domain/` and `scene/lifecycle/` import `Foundation` only; no engine type is named outside `scene/engine/` |
 | I13 | A Slot with no attachments still exists in Scene state and is still shown |
 | I14 | `ended` is reachable from `ending` even when every window involved has disappeared |
 
@@ -804,7 +874,10 @@ control, any pre-creation containment. See [Non-goals](#non-goals).
 ## How this design is verified
 
 The domain model is verified by unit tests — it imports `Foundation` only, precisely so that the
-invariants above are testable without a window server. The engine adapter and admission are verified
+invariants above are testable without a window server. So is the lifecycle above it: every transition,
+every teardown outcome and the whole interrupted-teardown path are exercised as values, and the
+orchestrator against a real state file in a temporary directory, including a directory it is not allowed
+to write to. The engine adapter and admission are verified
 against the real engine. Everything with a surface is verified natively, per
 [`../development/ui-verification.md`](../development/ui-verification.md): built, launched, driven through
 XCTest/XCUITest, Accessibility automation or a real interactive pass, with window-scoped or artifact-scoped

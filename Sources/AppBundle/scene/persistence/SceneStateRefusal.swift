@@ -21,6 +21,13 @@ extension SceneCore {
             /// stays a plain value that can be compared and stored. A quarantined *attachment* is the
             /// tolerant case; a Scene that cannot exist at all is not repairable by leaving something out.
             case impossibleScene(String)
+            /// Every Scene in the file was fine on its own, and they cannot be true at the same time: two of
+            /// them claiming one identity, or two of them saved as being on screen.
+            ///
+            /// Separate from `impossibleScene` because it is a different sentence to a person — nothing is
+            /// wrong with any one of their Scenes — and because it is the only refusal that is discovered
+            /// after the bytes have been decoded successfully.
+            case impossibleWorld(String)
         }
 
         let reason: Reason
@@ -47,6 +54,9 @@ extension SceneCore {
                         + "wrote it."
                 case .impossibleScene(let reason):
                     "The Scene state file at \(path) describes a Scene SceneMux cannot use: \(reason)."
+                case .impossibleWorld(let reason):
+                    "The Scene state file at \(path) describes Scenes SceneMux cannot use together: "
+                        + "\(reason)."
             }
         }
 

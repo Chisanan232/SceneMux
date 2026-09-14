@@ -71,7 +71,11 @@ extension SceneCore {
         ///
         /// Best effort by design. If it fails there is nothing useful to do about it and nothing to hide: the
         /// refusal is returned without a preservation claim rather than with a false one.
-        private func preserving(_ refusal: SceneStateRefusal) -> SceneStateRefusal {
+        ///
+        /// Reachable from outside the store because not every refusal is discovered while reading. A file can
+        /// decode perfectly and still describe Scenes that cannot all be true, and that is found a layer up —
+        /// where the same promise has to be kept, by the same code, rather than by a second copy of it.
+        func preserving(_ refusal: SceneStateRefusal) -> SceneStateRefusal {
             let destination = url
                 .deletingLastPathComponent()
                 .appendingPathComponent(Self.preservedFilename, isDirectory: false)
