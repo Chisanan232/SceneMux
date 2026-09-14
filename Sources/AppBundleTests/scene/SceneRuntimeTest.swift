@@ -56,4 +56,24 @@ final class SceneRuntimeTest: XCTestCase {
         XCTAssertEqual(runtime.snapshot.scenes.map(\.state), [.defined, .active])
         XCTAssertEqual(runtime.message, .entered(sceneTitle: "Release notes", slots: 0, windows: 0))
     }
+
+    /// Leaving is silent, and closing an empty Scene finishes it. No HUD for a leave is a design rule, not an
+    /// omission: a toast on every task switch is how a user learns to ignore the toast that matters.
+    func testLeavingSaysNothingAndClosingAnEmptySceneFinishesIt() throws {
+        let runtime = try runtime()
+        let scene = try runtime.createScene(title: "Debug PROD-123", template: .empty)
+        try runtime.enter(scene.id)
+        runtime.dismissMessage()
+
+        try runtime.leave()
+        XCTAssertNil(runtime.snapshot.activeScene)
+        XCTAssertNil(runtime.message)
+        XCTAssertEqual(runtime.snapshot.scenes.map(\.state), [.defined])
+
+        let plan = try runtime.close(scene.id)
+        XCTAssertEqual(plan.pending, [])
+        XCTAssertEqual(runtime.snapshot.scenes, [])
+        XCTAssertEqual(runtime.unfinishedTeardowns, [])
+        XCTAssertNil(runtime.message)
+    }
 }
