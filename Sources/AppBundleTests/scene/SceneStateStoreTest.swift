@@ -95,6 +95,43 @@ final class SceneStateStoreTest: XCTestCase {
         )
     }
 
+    func testTheGoldenJourneySurvivesAQuitAndComesBackMeaningTheSameThing() throws {
+        typealias App = SceneCoreFixtures.App
+        let scene = try SceneCoreFixtures.debugScene(state: .active(.init(workspaceName: "3")))
+        let store = SceneCore.SceneStateStore(url: try temporaryDirectory().appending(path: "state.json"))
+
+        try store.save([scene])
+        let load = store.load()
+
+        // The acceptance criterion of this ticket, as the product states it: quit SceneMux in the middle of
+        // debugging PROD-123 and the intent comes back. Whole-value equality would pass on its own, but it
+        // reports "not equal" and nothing else, so the parts the rest of Phase 1 depends on are named here —
+        // if a future encoding drops `homeAtAttachTime`, this says which window forgot where it lives.
+        XCTAssertEqual(load, .loaded(scenes: [scene], quarantined: []))
+        XCTAssertEqual(load.diagnostics, [])
+        let restored = try XCTUnwrap(load.scenes.first)
+        XCTAssertEqual(restored.title, "Debug PROD-123")
+        XCTAssertEqual(restored.state, .active(.init(workspaceName: "3")))
+        XCTAssertEqual(
+            restored.slots.map(\.role),
+            [.terminal, .editor, .preview, .observability, .communication],
+        )
+        XCTAssertEqual(restored.slots.last?.composition, .tabbed)
+        for bundleId in [App.terminal, App.ide, App.browser, App.grafana] {
+            let attachment = try XCTUnwrap(restored.attachment(for: try SceneCoreFixtures.windowRef(bundleId)))
+            XCTAssertEqual(attachment.ownership, .sceneOwned, bundleId)
+        }
+        for bundleId in [App.line, App.slack] {
+            let attachment = try XCTUnwrap(restored.attachment(for: try SceneCoreFixtures.windowRef(bundleId)))
+            // Losing this pair is the failure the user would feel: a borrowed window that came back as the
+            // Scene's own is a window SceneMux would close, and one whose Home was forgotten has nowhere to
+            // be restored to.
+            XCTAssertEqual(attachment.ownership, .borrowed, bundleId)
+            XCTAssertEqual(attachment.homeAtAttachTime, .communication, bundleId)
+        }
+        XCTAssertNil(restored.attachment(for: try SceneCoreFixtures.windowRef(App.music)))
+    }
+
     func testTheRealStateFileIsSceneMuxOwnedAndNowhereNearSomeonesConfig() throws {
         let store = try SceneCore.SceneStateStore.inApplicationSupport()
 
