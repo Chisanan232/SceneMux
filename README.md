@@ -204,6 +204,10 @@ so an installed WinMux or AeroSpace keeps running off its own config afterwards.
 keeps accepting the inherited `WINMUX_*` exec variables and the `during-winmux-startup` matcher
 key, so an imported WinMux config behaves the same way it did before.
 
+## Contributing
+Development, pull request, and release rules live in [`CONTRIBUTING.md`](CONTRIBUTING.md); automated
+contributors start at [`AGENTS.md`](AGENTS.md).
+
 ## Credits
 [WinMux](https://github.com/ZimengXiong/winmux) — the direct upstream this project is derived from.
 
