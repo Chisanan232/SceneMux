@@ -141,4 +141,29 @@ final class SceneProjectorTest: XCTestCase {
         )
     }
 
+    /// The engine's own refusal reaches the human unedited, and stops that Slot only.
+    func testARefusedSlotKeepsTheEnginesWordsAndDoesNotStopTheOthers() throws {
+        let port = RecordingSceneEnginePort()
+        let editor = SceneCoreFixtures.slot(role: .editor, order: 0)
+        let preview = SceneCoreFixtures.slot(role: .preview, order: 1)
+        let scene = try SceneCoreFixtures.scene(slots: [editor, preview])
+            .attaching(SceneCoreFixtures.attachment(windowRef: try .init(bundleId: App.ide, ordinalWithinApp: 0),
+                                                    slotId: editor.id))
+            .attaching(SceneCoreFixtures.attachment(windowRef: try .init(bundleId: App.browser, ordinalWithinApp: 0),
+                                                    slotId: preview.id))
+        port.refusals = [preview.id: "SceneMux cannot tile a window that macOS has in full screen."]
+
+        let report = SceneCore.SceneProjector(port: port)
+            .project(SceneCore.SceneLayoutPlan(scene, on: substrate))
+
+        XCTAssertEqual(
+            report.placement(for: preview.id),
+            .refused("SceneMux cannot tile a window that macOS has in full screen."),
+        )
+        XCTAssertEqual(report.placement(for: editor.id), .realised(.single))
+        XCTAssertEqual(
+            report.diagnostics,
+            ["SceneMux cannot tile a window that macOS has in full screen."],
+        )
+    }
 }
