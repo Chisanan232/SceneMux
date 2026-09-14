@@ -43,4 +43,15 @@ final class SceneStateStoreTest: XCTestCase {
 
         XCTAssertEqual(store.load(), .loaded(scenes: [scene], quarantined: []))
     }
+
+    func testSavingIntoADirectoryThatIsNotThereYetCreatesIt() throws {
+        let directory = try temporaryDirectory().appending(path: "SceneMux", directoryHint: .isDirectory)
+        let store = SceneCore.SceneStateStore(url: directory.appending(path: "scene-state.json"))
+
+        try store.save([try SceneCoreFixtures.scene()])
+
+        // The real directory is created on demand too — an install that has never saved Scene state does not
+        // have one, and the first attach must not be the thing that fails.
+        XCTAssertTrue(FileManager.default.fileExists(atPath: store.url.path))
+    }
 }
