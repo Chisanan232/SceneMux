@@ -117,3 +117,98 @@ No surface in this specification displays a window title, and no evidence gather
 either — `AGENTS.md` forbids logging window contents, and a screenshot of a sidebar full of window titles
 is a leak of the user's work. Rows are identified by application name and icon. The inherited sidebar's
 own window rows and its `WindowTitleCache` are unchanged; Scene Core simply does not adopt them.
+
+## Scene appearance by state
+
+The four lifecycle states of [the model](scene-core-architecture.md#lifecycle) must be distinguishable at
+a glance, and — this is the part that is easy to get wrong — **an inactive Scene that still holds windows
+must not look like an empty one.** It is the difference between "I have work parked here" and "there is
+nothing here", and it is exactly the state `leave` produces.
+
+| State | Badge | Row fill | Title | Trailing | Accent bar |
+| --- | --- | --- | --- | --- | --- |
+| `active` | Filled | `GlassToken.fillActive` | `textPrimary` | `active` | Yes |
+| `defined`, with attachments | Half-filled | `GlassToken.fillResting` | `textPrimary` | *n* windows | No |
+| `defined`, empty | Outline | `GlassToken.fillFaint` | `textSecondary` | `empty` | No |
+| `ending` | Filled, with a progress ring | `fillResting` | `textPrimary` | `restoring…` | No |
+| `ended` | — | — | — | — | Not listed; see [Recovery](#empty-error-and-recovery-states) |
+
+Three rules keep this honest:
+
+- **Fill and stroke opacity are not the only signal.** Every state also differs in badge shape and in
+  trailing text, because opacity alone fails for a user with reduced contrast, and fails completely in a
+  screenshot compressed for a ticket.
+- **`ending` is visible.** Restoring borrowed windows takes real time against other applications, and a
+  Scene that is mid-restore says so rather than appearing frozen.
+- **No colour-only meaning.** Scene rows may carry an accent hue, reusing the inherited
+  `WorkspaceSidebarColor` palette, but hue never carries meaning that is not also carried by shape or
+  text.
+
+## Flows
+
+### Create
+
+`⌘N` in the sidebar, `+ New Scene`, or typing a name that matches nothing in the switcher and confirming.
+One field, inline, no dialog:
+
+```
+┌──────────────────────────────────────────────┐
+│ ▌ [Debug PROD-123                        ]   │  ← inline text field, focused
+│   Slots:  ( Development )  ( Empty )         │  ← two choices, no wizard
+└──────────────────────────────────────────────┘
+```
+
+*Development* pre-creates `terminal`, `editor`, `preview` and `observability` Slots; *Empty* creates none.
+Two options, because a template picker is a Phase 2 feature and a wizard for a task name is an insult.
+Enter creates and stays put — **creating does not enter.** Nothing on the user's screen moves, which is
+what makes creating a Scene a free action.
+
+### Rename
+
+Double-click the title, or `⏎` on a selected row. Inline field, Enter commits, Esc reverts. The `SceneId`
+is untouched, so nothing about a Scene depends on its name.
+
+### Enter
+
+`⏎` in the switcher, click the Scene row, or `⌘⌥1…9`. On entry: the Scene's Slots project onto the current
+workspace, focus lands in the highest-ordered non-empty Slot, and the menu bar item changes to the Scene's
+title. An entered Scene with no attachments shows [the empty-Scene state](#empty-error-and-recovery-states)
+and moves nothing.
+
+### Leave
+
+`⌘⌥0`, *Leave Scene* in the menu bar item, or entering another Scene. **Nothing moves** — that is invariant
+I5, and it is the flow most likely to be "helpfully" broken by a later ticket. The Scene's row drops to
+`defined, with attachments`, the menu bar item returns to *No Scene*, and no HUD appears, because nothing
+happened that the user needs to be told about.
+
+### Close
+
+`⌘⌫` on a selected Scene, or *Close Scene* in its context menu. This is the only flow that touches windows,
+so it is the only one that asks first:
+
+```
+┌────────────────────────────────────────────────────┐
+│  Close “Debug PROD-123”?                           │
+│                                                    │
+│  2 borrowed windows go back to their Home          │
+│      LINE          → Communication                 │
+│      Slack         → Communication                 │
+│                                                    │
+│  4 scene windows stay where they are               │
+│      Terminal · IDE · Grafana · Browser            │
+│      ☐ also close these  (asks for each)           │
+│                                                    │
+│  1 shared window is not touched                    │
+│      Music                                         │
+│                                                    │
+│                       [ Cancel ]  [ Close Scene ]  │
+└────────────────────────────────────────────────────┘
+```
+
+The panel is grouped by *ownership*, because ownership is what decides the outcome — the user is being
+shown the model's actual reasoning rather than a generic warning. The cleanup checkbox is unchecked, and
+checking it still asks per window: no single click in this product closes four applications' windows.
+
+The panel is a non-modal `NSPanel` attached to the sidebar, not an application-modal sheet: SceneMux must
+never block the user's other applications to ask itself a question.
