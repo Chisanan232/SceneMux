@@ -3,6 +3,19 @@ import Foundation
 import XCTest
 
 final class SceneOperationsTest: XCTestCase {
+    func testRemovingASlotTheSceneNeverHadIsNotSilentlyForgiven() throws {
+        // Removing an empty Slot succeeds, so a caller that passes the wrong id would otherwise see the same
+        // "nothing left to do" answer as a caller that succeeded.
+        let slot = SceneCoreFixtures.slot(role: .preview)
+        let scene = try SceneCoreFixtures.scene(slots: [slot])
+        let elsewhere = SceneCore.SlotId.generate()
+
+        XCTAssertEqual(try scene.removingSlot(slot.id).slots, [])
+        XCTAssertThrowsError(try scene.removingSlot(elsewhere)) { error in
+            XCTAssertEqual(error as? SceneCore.SceneCoreError, .unknownSlot(elsewhere))
+        }
+    }
+
     func testRemovingASlotThatStillHoldsWindowsIsRefused() throws {
         let slot = SceneCoreFixtures.slot(role: .communication)
         let scene = try SceneCoreFixtures.scene(slots: [slot])
