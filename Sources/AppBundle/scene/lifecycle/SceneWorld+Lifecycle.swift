@@ -100,4 +100,35 @@ extension SceneCore.SceneWorld {
         }
         return (try replacing(closing), plan)
     }
+
+    /// Record what happened to one window of a closing Scene.
+    ///
+    /// A final outcome discharges the attachment, so it is dropped — and once the last pending attachment is
+    /// gone the Scene reaches `ended` here, in the same operation that discharged it. A `failed` outcome
+    /// changes nothing at all: the attachment stays, which is both the record that the restore is still owed
+    /// and the instruction to try again, including after a quit and a relaunch.
+    ///
+    /// That is the whole re-entrancy mechanism, and it is why there is no retry counter and no separate list of
+    /// finished steps to keep in step with the Scene. The same report arriving twice is a no-op, because the
+    /// attachment it was about is already gone.
+    ///
+    /// An outcome for a Scene that is not closing is discarded rather than applied. The only ways to get here
+    /// are a duplicated report and a report that arrives after the close finished, and neither is a reason to
+    /// detach a window from a Scene somebody is using.
+    func resolving(
+        _ outcome: SceneCore.SceneTeardownOutcome,
+        for windowRef: SceneCore.WindowRef,
+        in id: SceneCore.SceneId,
+    ) throws -> Self {
+        guard let scene = scene(id) else {
+            throw SceneCore.SceneLifecycleError.unknownScene(id)
+        }
+        guard scene.state.label == .ending, outcome.isFinal else { return self }
+
+        var closing = try scene.detaching(windowRef)
+        if SceneCore.SceneTeardownPlan(closing).pending.isEmpty {
+            closing = try closing.transitioning(to: .ended)
+        }
+        return try replacing(closing)
+    }
 }
