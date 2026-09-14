@@ -159,4 +159,33 @@ final class WinMuxSceneEngineAdapterTest: XCTestCase {
         )
         XCTAssertTrue(stranger.parent === Workspace.get(byName: name).rootTilingContainer)
     }
+
+    /// The application quit, or the window is on another Space where the Accessibility API cannot see it. The
+    /// Slot is built out of what is there, the rest of the Scene is unaffected, and the absence is named.
+    func testAWindowThatIsNotThereIsReportedAndTheRestOfTheSlotIsBuilt() throws {
+        config.enableNormalizationFlattenContainers = true
+        let terminal = TestApp(bundleId: App.terminal)
+        TestWindow.new(id: 1, parent: elsewhere, app: terminal)
+        let terminals = SceneCoreFixtures.slot(role: .terminal, composition: .split(.vertical), order: 0)
+        let observability = SceneCoreFixtures.slot(role: .observability, order: 1)
+        let secondTerminal = try SceneCore.WindowRef(bundleId: App.terminal, ordinalWithinApp: 1)
+        let grafana = try SceneCore.WindowRef(bundleId: App.grafana, ordinalWithinApp: 0)
+        let scene = try SceneCoreFixtures.scene(slots: [terminals, observability])
+            .attaching(SceneCoreFixtures.attachment(
+                windowRef: try .init(bundleId: App.terminal, ordinalWithinApp: 0),
+                slotId: terminals.id,
+            ))
+            .attaching(SceneCoreFixtures.attachment(windowRef: secondTerminal, slotId: terminals.id))
+            .attaching(SceneCoreFixtures.attachment(windowRef: grafana, slotId: observability.id))
+
+        let report = project(scene, onto: name)
+
+        XCTAssertEqual(Workspace.get(byName: name).rootTilingContainer.layoutDescription, .h_tiles([.window(1)]))
+        XCTAssertEqual(
+            report.placement(for: terminals.id),
+            .partlyRealised(.single, missing: [secondTerminal]),
+        )
+        XCTAssertEqual(report.placement(for: observability.id), .windowsMissing([grafana]))
+        XCTAssertEqual(report.missingWindows, [secondTerminal, grafana])
+    }
 }
