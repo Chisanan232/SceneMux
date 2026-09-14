@@ -19,7 +19,20 @@ struct SceneSwitcherView: View {
     /// preview. The pointer paths need it for the same reason the keys do: it is the session that moves the
     /// windows.
     var perform: (@escaping @MainActor () -> Void) -> Void = { body in body() }
-    @FocusState private var fieldFocused: Bool
+
+    /// Which of the panel's two fields the keyboard belongs in.
+    ///
+    /// Two identities rather than one `Bool`, because searching and naming are different views: a flag that is
+    /// already `true` publishes no change when the fields swap, and the keyboard ends up in neither of them. That
+    /// was a real defect — `F2` opened the naming field and then ignored every letter typed into it.
+    private enum Field {
+        case search, name
+    }
+
+    @FocusState private var focus: Field?
+
+    /// Where the keyboard should be, given what the panel is doing.
+    private var wantedFocus: Field { model.mode.isEditingText ? .name : .search }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -50,14 +63,14 @@ struct SceneSwitcherView: View {
         }
         .clipShape(RoundedRectangle(cornerRadius: RadiusToken.panel, style: .continuous))
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .onAppear { fieldFocused = true }
-        // Every mode change swaps or removes the field, and SwiftUI does not carry focus into a view that
-        // did not exist yet. Without this, committing a name left the panel with no keyboard owner: typing
-        // went nowhere and the user had to click the field to search again.
-        .onChange(of: model.mode) { _ in fieldFocused = true }
+        .onAppear { focus = wantedFocus }
+        // Every mode change swaps or removes a field, and SwiftUI does not carry focus into a view that did not
+        // exist yet. Without this, committing a name left the panel with no keyboard owner: typing went nowhere
+        // and the user had to click the field to search again.
+        .onChange(of: model.mode) { _ in focus = wantedFocus }
         // And whenever something outside the panel had the keyboard — a menu, another application — and the
         // panel has it back. Without this the panel stayed on screen looking usable while typing went nowhere.
-        .onChange(of: model.focusToken) { _ in fieldFocused = true }
+        .onChange(of: model.focusToken) { _ in focus = wantedFocus }
     }
 
     private var header: some View {
@@ -92,14 +105,14 @@ struct SceneSwitcherView: View {
                     .textFieldStyle(.plain)
                     .font(.system(size: 15, weight: .medium))
                     .foregroundStyle(Color.white.opacity(GlassToken.textPrimary))
-                    .focused($fieldFocused)
+                    .focused($focus, equals: .name)
                     .onSubmit(model.commitName)
             } else {
                 TextField("Search scenes…", text: $model.query)
                     .textFieldStyle(.plain)
                     .font(.system(size: 15, weight: .medium))
                     .foregroundStyle(Color.white.opacity(GlassToken.textPrimary))
-                    .focused($fieldFocused)
+                    .focused($focus, equals: .search)
             }
             if model.mode == .creating {
                 ForEach(SceneCore.SlotTemplate.allCases, id: \.self) { template in
