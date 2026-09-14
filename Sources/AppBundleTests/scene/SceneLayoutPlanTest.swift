@@ -59,4 +59,20 @@ final class SceneLayoutPlanTest: XCTestCase {
 
         XCTAssertEqual(plan.groups.singleOrNil()?.windows.map(\.bundleId), [App.line, App.slack])
     }
+
+    /// Invariant I13: an empty Slot stays in the plan so the shell can still show it, and stays out of the
+    /// engine's work, because there is nothing to tile.
+    func testAnEmptySlotIsPlannedButNotWork() throws {
+        let editor = SceneCoreFixtures.slot(role: .editor, order: 0)
+        let empty = SceneCoreFixtures.slot(role: .observability, order: 1)
+        let scene = try SceneCoreFixtures.scene(slots: [editor, empty])
+            .attaching(SceneCoreFixtures.attachment(windowRef: try .init(bundleId: App.ide, ordinalWithinApp: 0),
+                                                    slotId: editor.id))
+
+        let plan = SceneCore.SceneLayoutPlan(scene, on: substrate)
+
+        XCTAssertEqual(plan.groups.count, 2)
+        XCTAssertEqual(plan.occupiedGroups.map(\.slotId), [editor.id])
+        XCTAssertEqual(plan.groups.last?.isOccupied, false)
+    }
 }
