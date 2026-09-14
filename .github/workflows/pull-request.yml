@@ -21,8 +21,8 @@ jobs:
     name: guards
     runs-on: ubuntu-latest
     steps:
-      # fetch-depth: 0 because the provenance check below needs the inherited history: the
-      # derivation baseline is 1795 commits back, and a shallow clone cannot prove ancestry.
+      # fetch-depth: 0 because the provenance check below asserts that the derivation baseline is an
+      # ancestor of HEAD, and the default shallow clone does not contain the inherited history.
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
