@@ -70,7 +70,7 @@ final class ConfigBootstrapTest: XCTestCase {
         defer { try? FileManager.default.removeItem(at: tempDir) }
 
         let legacyUrl = tempDir.appending(path: "legacy.toml")
-        let targetUrl = tempDir.appending(path: "winmux.toml")
+        let targetUrl = tempDir.appending(path: "scenemux.toml")
         let legacyText = """
             config-version = 2
 
@@ -97,7 +97,7 @@ final class ConfigBootstrapTest: XCTestCase {
 
         let preferredLegacyUrl = tempDir.appending(path: "preferred.toml")
         let secondaryLegacyUrl = tempDir.appending(path: "secondary.toml")
-        let targetUrl = tempDir.appending(path: "winmux.toml")
+        let targetUrl = tempDir.appending(path: "scenemux.toml")
         let preferredText = """
             config-version = 2
 
@@ -130,7 +130,7 @@ final class ConfigBootstrapTest: XCTestCase {
         defer { try? FileManager.default.removeItem(at: tempDir) }
 
         let aerospaceUrl = tempDir.appending(path: "aerospace.toml")
-        let targetUrl = tempDir.appending(path: "winmux.toml")
+        let targetUrl = tempDir.appending(path: "scenemux.toml")
         let aerospaceText = """
             start-at-login = false
             default-root-container-layout = 'accordion'
