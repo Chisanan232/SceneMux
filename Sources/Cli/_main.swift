@@ -41,9 +41,9 @@ struct Main {
             if serverVersionAndHash != nil && cliClientVersionAndHash != serverVersionAndHash {
                 eprint(
                     """
-                    Warning: WinMux client/server versions don't match. Possible fixes:
-                      - Restart WinMux.app (server restart is required after each update)
-                      - Reinstall and restart WinMux (corrupted installation)
+                    Warning: SceneMux client/server versions don't match. Possible fixes:
+                      - Restart SceneMux.app (server restart is required after each update)
+                      - Reinstall and restart SceneMux (corrupted installation)
                     """,
                 )
             }
@@ -110,12 +110,12 @@ struct Main {
         if ans.exitCode != 0 && ans.serverVersionAndHash != cliClientVersionAndHash {
             eprint(
                 """
-                Warning: WinMux client/server versions don't match
+                Warning: SceneMux client/server versions don't match
                   - scenemux CLI client version: \(cliClientVersionAndHash)
                   - SceneMux.app server version: \(ans.serverVersionAndHash)
                   Possible fixes:
-                  - Restart WinMux.app (server restart is required after each update)
-                  - Reinstall and restart WinMux (corrupted installation)
+                  - Restart SceneMux.app (server restart is required after each update)
+                  - Reinstall and restart SceneMux (corrupted installation)
                 """,
             )
         }
