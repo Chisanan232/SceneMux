@@ -130,7 +130,7 @@ screenshot-hygiene problem, so it is also recorded in
 | --- | --- |
 | Symptom | `./.debug/SceneMuxApp` died at dyld time: `Library not loaded: @rpath/Sparkle.framework/…`, exit 134. `make run` could not start the app at all. |
 | Cause | The executable links Sparkle with an `@loader_path` rpath, but `make build` copied only the two executables into `.debug/`, leaving the framework behind in `.build/debug/`. |
-| Not ours | `git show <derivation baseline>:makefile` has the identical copy step, and the baseline `Package.swift` already pinned Sparkle 2.9.6. SceneMux's only change to that step was the product rename. |
+| Not ours | `git show e0ad328e:makefile` — the derivation baseline — has the identical copy step, and the baseline `Package.swift` already pinned Sparkle 2.9.6. SceneMux's only change to that step was the product rename. |
 | Fixed here | One line: `cp -R .build/debug/Sparkle.framework .debug`. |
 | Follow-up | Generic, contains no SceneMux identity, and is the first candidate for the "offer a fix upstream" path in [`upstream-sync.md`](upstream-sync.md). |
 
