@@ -73,10 +73,20 @@ below was measured on a working machine without disturbing it, using three contr
 3. **Every mutating command targeted by `--window-id`**, never by focus, and only ever at throwaway
    TextEdit windows.
 
-Containment held. Every window that was observable when the session started — four of them — had a
-byte-identical frame, layout and workspace afterwards; no window other than the three throwaway ones
-was ever named in a command; and at the end all fifteen remaining windows were `floating`, plus the
-one that was already `macos_native_fullscreen`, with no tab group left behind.
+Containment held for geometry. In neither pass was a window other than the throwaway ones named in a
+mutating command. In the first pass every window that was observable when the session started — four
+of them — had a byte-identical frame, layout and workspace afterwards, and at the end all fifteen
+remaining windows were `floating`, plus the one that was already `macos_native_fullscreen`, with no
+tab group left behind.
+
+Two things the controls above did *not* contain, both worth knowing before the next pass:
+
+* **Focus.** A bare `focus <direction>` moved focus to windows that were not part of the exercise —
+  see the surprise below. Targeting focus by `--window-id` avoids it.
+* **A display change.** The external display was disconnected during the second pass, and the windows
+  that had been on it were parked off the visible area until their workspace was made visible again.
+  Nothing was lost, but a contained pass should not be run across a display reconfiguration, and it
+  should end by confirming that every observable window has an on-screen frame.
 
 One measurement caveat that a later pass should not have to rediscover: **let the inventory converge
 before recording the "before" snapshot.** A snapshot taken fourteen seconds after the server started
