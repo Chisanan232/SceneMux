@@ -40,7 +40,12 @@ struct HomeCommand: Command {
         let rows: [[String]] = rules.map { rule in
             [rule.bundleId, rule.home.displayName, rule.source == .userOverride ? "your config" : ""]
         }
-        return io.out(rows.toPaddingTable(columnSeparator: "   "))
+        // Most rows have nothing in the last column, and a padded table ends those lines in the column
+        // separator. Trimmed rather than left there: trailing spaces are invisible until they are pasted into a
+        // ticket, and no row can begin with whitespace, so there is nothing else for this to remove.
+        return io.out(rows.toPaddingTable(columnSeparator: "   ").map {
+            $0.trimmingCharacters(in: .whitespaces)
+        })
     }
 
     /// The application `--app` names, or the one the user is looking at.
