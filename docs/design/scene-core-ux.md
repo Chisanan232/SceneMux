@@ -273,7 +273,7 @@ edit, rather than state that changed behind their editor. Two commands read it:
 | Command | Answers |
 | --- | --- |
 | `home list [--json]` | Every application either side of the table has an opinion about, with the rule that will actually apply, ordered by bundle id. Rules the user wrote are marked |
-| `home show [--app <bundle-id>]` | One application — the focused one by default — with **who decided**: *your config*, *SceneMux's defaults*, or *the default for applications SceneMux does not know* |
+| `home show [--app <bundle-id>]` | One application — the focused one by default — with **who decided**: *your config*, *SceneMux’s defaults*, or *the default for applications SceneMux does not know* |
 
 The distinction `show` draws is the point: "SceneMux thinks Music is personal" and "you told SceneMux that
 Music is personal" are different sentences, and only one of them is worth arguing with. An application
