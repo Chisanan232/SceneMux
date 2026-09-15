@@ -35,6 +35,8 @@ extension SceneCore {
 
         private let engine: any SceneEnginePort
         private let projector: SceneProjector
+        /// Which Home each application belongs to, as the user's config has it.
+        private let homes: HomeRules
         private let naming: ApplicationNaming
         private let orchestrator: SceneOrchestrator?
         /// Why there are no Scenes at all, when the reason is that state could not even be reached.
@@ -52,6 +54,7 @@ extension SceneCore {
         init(
             store: SceneStateStore? = nil,
             engine: any SceneEnginePort = WinMuxSceneEngineAdapter(),
+            homes: HomeRules = .shippedOnly,
             naming: @escaping ApplicationNaming = SceneRuntime.desktopNaming,
         ) {
             var resolved = store
@@ -65,6 +68,7 @@ extension SceneCore {
                 }
             }
             self.engine = engine
+            self.homes = homes
             self.naming = naming
             self.unavailability = unavailability
             projector = SceneProjector(port: engine)
@@ -72,6 +76,7 @@ extension SceneCore {
             snapshot = SceneShellSnapshot(
                 world: .empty,
                 diagnostics: unavailability.map { [$0] } ?? [],
+                homes: homes,
                 naming: naming,
             )
             refresh()
@@ -150,7 +155,7 @@ extension SceneCore {
             guard let scene = orchestrator.world.scene(id) else {
                 throw SceneLifecycleError.unknownScene(id)
             }
-            return SceneShellCloseSummary(scene: scene, naming: naming)
+            return SceneShellCloseSummary(scene: scene, homes: homes, naming: naming)
         }
 
         /// End a Scene, and hand back what its windows are owed.
@@ -256,6 +261,7 @@ extension SceneCore {
             snapshot = SceneShellSnapshot(
                 world: orchestrator?.world ?? .empty,
                 diagnostics: diagnostics,
+                homes: homes,
                 naming: naming,
             )
         }

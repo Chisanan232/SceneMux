@@ -60,12 +60,17 @@ extension SceneCore {
             scenes.first { $0.index == index }
         }
 
-        init(world: SceneWorld, diagnostics: [String] = [], naming: ApplicationNaming) {
+        init(
+            world: SceneWorld,
+            diagnostics: [String] = [],
+            homes: HomeRules,
+            naming: ApplicationNaming,
+        ) {
             scenes = world.scenes
                 .filter { $0.state.label != .ended }
                 .enumerated()
                 .map { offset, scene in
-                    SceneShellSceneRow(scene: scene, index: offset + 1, naming: naming)
+                    SceneShellSceneRow(scene: scene, index: offset + 1, homes: homes, naming: naming)
                 }
             self.diagnostics = diagnostics
         }

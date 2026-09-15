@@ -19,6 +19,7 @@ final class SceneShellWindowRowTest: XCTestCase {
                 ownership: .borrowed,
                 homeAtAttachTime: .communication,
             ),
+            homes: .shippedOnly,
             naming: naming,
         )
 
@@ -41,6 +42,7 @@ final class SceneShellWindowRowTest: XCTestCase {
                 ownership: .sceneOwned,
                 homeAtAttachTime: .development,
             ),
+            homes: .shippedOnly,
             naming: naming,
         )
 
@@ -59,6 +61,7 @@ final class SceneShellWindowRowTest: XCTestCase {
                 windowRef: try SceneCoreFixtures.windowRef(App.grafana),
                 slotId: .generate(),
             ),
+            homes: .shippedOnly,
             naming: naming,
         )
 

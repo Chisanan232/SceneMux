@@ -23,6 +23,7 @@ final class SceneShellSlotRowTest: XCTestCase {
                     slotId: slot.id,
                 )
             },
+            homes: .shippedOnly,
             naming: naming,
         )
     }

@@ -10,6 +10,7 @@ final class SceneShellSnapshotTest: XCTestCase {
         SceneCore.SceneShellSnapshot(
             world: try SceneCore.SceneWorld(scenes: scenes),
             diagnostics: diagnostics,
+            homes: .shippedOnly,
             naming: { _ in nil },
         )
     }

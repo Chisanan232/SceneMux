@@ -24,7 +24,11 @@ extension SceneCore {
         let windowRef: WindowRef
         /// The application's name, or its bundle id when the desktop cannot name it.
         let applicationName: String
-        /// What the window is for, as the Home rules say — never as its current Scene implies.
+        /// What the window is for, as the Home rules say *now* — never as its current Scene implies.
+        ///
+        /// Resolved from `HomeRules` on every rebuild rather than read back from the attachment. Those are the
+        /// same answer until the user re-homes an application while a Scene is borrowing it, and at that moment
+        /// the row has to say where the window is going to go, not where it was going to go yesterday.
         let home: SemanticHome
         /// Whether this window was borrowed into the Scene rather than being part of it.
         let isMounted: Bool
@@ -59,10 +63,10 @@ extension SceneCore {
             ([applicationName, home.displayName] + (isMounted ? ["mounted"] : [])).joined(separator: ", ")
         }
 
-        init(attachment: Attachment, naming: ApplicationNaming) {
+        init(attachment: Attachment, homes: HomeRules, naming: ApplicationNaming) {
             windowRef = attachment.windowRef
             applicationName = naming(attachment.windowRef.bundleId) ?? attachment.windowRef.bundleId
-            home = attachment.homeAtAttachTime
+            home = homes.home(of: attachment.windowRef)
             isMounted = attachment.isMount
         }
     }

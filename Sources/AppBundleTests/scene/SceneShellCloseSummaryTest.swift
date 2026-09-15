@@ -14,6 +14,7 @@ final class SceneShellCloseSummaryTest: XCTestCase {
     func testTheConfirmationIsGroupedByOwnershipAndSaysTheOutcomePerGroup() throws {
         let summary = SceneCore.SceneShellCloseSummary(
             scene: try SceneCoreFixtures.debugScene(),
+            homes: .shippedOnly,
             naming: naming,
         )
 
@@ -47,7 +48,7 @@ final class SceneShellCloseSummaryTest: XCTestCase {
                 homeAtAttachTime: .personal,
             ))
 
-        let summary = SceneCore.SceneShellCloseSummary(scene: scene, naming: naming)
+        let summary = SceneCore.SceneShellCloseSummary(scene: scene, homes: .shippedOnly, naming: naming)
 
         XCTAssertEqual(summary.groups.map(\.ownership), [.borrowed, .sharedPersistent])
         XCTAssertEqual(summary.groups.map(\.offersCleanup), [false, false])

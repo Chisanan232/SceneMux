@@ -64,13 +64,21 @@ extension SceneCore {
             return "\(head), \(count), \(compositionChip)"
         }
 
-        init(slot: Slot, index: Int, attachments: [Attachment], naming: ApplicationNaming) {
+        init(
+            slot: Slot,
+            index: Int,
+            attachments: [Attachment],
+            homes: HomeRules,
+            naming: ApplicationNaming,
+        ) {
             id = slot.id
             self.index = index
             role = slot.role
             title = slot.displayName
             composition = slot.composition
-            windows = attachments.map { SceneShellWindowRow(attachment: $0, naming: naming) }
+            windows = attachments.map {
+                SceneShellWindowRow(attachment: $0, homes: homes, naming: naming)
+            }
         }
     }
 }
