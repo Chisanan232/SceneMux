@@ -183,6 +183,22 @@ a Scene ending months after it started still restores a window somewhere real. I
 too — the companion spec shows the Home *category* on a row, never the workspace number, because the
 category is the part that is stable and meaningful.
 
+#### What HORO-1107 implements of the three tiers, and what it does not
+
+Only the middle tier ships in v0.1.0, and the deviation is recorded here rather than left for the next
+person to infer from the code:
+
+| Tier | In v0.1.0 | Why |
+| --- | --- | --- |
+| A workspace designated for that Home | **Deferred — HORO-1218** | There is no way for a user to designate one yet. A `[scene-home]` key naming a workspace per Home is a config change, a settings surface and a migration, and none of it is needed for a window to come back correctly |
+| The workspace the window was last in outside any Scene | **Ships.** Recorded as `Attachment.originSurface` at the moment of mounting, and it is the only thing `SceneRestorer` aims at | It is the one answer that is a *fact* rather than a policy: the window was observably there. Invariant I8 is satisfied by replaying an observation, not by resolving a rule |
+| A workspace created for that Home | **Declined** | Creating a workspace is a visible change to somebody's desktop, made at the moment a task ends, to hold a window they did not ask to move there. A window whose recorded surface is gone is left where it is and the person is told — `leftInPlace(reason:)` — which is recoverable in a way an invented workspace is not |
+
+So the shipped resolution is narrower than the three tiers above, and deliberately more conservative: a
+restore either replays where the window came from or does nothing at all. An attachment with no recorded
+surface — written by an earlier build, or by a build that could not see the window's workspace — is
+therefore left in place rather than guessed at, which is `SceneRestorer`'s second refusal.
+
 ## Slot
 
 A **Slot** is a named role inside a Scene — *the place where the editor goes*, not *the rectangle at
