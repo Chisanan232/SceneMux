@@ -378,7 +378,7 @@ at a time. The wording rule is: **say what happened to which windows, in the use
 | Scene entered | `Debug PROD-123 · 4 slots, 6 windows` | Confirms which Scene now owns the screen |
 | Scene left | *(none)* | Nothing happened to any window. A HUD would be noise |
 | Windows restored | `2 windows went back to Communication — LINE, Slack` | The single most important thing to confirm: borrowing was reversed |
-| Restore target missing | `Slack could not be found — nothing was closed or moved` | Distinguishes "declined to act" from "broke something" |
+| Restore target missing | `Slack did not go back — nothing was closed or moved` | Distinguishes "declined to act" from "broke something". Names the non-event rather than the window: the window is still there, and it is the destination that is missing |
 | Scene-owned windows left | `4 windows left in place` | Says explicitly that closing the Scene did *not* close them |
 | Shared window skipped | *(only on an attempt)* `Music is shared — left untouched` | Only when the user tried; otherwise silence is correct |
 | Window ignored by admission | `Preview app isn't part of this Scene` — once per application, then suppressed | Principle 5. An unexplained non-action reads as a bug |
