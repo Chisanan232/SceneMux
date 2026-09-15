@@ -99,4 +99,18 @@ final class SceneWorldAttachmentTest: XCTestCase {
             XCTAssertEqual(error as? SceneCore.SceneLifecycleError, .sceneIsClosing(closing.id))
         }
     }
+
+    func testTheWorldCanSayWhichSceneHasAWindowAndOnWhatTerms() throws {
+        // What the user is really asking before they mount something: "is this window already in something?"
+        // The terms come back with the Scene because "Slack is in Debug PROD-123" and "Slack is *lent* to
+        // Debug PROD-123" are different answers to that question.
+        let debug = try SceneCoreFixtures.debugScene()
+        let world = try SceneCore.SceneWorld(scenes: [debug])
+
+        let found = world.holder(of: try SceneCoreFixtures.windowRef(SceneCoreFixtures.App.slack))
+
+        XCTAssertEqual(found?.scene.id, debug.id)
+        XCTAssertEqual(found?.attachment.ownership, .borrowed)
+        XCTAssertNil(world.holder(of: try SceneCoreFixtures.windowRef(SceneCoreFixtures.App.music)))
+    }
 }
