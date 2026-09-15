@@ -133,15 +133,20 @@ extension SceneCore {
         /// Safe to call when there is nothing owed, which is the ordinary case: it moves nothing and says
         /// nothing. A restore that fails again stays owed and will be attempted at the next launch, without
         /// anything having counted the attempts.
+        ///
+        /// Whether the surfaces are rebuilt depends on whether there was a plan, not on whether there is
+        /// anything to say about it. A Scene whose last borrowed window turned out to be gone finishes in
+        /// silence — and still finishes, so the switcher must stop showing it as `restoring…`.
         @discardableResult
         func resumeUnfinishedTeardowns() -> [SceneShellMessage] {
             guard let orchestrator else { return [] }
+            let plans = orchestrator.unfinishedTeardowns
+            guard !plans.isEmpty else { return [] }
             var messages: [SceneShellMessage] = []
-            for plan in orchestrator.unfinishedTeardowns {
+            for plan in plans {
                 let outcomes = carryOut(plan, with: orchestrator)
                 messages += SceneShellMessage.onClose(plan, outcomes: outcomes, naming: naming)
             }
-            guard !messages.isEmpty else { return [] }
             refresh()
             return messages
         }
