@@ -14,7 +14,21 @@ final class AdmissionDecisionTest: XCTestCase {
                        .sceneOwned)
         XCTAssertEqual(SceneCore.AdmissionDecision.mount(slotId: slotId, ruleId: "r").attachment?.ownership,
                        .borrowed)
-        XCTAssertEqual(SceneCore.AdmissionDecision.claim(slotId: slotId).attachment?.ownership, .sceneOwned)
+        XCTAssertEqual(SceneCore.AdmissionDecision.claim(slotId: slotId, ruleId: "r").attachment?.ownership,
+                       .sceneOwned)
+    }
+
+    func testAnAttachingDecisionCarriesTheRuleThatMadeIt() {
+        // Traceability is the reason the id is on the decision rather than looked up afterwards: an
+        // attachment records `AttachmentOrigin.admission(ruleId:)`, so "why is my terminal in this Scene?" has
+        // an answer that names a rule instead of naming SceneMux.
+        let slotId = SceneCore.SlotId.generate()
+
+        XCTAssertEqual(
+            SceneCore.AdmissionDecision.route(slotId: slotId, ruleId: "empty-slot-serving-home")
+                .attachment?.ruleId,
+            "empty-slot-serving-home",
+        )
     }
 
     func testEveryDecisionThatIsNotAnAttachmentMovesNoWindowAtAll() {

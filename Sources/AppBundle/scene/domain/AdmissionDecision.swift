@@ -24,7 +24,7 @@ extension SceneCore {
     enum AdmissionDecision: Equatable, Sendable, CustomStringConvertible {
         /// SceneMux takes responsibility for this window's placement and lifecycle in the current Scene,
         /// before anything else has placed it. Requires pre-creation containment, which is admission gate G2.
-        case claim(slotId: SlotId)
+        case claim(slotId: SlotId, ruleId: String)
         /// Place it in that Slot of the active Scene, as a window the Scene brought into being.
         case route(slotId: SlotId, ruleId: String)
         /// Attach it as `.borrowed`, leaving its Semantic Home alone. What an explicit mount means.
@@ -43,33 +43,29 @@ extension SceneCore {
         /// record to name, so the reason is a sentence.
         case quarantine(reason: String)
 
-        /// The terms an attachment would be recorded on if this decision were carried out, or nothing when
-        /// the decision is to leave the window alone.
+        /// Everything recording an attachment needs, or nothing when the decision is to leave the window
+        /// alone. One accessor rather than three, so that a caller cannot take the Slot from the decision and
+        /// the ownership from somewhere else.
         ///
-        /// The one place the three attaching decisions differ in *ownership*, so that the executor cannot
-        /// invent a different answer. `route` and `tab` are `.sceneOwned` because a window SceneMux first saw
-        /// while the Scene was open has no earlier place to be sent back to — its own Slot is where it
-        /// started — and `.sceneOwned` is the ownership that leaves a window exactly where it is when the
-        /// task ends. `mount` is `.borrowed`, which is the whole point of mounting.
+        /// This is the one place the attaching decisions differ in *ownership*, so that whatever carries a
+        /// decision out cannot invent a different answer. `route` and `tab` are `.sceneOwned` because a window
+        /// SceneMux first saw while the Scene was open has no earlier place to be sent back to — its own Slot
+        /// is where it started — and `.sceneOwned` is the ownership that leaves a window exactly where it is
+        /// when the task ends. `mount` is `.borrowed`, which is the whole point of mounting.
+        ///
+        /// The rule id travels with them because a placement somebody did not expect has to be traceable back
+        /// to the rule that caused it: it is recorded as `AttachmentOrigin.admission(ruleId:)` and shown by
+        /// the surfaces that explain why a window is where it is.
         ///
         /// `claim` attaches too, in the phase that can produce it. It answers here so that the mapping is
         /// stated once, rather than being rediscovered by whoever implements G2.
-        var attachment: (slotId: SlotId, ownership: Ownership)? {
+        var attachment: (slotId: SlotId, ownership: Ownership, ruleId: String)? {
             switch self {
-                case .claim(let slotId): (slotId, .sceneOwned)
-                case .route(let slotId, _): (slotId, .sceneOwned)
-                case .tab(let slotId, _): (slotId, .sceneOwned)
-                case .mount(let slotId, _): (slotId, .borrowed)
+                case .claim(let slotId, let ruleId): (slotId, .sceneOwned, ruleId)
+                case .route(let slotId, let ruleId): (slotId, .sceneOwned, ruleId)
+                case .tab(let slotId, let ruleId): (slotId, .sceneOwned, ruleId)
+                case .mount(let slotId, let ruleId): (slotId, .borrowed, ruleId)
                 case .float, .ignore, .quarantine: nil
-            }
-        }
-
-        /// The rule that decided, when a rule did. Recorded on the attachment as `AttachmentOrigin.admission`
-        /// so that a placement somebody did not expect can be traced back to the line that caused it.
-        var ruleId: String? {
-            switch self {
-                case .route(_, let ruleId), .mount(_, let ruleId), .tab(_, let ruleId): ruleId
-                case .claim, .float, .ignore, .quarantine: nil
             }
         }
 
@@ -79,7 +75,7 @@ extension SceneCore {
 
         var description: String {
             switch self {
-                case .claim(let slotId): "claim \(slotId)"
+                case .claim(let slotId, let ruleId): "claim \(slotId) by \(ruleId)"
                 case .route(let slotId, let ruleId): "route to \(slotId) by \(ruleId)"
                 case .mount(let slotId, let ruleId): "mount into \(slotId) by \(ruleId)"
                 case .tab(let slotId, let ruleId): "tab into \(slotId) by \(ruleId)"
