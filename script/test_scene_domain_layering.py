@@ -39,6 +39,7 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 SOURCES = REPO / "Sources"
+TESTS = SOURCES / "AppBundleTests"
 SCENE = SOURCES / "AppBundle" / "scene"
 DOMAIN = SCENE / "domain"
 LIFECYCLE = SCENE / "lifecycle"
@@ -99,6 +100,12 @@ class SceneDomainLayeringTest(unittest.TestCase):
         declared = set()
         for path in swift_files(SOURCES):
             if directory in path.parents or path.parent == directory:
+                continue
+            # A test's own private spelling of a name is not an engine type, and the
+            # layers guarded here could not reach it if it were: the test module is
+            # invisible to the code under test. Counting it would fail the build for a
+            # collision between two files that cannot see each other.
+            if TESTS in path.parents or path.parent == TESTS:
                 continue
             declared.update(DECLARATION.findall(path.read_text()))
         return declared
