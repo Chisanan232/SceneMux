@@ -703,7 +703,9 @@ Stated rather than fixed, because each of these is a decision to decline rather 
 
 - **A Home is coarser than a Slot role.** Nothing admission may read says whether a JetBrains window is an
   editor or a terminal, so a development window fills the first empty development Slot in Slot order. Somebody
-  who cares which window goes where mounts it explicitly.
+  who cares which window goes where mounts it explicitly. Carried by
+  [HORO-1225](https://lightning-dust-mite.atlassian.net/browse/HORO-1225), which has to answer what evidence
+  could tell the two apart without reading a window title.
 - **A `preview` Slot is never filled by a rule.** The windows that belong in one are browser windows, and
   browsers are `personal`. Filling it would mean a rule deciding that somebody's browser is part of a task.
 - **No `personal` window is ever admitted**, which includes every application SceneMux has not classified.
