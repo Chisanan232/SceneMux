@@ -249,8 +249,11 @@ Hovering or focusing a mounted row reveals its reversibility, in plain words:
 ```
 
 If the user has re-homed the application since it was mounted, that line becomes the one place the change
-is explained — *"Home changed to Development while borrowed; will go back to Development"* — rather than a
-silent difference between what the row said yesterday and where the window goes today.
+is explained — *"Borrowed into this Scene. Its Home changed to Development while it was borrowed; it still
+goes back where it came from, in Communication."* — rather than a silent difference between what the row
+said yesterday and where the window goes today. Note what it does **not** promise: a restore replays the
+surface the window was borrowed from, so the destination did not follow the re-home, and a line saying it
+had would send somebody looking in the wrong place.
 
 ### Home rules live in the config file
 
