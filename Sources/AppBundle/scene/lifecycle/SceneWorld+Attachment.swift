@@ -32,4 +32,25 @@ extension SceneCore.SceneWorld {
         }
         return try replacing(try scene.attaching(attachment))
     }
+
+    /// This world with one window no longer participating in one Scene.
+    ///
+    /// Idempotent, like the domain operation underneath it: detaching a window that is not attached is the
+    /// state the caller asked for. It forgets the attachment and nothing else — deciding what should happen
+    /// to the window is the caller's, made *before* this is called, while the ownership that grants the
+    /// permission is still readable.
+    ///
+    /// A closing Scene is refused for the same reason as above: dropping one of the restores it still owes
+    /// would discharge the promise without keeping it. Teardown discharges its own attachments through
+    /// `resolving(_:for:in:)`, which only does so once an outcome says the window has actually been dealt
+    /// with.
+    func detaching(_ windowRef: SceneCore.WindowRef, from id: SceneCore.SceneId) throws -> Self {
+        guard let scene = scene(id) else {
+            throw SceneCore.SceneLifecycleError.unknownScene(id)
+        }
+        guard scene.state.label != .ending else {
+            throw SceneCore.SceneLifecycleError.sceneIsClosing(id)
+        }
+        return try replacing(try scene.detaching(windowRef))
+    }
 }
