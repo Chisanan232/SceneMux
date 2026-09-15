@@ -10,7 +10,9 @@ import Common
 ///
 /// It closes nothing, whatever the answer. A restore the application refused stays owed — the window keeps its
 /// place in the Scene and asking again is the retry — and a window the Scene was never allowed to move is
-/// refused with the reason, on the HUD as well as here.
+/// refused with the reason, on the HUD as well as here. A window the Scene *owns* is the one answer that is
+/// neither: it leaves the Scene without moving, and the reply says so, because "left where it is" on its own
+/// would read as "nothing happened".
 struct UnmountCommand: Command {
     let args: UnmountCmdArgs
     /*conforms*/ let shouldResetClosedWindowsCache = false
