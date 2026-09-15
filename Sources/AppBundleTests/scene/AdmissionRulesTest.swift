@@ -185,4 +185,24 @@ final class AdmissionRulesTest: XCTestCase {
 
         XCTAssertEqual(decision, .ignore)
     }
+
+    func testAWindowOpenedSomewhereElseIsNotPulledOntoTheScene() throws {
+        // Somebody left the Scene open on one workspace, switched to another, and opened a terminal there. The
+        // window is eligible in every other way, and admission still declines: routing it would pull it out from
+        // under the person who just opened it and onto a screen they are not looking at.
+        //
+        // A window the engine could not place anywhere a Scene can name is the same answer for the same reason.
+        let terminal = SceneCoreFixtures.slot(role: .terminal, order: 0)
+        let scene = try SceneCoreFixtures.scene(
+            slots: [terminal],
+            state: .active(SceneCoreFixtures.activeSubstrate),
+        )
+
+        for elsewhere in [SceneCoreFixtures.communicationSurface, nil] {
+            let decision = SceneCore.AdmissionRules.decide(
+                try SceneCoreFixtures.admissionCandidate(App.terminal, surface: elsewhere, in: scene),
+            )
+            XCTAssertEqual(decision, .ignore, "a window on \(elsewhere?.description ?? "no surface") should stay")
+        }
+    }
 }
