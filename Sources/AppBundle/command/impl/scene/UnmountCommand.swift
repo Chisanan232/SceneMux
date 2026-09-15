@@ -27,7 +27,7 @@ struct UnmountCommand: Command {
                             + "Its Home is still \(window.home.displayName).",
                     )
                 case .windowIsGone:
-                    io.out("\(window.applicationName)'s window is gone. It is out of the Scene; nothing was moved.")
+                    io.out("\(window.applicationName)’s window is gone. It is out of the Scene; nothing was moved.")
                 case .leftInPlace(let reason):
                     io.out("\(window.applicationName) was left where it is: \(reason).")
                 case .failed(let reason):
