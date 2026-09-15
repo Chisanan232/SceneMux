@@ -170,4 +170,23 @@ final class SceneRuntimeTest: XCTestCase {
         XCTAssertEqual(runtime.snapshot.activeScene?.windowCount, 0)
         XCTAssertEqual(port.requestedMoves.count, 0)
     }
+
+    /// Unmounting is the reverse of mounting, in the other order: the window goes back first, and only then is it
+    /// taken out of the Scene. What the user sees is a chat window on the workspace it came from and a Scene that
+    /// no longer mentions it.
+    func testUnmountingSendsTheWindowBackAndTakesItOutOfTheScene() throws {
+        let runtime = try runtime()
+        let windowRef = try SceneCoreFixtures.windowRef(SceneCoreFixtures.App.line)
+        port.focused = windowRef
+        port.surfaces[windowRef] = SceneCoreFixtures.communicationSurface
+        let scene = try runtime.createScene(title: "Debug PROD-123")
+        try runtime.enter(scene.id)
+        try runtime.mount(into: try runtime.slot(numbered: 1).id)
+
+        let outcome = try runtime.unmount(windowRef)
+
+        XCTAssertEqual(outcome, .restored)
+        XCTAssertEqual(port.requestedMoves.map(\.binding), [SceneCoreFixtures.communicationSurface])
+        XCTAssertEqual(runtime.snapshot.activeScene?.windowCount, 0)
+    }
 }
