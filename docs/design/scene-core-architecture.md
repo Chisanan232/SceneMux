@@ -796,13 +796,20 @@ Projection is one-directional: **Scene state → engine tree.** Entering a Scene
 asks the adapter to place each attachment's window; the adapter uses the inherited verbs (`join-with`,
 `layout tab-group`, tree binding) and the engine computes every rectangle.
 
-`SceneEnginePort` is three methods, and the order they run in is the whole protocol:
+Projection is three of the port's methods, and the order they run in is the whole of it:
 
 | Step | Method | What it is for |
 | --- | --- | --- |
 | 1 | `prepareSubstrate(_:)` | Make the Scene's workspace usable, or refuse. A refusal ends the projection before a single window has moved — better a Scene that did not open than a Scene half-scattered across the wrong workspace |
 | 2 | `place(_:on:)`, once per occupied Slot, in Slot order | Build one Slot: resolve its windows, build a container if the composition needs one, bind. Call order *is* Slot order — the port has no position argument, because a Slot's place among its siblings is where it was built, and a second way of saying it could only ever disagree with the first |
 | 3 | `settle(_:)` | Run the engine's own normalization and read the resulting composition of each Slot back |
+
+The rest of the port is what *one* window needs, and each entry was added by the ticket that had a caller
+for it: `currentSubstrate()` says whether there is anywhere to draw at all, `focusedWindow()` says which
+window the person means, `surface(of:)` says where it is right now — recorded as `Attachment.originSurface`
+at the one moment it is knowable — and `move(_:to:)` is the whole of "put this window there", used both to
+mount one and to send it back. None of them names a container, a frame or a monitor, for the reason the
+seam exists.
 
 Two things follow from step 1 being separate. An empty Slot is never offered to the engine at all — there
 is nothing to build — but it is still in the report, so the UX can draw it (I13). And a Slot whose windows
