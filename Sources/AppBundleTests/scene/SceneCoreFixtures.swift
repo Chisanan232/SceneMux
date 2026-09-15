@@ -64,6 +64,10 @@ enum SceneCoreFixtures {
         try SceneCore.Scene(id: id, title: title, slots: slots, attachments: attachments, state: state)
     }
 
+    /// Where the journey's borrowed chat windows were living before the Scene borrowed them, and so where
+    /// closing it has to put them back.
+    static let communicationSurface = SceneCore.SubstrateBinding(workspaceName: "2")
+
     /// The golden journey of `docs/design/scene-core-ux.md` as one Scene: "Debug PROD-123", five Slots and
     /// six windows. The terminal and the IDE are part of the task, the dashboard and the preview browser were
     /// opened for it, LINE and Slack were lent to it for the duration, and the music player is not in it.
@@ -105,12 +109,14 @@ enum SceneCoreFixtures {
                 slotId: comms.id,
                 ownership: .borrowed,
                 homeAtAttachTime: .communication,
+                originSurface: communicationSurface,
             ))
             .attaching(attachment(
                 windowRef: try windowRef(App.slack),
                 slotId: comms.id,
                 ownership: .borrowed,
                 homeAtAttachTime: .communication,
+                originSurface: communicationSurface,
             ))
     }
 }
