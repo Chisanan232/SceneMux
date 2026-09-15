@@ -693,6 +693,35 @@ run arbitrary commands from the user's config file; `AGENTS.md` forbids introduc
 execution to solve orchestration problems, and a typed decision that the app itself executes is both safer
 and testable. The inherited callbacks keep working, unchanged, for the users who already have them.
 
+The hook runs *after* the user's own callbacks, and a callback with `check-further-callbacks = false` returns
+before it. That ordering is the same rule as everywhere else in Scene Core: an explicit instruction outranks
+a rule.
+
+### What G1 does not do in v0.1.0
+
+Stated rather than fixed, because each of these is a decision to decline rather than an unfinished edge:
+
+- **A Home is coarser than a Slot role.** Nothing admission may read says whether a JetBrains window is an
+  editor or a terminal, so a development window fills the first empty development Slot in Slot order. Somebody
+  who cares which window goes where mounts it explicitly.
+- **A `preview` Slot is never filled by a rule.** The windows that belong in one are browser windows, and
+  browsers are `personal`. Filling it would mean a rule deciding that somebody's browser is part of a task.
+- **No `personal` window is ever admitted**, which includes every application SceneMux has not classified.
+- **Nothing is admitted during startup.** Windows that already existed when SceneMux launched are never swept
+  into the Scene that happened to be open when it last stopped.
+- **Nothing is admitted onto a workspace the Scene is not on.** A window opened after switching away stays
+  where it was opened.
+- **A full Slot does not overflow.** With no empty serving Slot and no tab group, the answer is `ignore` —
+  there is no second-best Slot and no automatic split.
+- **A refused attachment is not retried.** If attaching fails, the window is left exactly where the engine put
+  it and one diagnostic line says so; the window is never closed, and nothing is moved to make room.
+- **No rule produces `claim`, `float` or `quarantine`.** `claim` is G2; `float` is the engine's own existing
+  behaviour and needs no decision from SceneMux; `quarantine` is reachable only from the corrupt-state path,
+  so a window is quarantined only where something was recorded about it that no longer makes sense — never
+  because an ordinary window could not be understood.
+- **Nothing is focused, raised or closed by admission**, on any outcome. Invariants I1 and I6 hold through
+  every path above, including the failing ones.
+
 ## Persistence: intent, not window identity
 
 Scene state is persisted so that a Scene survives quitting the app, and so that a Scene caught mid-`ending`
