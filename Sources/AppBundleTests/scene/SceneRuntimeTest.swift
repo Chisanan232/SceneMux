@@ -7,15 +7,27 @@ import XCTest
 @MainActor
 final class SceneRuntimeTest: XCTestCase {
     private var port = RecordingSceneEnginePort()
+    /// The state file the most recent `runtime()` was built over — a relaunch's only inheritance.
+    private var stateFile: URL!
 
-    private func runtime() throws -> SceneCore.SceneRuntime {
-        let directory = FileManager.default.temporaryDirectory
-            .appending(path: "SceneMuxTests-\(UUID().uuidString)", directoryHint: .isDirectory)
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        addTeardownBlock { try? FileManager.default.removeItem(at: directory) }
+    /// A runtime over a state file of its own, with a fresh recording engine.
+    ///
+    /// `over:` builds a *second* runtime over an existing state file, which is how a relaunch is written: the
+    /// first runtime's file is all that survives it, and the new engine has no memory of what the old one was
+    /// asked. Anything the second runtime knows, it read back from disk.
+    private func runtime(over existingStateFile: URL? = nil) throws -> SceneCore.SceneRuntime {
+        if let existingStateFile {
+            stateFile = existingStateFile
+        } else {
+            let directory = FileManager.default.temporaryDirectory
+                .appending(path: "SceneMuxTests-\(UUID().uuidString)", directoryHint: .isDirectory)
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            addTeardownBlock { try? FileManager.default.removeItem(at: directory) }
+            stateFile = directory.appending(path: "scene-state.json")
+        }
         port = RecordingSceneEnginePort()
         return SceneCore.SceneRuntime(
-            store: SceneCore.SceneStateStore(url: directory.appending(path: "scene-state.json")),
+            store: SceneCore.SceneStateStore(url: stateFile),
             engine: port,
             naming: { _ in nil },
         )
