@@ -96,6 +96,12 @@ extension SceneCore {
         /// there is one writer of Home policy and it is the person's config file.
         var homeRules: HomeRules { homes }
 
+        /// Which application the user is looking at, when the engine can say — a bundle id and nothing else.
+        ///
+        /// Deliberately not the window: a surface that only needs to answer "what is *this* app for?" should not
+        /// be handed a window reference it could then act on, and a bundle id is all a Home is resolved from.
+        var focusedApplication: String? { engine.focusedWindow()?.bundleId }
+
         /// What the user is owed as soon as the app is up: a refusal, or the Scenes that lost windows.
         ///
         /// Read once by whatever shows the HUD, at startup, rather than posted from `init` — a message posted
