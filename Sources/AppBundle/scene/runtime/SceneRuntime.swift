@@ -168,17 +168,23 @@ extension SceneCore {
             return SceneShellCloseSummary(scene: scene, homes: homes, naming: naming)
         }
 
-        /// End a Scene, and hand back what its windows are owed.
+        /// End a Scene: send its borrowed windows home, leave everything else alone, and say what happened.
         ///
-        /// A Scene holding no windows is finished by this call. One holding borrowed windows keeps its
-        /// attachments and stays `restoring…` until something carries the plan out, which is the honest state
-        /// of affairs in this build rather than an oversight.
+        /// The intent is written before anything moves and each outcome is recorded as it happens, so a crash
+        /// half way through leaves a Scene that still owes exactly the restores it has not done. A window whose
+        /// restore failed keeps its attachment, which is why closing again — or simply launching again — is the
+        /// retry.
+        ///
+        /// Nothing is closed here, for any ownership, on any outcome (invariant I6). The windows the Scene owns
+        /// stay open and the user is told so, in the same breath as being told which windows went home.
         @discardableResult
         func close(_ id: SceneId) throws -> SceneTeardownPlan {
             let orchestrator = try requireOrchestrator()
             let plan = try orchestrator.close(id)
             layoutDiagnostics = []
+            let outcomes = carryOut(plan, with: orchestrator)
             refresh()
+            post(SceneShellMessage.onClose(plan, outcomes: outcomes, homes: homes, naming: naming))
             return plan
         }
 
@@ -317,6 +323,30 @@ extension SceneCore {
                 throw SceneRuntimeError.noActiveScene
             }
             return active
+        }
+
+        /// Carry out every restore a plan still owes, recording each outcome before attempting the next.
+        ///
+        /// Recorded one at a time on purpose: the state on disk is the only thing that survives a crash, and a
+        /// batch written at the end would leave a window already home and still recorded as owed — which the
+        /// next run would "restore" a second time, moving a window the user had since put somewhere else.
+        ///
+        /// A failed record is not a failed restore. The window is where it should be either way, so the loop
+        /// carries on to the other windows and the attachment simply stays, which means the same restore is
+        /// attempted again later. Giving up on the rest of somebody's chat windows because one write failed
+        /// would be the worse of the two outcomes.
+        private func carryOut(
+            _ plan: SceneTeardownPlan,
+            with orchestrator: SceneOrchestrator,
+        ) -> [WindowRef: SceneTeardownOutcome] {
+            let restorer = SceneRestorer(port: engine)
+            var outcomes: [WindowRef: SceneTeardownOutcome] = [:]
+            for step in plan.pending {
+                let outcome = restorer.restore(step)
+                outcomes[step.windowRef] = outcome
+                try? orchestrator.resolve(outcome, for: step.windowRef, in: plan.sceneId)
+            }
+            return outcomes
         }
 
         /// Draw the Scene on screen again, if there is one.
