@@ -125,4 +125,21 @@ final class AdmissionRulesTest: XCTestCase {
             XCTAssertEqual(decision, .ignore, "a \(kind) window should be left alone")
         }
     }
+
+    func testStartupDetectionsAreNotTreatedAsSomebodyOpeningAWindow() throws {
+        // The worst thing admission could do, and the reason the flag exists. A Scene is still `active` after a
+        // relaunch, and at startup the engine presents every window that already exists — so without this, one
+        // restart would sweep the desktop into whichever task was open yesterday.
+        let terminal = SceneCoreFixtures.slot(role: .terminal, order: 0)
+        let scene = try SceneCoreFixtures.scene(
+            slots: [terminal],
+            state: .active(SceneCoreFixtures.activeSubstrate),
+        )
+
+        let decision = SceneCore.AdmissionRules.decide(
+            try SceneCoreFixtures.admissionCandidate(App.terminal, detectedDuringStartup: true, in: scene),
+        )
+
+        XCTAssertEqual(decision, .ignore)
+    }
 }
