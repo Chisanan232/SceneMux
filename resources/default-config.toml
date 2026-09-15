@@ -177,3 +177,11 @@ on-mode-changed = []
     ctrl-alt-0 = 'scene leave'
     # Opens the confirmation panel. Closing is the one Scene operation that moves windows.
     ctrl-alt-backspace = 'scene close'
+    # The focused window into the n-th Slot of the Scene on screen, borrowed: its Home does not change and it
+    # goes back when the Scene closes. ctrl-alt-shift-u gives it back now instead.
+    ctrl-alt-shift-1 = 'mount --slot 1'
+    ctrl-alt-shift-2 = 'mount --slot 2'
+    ctrl-alt-shift-3 = 'mount --slot 3'
+    ctrl-alt-shift-4 = 'mount --slot 4'
+    ctrl-alt-shift-5 = 'mount --slot 5'
+    ctrl-alt-shift-u = 'unmount'
