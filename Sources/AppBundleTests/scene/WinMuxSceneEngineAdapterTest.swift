@@ -436,7 +436,7 @@ final class WinMuxSceneEngineAdapterTest: XCTestCase {
     }
 
     /// A surface that no longer exists is not a surface to create. The window stays exactly where it is and the
-    /// caller is told why, because a workspace conjured up to receive a restore would send somebody\'s window
+    /// caller is told why, because a workspace conjured up to receive a restore would send somebody's window
     /// somewhere they have never been — and call it home.
     func testARestoreAimedAtAVanishedWorkspaceMovesNothing() throws {
         let window = TestWindow.new(id: 1, parent: elsewhere, app: TestApp(bundleId: App.line))
