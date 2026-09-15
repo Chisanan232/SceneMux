@@ -40,4 +40,18 @@ final class AdmissionRulesTest: XCTestCase {
 
         XCTAssertEqual(decision, .route(slotId: terminal.id, ruleId: Rule.emptySlotServingHome))
     }
+
+    func testASecondChatWindowJoinsTheTabGroupThatIsAlreadyFull() throws {
+        // The golden journey's communication Slot: two chat windows in it already, and it is a tab group, which
+        // is the Scene saying more of these are welcome. A full Slot that is *not* a tab group has no such
+        // thing to say, which is the next test.
+        let scene = try SceneCoreFixtures.debugScene(state: .active(SceneCoreFixtures.activeSubstrate))
+        let comms = try XCTUnwrap(scene.slots.first { $0.role == .communication })
+
+        let decision = SceneCore.AdmissionRules.decide(
+            try SceneCoreFixtures.admissionCandidate(App.line, ordinal: 1, in: scene),
+        )
+
+        XCTAssertEqual(decision, .tab(slotId: comms.id, ruleId: Rule.tabGroupServingHome))
+    }
 }
