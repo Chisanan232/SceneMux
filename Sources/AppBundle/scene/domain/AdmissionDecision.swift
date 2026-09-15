@@ -54,8 +54,9 @@ extension SceneCore {
         /// when the task ends. `mount` is `.borrowed`, which is the whole point of mounting.
         ///
         /// The rule id travels with them because a placement somebody did not expect has to be traceable back
-        /// to the rule that caused it: it is recorded as `AttachmentOrigin.admission(ruleId:)` and shown by
-        /// the surfaces that explain why a window is where it is.
+        /// to the rule that caused it. It is recorded as `AttachmentOrigin.admission(ruleId:)` and written to
+        /// the state file, so the answer outlives the session that produced it. No surface shows it in v0.1.0 —
+        /// the value of recording it now is that the record exists to show later.
         ///
         /// `claim` attaches too, in the phase that can produce it. It answers here so that the mapping is
         /// stated once, rather than being rediscovered by whoever implements G2.
