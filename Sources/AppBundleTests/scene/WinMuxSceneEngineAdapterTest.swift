@@ -414,6 +414,27 @@ final class WinMuxSceneEngineAdapterTest: XCTestCase {
         XCTAssertNil(adapter.surface(of: try SceneCore.WindowRef(bundleId: App.slack, ordinalWithinApp: 0)))
     }
 
+    /// The other half of the same moment: what the window *was* there. Read off the engine's own tree, because
+    /// a window hanging on the workspace is what the engine means by floating and a window in the tiling tree
+    /// is what it means by tiled — there is no second opinion to disagree with.
+    func testTheArrangementOfAWindowIsWhetherTheEngineTiledIt() throws {
+        let workspace = Workspace.get(byName: "chat")
+        TestWindow.new(id: 1, parent: workspace.rootTilingContainer, app: TestApp(bundleId: App.line))
+        TestWindow.new(id: 2, parent: workspace, app: TestApp(bundleId: App.slack))
+        let adapter = SceneCore.WinMuxSceneEngineAdapter()
+
+        XCTAssertEqual(
+            adapter.arrangement(of: try SceneCore.WindowRef(bundleId: App.line, ordinalWithinApp: 0)),
+            .tiled,
+        )
+        XCTAssertEqual(
+            adapter.arrangement(of: try SceneCore.WindowRef(bundleId: App.slack, ordinalWithinApp: 0)),
+            .floating,
+        )
+        // A window the engine is not holding at all is not a window with a plausible arrangement.
+        XCTAssertNil(adapter.arrangement(of: try SceneCore.WindowRef(bundleId: App.ide, ordinalWithinApp: 0)))
+    }
+
     /// Sending one window home moves exactly that window, and does not bring the user with it. A restore that
     /// stole focus would drag somebody away from what they were doing at the end of every task.
     func testMovingAWindowHomeLeavesEveryOtherWindowAndTheFocusAlone() throws {
@@ -426,6 +447,7 @@ final class WinMuxSceneEngineAdapterTest: XCTestCase {
         let move = SceneCore.WinMuxSceneEngineAdapter().move(
             try SceneCore.WindowRef(bundleId: App.line, ordinalWithinApp: 0),
             to: SceneCore.SubstrateBinding(workspaceName: "chat"),
+            as: nil,
         )
 
         XCTAssertEqual(move, .moved)
@@ -433,6 +455,74 @@ final class WinMuxSceneEngineAdapterTest: XCTestCase {
                        .h_tiles([.window(1), .window(2)]))
         XCTAssertEqual(resident.nodeWorkspace?.name, "chat")
         XCTAssertEqual(focus.windowOrNil?.windowId, 3)
+    }
+
+    /// The defect HORO-1107 found on a real Mac: a window lent to a Scene is tiled by the projection, so at
+    /// teardown the engine's own answer to "what is this" describes the Scene rather than the window, and a
+    /// window that had been floating came back as one more tile in its own workspace. Replaying the recorded
+    /// arrangement is what fixes it, and this is the fix against the real tree.
+    func testAWindowRecordedAsFloatingComesBackFloatingAndNotAsOneMoreTile() throws {
+        let workspace = Workspace.get(byName: "chat")
+        TestWindow.new(id: 1, parent: workspace.rootTilingContainer, app: TestApp(bundleId: App.slack))
+        let line = TestWindow.new(id: 2, parent: workspace, app: TestApp(bundleId: App.line))
+        // What the projection does to a borrowed window: it goes into the Scene's layout, and being tiled there
+        // is now the only thing the engine can say about it.
+        line.bind(to: elsewhere, adaptiveWeight: WEIGHT_AUTO, index: INDEX_BIND_LAST)
+        XCTAssertFalse(line.isFloating)
+
+        let move = SceneCore.WinMuxSceneEngineAdapter().move(
+            try SceneCore.WindowRef(bundleId: App.line, ordinalWithinApp: 0),
+            to: SceneCore.SubstrateBinding(workspaceName: "chat"),
+            as: .floating,
+        )
+
+        XCTAssertEqual(move, .moved)
+        XCTAssertEqual(line.nodeWorkspace?.name, "chat")
+        XCTAssertTrue(line.isFloating)
+        // And the window that stayed home is not now sharing its space with a returning guest.
+        XCTAssertEqual(workspace.rootTilingContainer.layoutDescription, .h_tiles([.window(1)]))
+    }
+
+    /// The other half, and the reason the recording is a mode rather than a flag saying "float me": a window
+    /// that was tiled has to be laid back out among its neighbours, and the fix for the floating case must not
+    /// turn every returning window into a floater.
+    func testAWindowRecordedAsTiledIsLaidOutAmongItsNeighboursAgain() throws {
+        let workspace = Workspace.get(byName: "chat")
+        TestWindow.new(id: 1, parent: workspace.rootTilingContainer, app: TestApp(bundleId: App.slack))
+        let line = TestWindow.new(id: 2, parent: workspace.rootTilingContainer, app: TestApp(bundleId: App.line))
+        line.bind(to: elsewhere, adaptiveWeight: WEIGHT_AUTO, index: INDEX_BIND_LAST)
+
+        let move = SceneCore.WinMuxSceneEngineAdapter().move(
+            try SceneCore.WindowRef(bundleId: App.line, ordinalWithinApp: 0),
+            to: SceneCore.SubstrateBinding(workspaceName: "chat"),
+            as: .tiled,
+        )
+
+        XCTAssertEqual(move, .moved)
+        XCTAssertFalse(line.isFloating)
+        XCTAssertEqual(workspace.rootTilingContainer.layoutDescription, .h_tiles([.window(1), .window(2)]))
+    }
+
+    /// The case a "has it moved yet?" shortcut gets wrong: a Scene projected onto the window's own workspace
+    /// leaves it on the right surface and on the wrong side of the floating/tiled line, so answering "already
+    /// there" would end the task with the window still arranged the way the Scene arranged it.
+    func testAWindowAlreadyOnItsSurfaceIsStillPutBackAsWhatItWas() throws {
+        let workspace = Workspace.get(byName: "chat")
+        let resident = TestWindow.new(id: 1, parent: workspace.rootTilingContainer, app: TestApp(bundleId: App.slack))
+        let line = TestWindow.new(id: 2, parent: workspace, app: TestApp(bundleId: App.line))
+        // The Scene was drawn on "chat" itself, so the projection tiled the window where it already was.
+        line.bind(to: workspace.rootTilingContainer, adaptiveWeight: WEIGHT_AUTO, index: INDEX_BIND_LAST)
+
+        let move = SceneCore.WinMuxSceneEngineAdapter().move(
+            try SceneCore.WindowRef(bundleId: App.line, ordinalWithinApp: 0),
+            to: SceneCore.SubstrateBinding(workspaceName: "chat"),
+            as: .floating,
+        )
+
+        XCTAssertEqual(move, .moved)
+        XCTAssertTrue(line.isFloating)
+        XCTAssertEqual(workspace.rootTilingContainer.layoutDescription, .h_tiles([.window(1)]))
+        XCTAssertEqual(resident.nodeWorkspace?.name, "chat")
     }
 
     /// A surface that no longer exists is not a surface to create. The window stays exactly where it is and the
@@ -445,6 +535,7 @@ final class WinMuxSceneEngineAdapterTest: XCTestCase {
         let move = SceneCore.WinMuxSceneEngineAdapter().move(
             windowRef,
             to: SceneCore.SubstrateBinding(workspaceName: "a-workspace-nobody-registered"),
+            as: nil,
         )
 
         XCTAssertEqual(move, .surfaceIsGone(

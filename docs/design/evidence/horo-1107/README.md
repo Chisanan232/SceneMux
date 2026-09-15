@@ -71,6 +71,9 @@ Containment held. In the inventory taken after the pass, every window that was n
   windows were `floating` before they were mounted and were `h_tiles` after they came home: the recorded
   `Attachment.originSurface` is a workspace, so that is all a restore replays. HORO-1222 carries it, and
   the `v0.1.0` evidence bar's "returned to their owner's arrangement" cannot be claimed until it is closed.
+  **Closed by HORO-1222**, which records the arrangement beside the surface and replays it; its own pass is
+  in [`../horo-1222/README.md`](../horo-1222/README.md). This paragraph stays as the record of what *this*
+  pass saw.
 * **The inherited engine's window inventory is populated by activation events.** A freshly launched server
   reported two windows for minutes until an application was activated, after which it saw twenty. Nothing
   in Scene Core depends on this, but a pass that starts by reading an inventory should activate something

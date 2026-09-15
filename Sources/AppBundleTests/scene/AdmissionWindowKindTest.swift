@@ -11,4 +11,14 @@ final class AdmissionWindowKindTest: XCTestCase {
             [.managed],
         )
     }
+
+    func testOnlyTheTwoKindsThatSayHowAWindowSitsHaveAnArrangement() {
+        // Over `allCases` for the same reason, and because this mapping is what a restore replays: a kind that
+        // arrived with an unexamined `.tiled` would send a window home as something it never was.
+        XCTAssertEqual(
+            SceneCore.AdmissionWindowKind.allCases.map(\.arrangement),
+            [.tiled, .floating, nil, nil],
+        )
+        XCTAssertEqual(SceneCore.AdmissionWindowKind.allCases, [.managed, .floating, .popup, .setAside])
+    }
 }

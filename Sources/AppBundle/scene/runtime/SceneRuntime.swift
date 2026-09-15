@@ -244,9 +244,10 @@ extension SceneCore {
         /// it came from when the task ends. `.sceneOwned` is the explicit other branch — `--own`, or `⌥` on the
         /// drop — and it is a claim about the window, not a convenience, so it is never inferred from anything.
         ///
-        /// Two facts are recorded now because now is the only time they are true: the Home the rules give the
-        /// application, and the surface the window is on. Once the window is in the Scene, asking where it lives
-        /// answers "in the Scene", and the way back would be gone.
+        /// Three facts are recorded now because now is the only time they are true: the Home the rules give the
+        /// application, the surface the window is on, and whether it is tiled or floating there. Once the window
+        /// is in the Scene, asking where it lives answers "in the Scene" and asking what it is answers "whatever
+        /// the Scene made it", and the way back would be gone.
         ///
         /// Nothing is focused or raised to do this. The window is already the one in front of the user; the
         /// projection that follows puts it in its Slot, and the user stays where they are.
@@ -262,6 +263,7 @@ extension SceneCore {
                 ownership: ownership,
                 home: homes.home(of: windowRef),
                 originSurface: engine.surface(of: windowRef),
+                originArrangement: engine.arrangement(of: windowRef),
             )
             reproject()
             refresh()
@@ -304,6 +306,7 @@ extension SceneCore {
                     ownership: placement.ownership,
                     home: candidate.home,
                     originSurface: subject.surface,
+                    originArrangement: subject.kind.arrangement,
                     origin: .admission(ruleId: placement.ruleId),
                 )
             } catch {
