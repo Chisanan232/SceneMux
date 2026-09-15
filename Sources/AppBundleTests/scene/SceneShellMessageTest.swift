@@ -82,7 +82,6 @@ final class SceneShellMessageTest: XCTestCase {
         let messages = SceneCore.SceneShellMessage.onClose(
             plan,
             outcomes: outcomes,
-            homes: .shippedOnly,
             naming: { [App.line: "LINE", App.slack: "Slack"][$0] },
         )
 
@@ -128,7 +127,6 @@ final class SceneShellMessageTest: XCTestCase {
                 try SceneCoreFixtures.windowRef(App.slack): .leftInPlace(reason: "its workspace is gone"),
                 try SceneCoreFixtures.windowRef(App.music): .windowIsGone,
             ],
-            homes: .shippedOnly,
             naming: { [App.line: "LINE", App.slack: "Slack", App.music: "Music"][$0] },
         )
 
@@ -136,5 +134,30 @@ final class SceneShellMessageTest: XCTestCase {
             "1 window went back to Communication — LINE",
             "Slack could not be found — nothing was closed or moved",
         ])
+    }
+
+    /// Re-homing an application while a Scene has borrowed one of its windows does not move the window: the
+    /// restore replays the surface recorded when it was borrowed. So the line names *that* Home — Music is
+    /// `personal` in the shipped rules and was borrowed as a Communication window, and saying "went back to
+    /// Personal" would send somebody looking for it in a place nothing put it.
+    func testARestoreIsReportedUnderTheHomeTheWindowWasBorrowedFrom() throws {
+        let comms = SceneCoreFixtures.slot(role: .communication)
+        let scene = try SceneCoreFixtures.scene(slots: [comms])
+            .attaching(SceneCoreFixtures.attachment(
+                windowRef: try SceneCoreFixtures.windowRef(App.music),
+                slotId: comms.id,
+                ownership: .borrowed,
+                homeAtAttachTime: .communication,
+                originSurface: SceneCoreFixtures.communicationSurface,
+            ))
+        let plan = SceneCore.SceneTeardownPlan(scene)
+
+        let messages = SceneCore.SceneShellMessage.onClose(
+            plan,
+            outcomes: [try SceneCoreFixtures.windowRef(App.music): .restored],
+            naming: { [App.music: "Music"][$0] },
+        )
+
+        XCTAssertEqual(messages.map(\.text), ["1 window went back to Communication — Music"])
     }
 }
