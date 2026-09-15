@@ -47,4 +47,27 @@ final class SceneShellMessageTest: XCTestCase {
         XCTAssertEqual(messages.map(\.showsDetails), [true, false, false])
         XCTAssertEqual(messages.map(\.announces), [true, true, true])
     }
+
+    /// The four lifecycle sentences, word for word from the table in `docs/design/scene-core-ux.md`. Asserted
+    /// literally because the wording *is* the design here: "left in place" and "left untouched" are different
+    /// promises, and a paraphrase would quietly change what SceneMux is telling people it did.
+    func testTheLifecycleSentencesAreTheOnesTheDesignSpecifies() {
+        XCTAssertEqual(
+            SceneCore.SceneShellMessage
+                .windowsRestored(home: .communication, applications: ["LINE", "Slack"]).text,
+            "2 windows went back to Communication — LINE, Slack",
+        )
+        XCTAssertEqual(
+            SceneCore.SceneShellMessage.restoreDeclined(applicationName: "Slack").text,
+            "Slack could not be found — nothing was closed or moved",
+        )
+        XCTAssertEqual(
+            SceneCore.SceneShellMessage.windowsLeftInPlace(windows: 4).text,
+            "4 windows left in place",
+        )
+        XCTAssertEqual(
+            SceneCore.SceneShellMessage.sharedWindowSkipped(applicationName: "Music").text,
+            "Music is shared — left untouched",
+        )
+    }
 }
