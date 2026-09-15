@@ -483,6 +483,26 @@ final class WinMuxSceneEngineAdapterTest: XCTestCase {
         XCTAssertEqual(workspace.rootTilingContainer.layoutDescription, .h_tiles([.window(1)]))
     }
 
+    /// The other half, and the reason the recording is a mode rather than a flag saying "float me": a window
+    /// that was tiled has to be laid back out among its neighbours, and the fix for the floating case must not
+    /// turn every returning window into a floater.
+    func testAWindowRecordedAsTiledIsLaidOutAmongItsNeighboursAgain() throws {
+        let workspace = Workspace.get(byName: "chat")
+        TestWindow.new(id: 1, parent: workspace.rootTilingContainer, app: TestApp(bundleId: App.slack))
+        let line = TestWindow.new(id: 2, parent: workspace.rootTilingContainer, app: TestApp(bundleId: App.line))
+        line.bind(to: elsewhere, adaptiveWeight: WEIGHT_AUTO, index: INDEX_BIND_LAST)
+
+        let move = SceneCore.WinMuxSceneEngineAdapter().move(
+            try SceneCore.WindowRef(bundleId: App.line, ordinalWithinApp: 0),
+            to: SceneCore.SubstrateBinding(workspaceName: "chat"),
+            as: .tiled,
+        )
+
+        XCTAssertEqual(move, .moved)
+        XCTAssertFalse(line.isFloating)
+        XCTAssertEqual(workspace.rootTilingContainer.layoutDescription, .h_tiles([.window(1), .window(2)]))
+    }
+
     /// A surface that no longer exists is not a surface to create. The window stays exactly where it is and the
     /// caller is told why, because a workspace conjured up to receive a restore would send somebody's window
     /// somewhere they have never been — and call it home.
