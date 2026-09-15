@@ -199,6 +199,12 @@ restore either replays where the window came from or does nothing at all. An att
 surface — written by an earlier build, or by a build that could not see the window's workspace — is
 therefore left in place rather than guessed at, which is `SceneRestorer`'s second refusal.
 
+A surface is *all* a restore replays, which is narrower than it sounds: a window that was floating before
+it was borrowed comes back to the right workspace **tiled**, because the recorded fact is a workspace and
+not an arrangement. HORO-1222 carries that, and until it is closed the `v0.1.0` evidence bar's "returned to
+their owner's arrangement" is an overstatement of what happens — see
+[`evidence/horo-1107/README.md`](evidence/horo-1107/README.md).
+
 ## Slot
 
 A **Slot** is a named role inside a Scene — *the place where the editor goes*, not *the rectangle at
