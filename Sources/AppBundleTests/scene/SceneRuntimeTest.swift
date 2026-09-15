@@ -328,4 +328,28 @@ final class SceneRuntimeTest: XCTestCase {
         XCTAssertEqual(relaunched.unfinishedTeardowns, [])
         XCTAssertEqual(relaunched.snapshot.scenes, [])
     }
+
+    /// The same relaunch, for a window the user closed in the meantime. There is nothing to tell them — a
+    /// window they closed themselves is not news — but the Scene has still ended, and a switcher that went on
+    /// listing it as `restoring…` would be showing a task waiting on a window that no longer exists.
+    func testASilentResumeStillStopsShowingTheSceneAsRestoring() throws {
+        let firstLaunch = try runtime()
+        let scene = try firstLaunch.createScene(title: "Debug PROD-123", template: .empty)
+        try firstLaunch.enter(scene.id)
+        let slot = try firstLaunch.addSlot(role: .communication)
+        let windowRef = try SceneCoreFixtures.windowRef(SceneCoreFixtures.App.line)
+        port.focused = windowRef
+        port.surfaces[windowRef] = SceneCoreFixtures.communicationSurface
+        try firstLaunch.mount(into: slot.id)
+        port.moveAnswers[windowRef] = .failed(reason: "the app is busy")
+        try firstLaunch.close(scene.id)
+
+        let relaunched = try runtime(over: stateFile)
+        port.moveAnswers[windowRef] = .windowIsGone
+
+        XCTAssertEqual(relaunched.resumeUnfinishedTeardowns(), [])
+
+        XCTAssertEqual(relaunched.unfinishedTeardowns, [])
+        XCTAssertEqual(relaunched.snapshot.scenes, [])
+    }
 }
