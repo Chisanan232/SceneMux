@@ -301,7 +301,8 @@ reachable from any command — it is what unreadable state degrades to, not some
 wrong window needs it back now, and closing the whole task to get it would make the mistake expensive. It
 goes through the same restorer the lifecycle uses, so the window ends up where closing the Scene would have
 put it. Nothing here closes a window, and a window the Scene was never allowed to move is refused out loud —
-on the HUD as well as in the reply.
+on the HUD as well as in the reply. A window the Scene *owns* has nowhere to go back to, so it leaves the
+Scene where it stands, and the reply says which of the two happened rather than only that nothing moved.
 
 ## Slots and composition
 
