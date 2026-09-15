@@ -608,6 +608,26 @@ Two rules follow from that table and are worth stating as rules, because both ar
 > **An unrecognised normal user window is `ignore`.** Not floated, not quarantined, not tiled somewhere
 > plausible — left exactly as the inherited engine would have left it. Failing safe means declining to act.
 
+### What a rule is handed
+
+A rule never receives the window. It receives an `AdmissionSubject` — a `WindowRef` (bundle id plus ordinal
+within the application), the kind of window the engine decided this was, the workspace the engine put it on,
+and whether the detection happened during startup — together with the Home its application resolves to, the
+Scene currently on screen, and whether the window is already attached to some Scene. Those parts are
+assembled by `SceneRuntime`, the only layer that can see both the engine's report and SceneMux's own Scenes.
+
+So the two forbidden inputs are *absent* rather than merely unused: no field of `AdmissionSubject` could
+carry a window title or a parent pid, and `script/test_scene_domain_layering.py` holds `scene/admission/` to
+Foundation-only imports and to naming no engine type — so a rule cannot reach past the value it was given to
+fetch them. That is a stronger promise than a comment asking it not to.
+
+The engine's classification is read the same way, as *where the engine bound the window*: an
+`AdmissionWindowKind` of `managed`, `floating`, `popup` or `setAside`. Re-deriving it from window role and
+level would be a second heuristic that could disagree with the engine's own, and the day it disagreed
+SceneMux would be moving a dialog into a Slot. Only `managed` is eligible for a Slot at all, which is the
+whole of the conservative handling of dialogs and popups: they are not excluded by an editable rule, they
+arrive as a kind no rule can route.
+
 ### Where admission attaches, and where it does not
 
 The engine already has the two seams admission needs:
