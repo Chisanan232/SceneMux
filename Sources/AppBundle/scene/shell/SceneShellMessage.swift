@@ -29,6 +29,13 @@ extension SceneCore {
         /// is the same — this window did not move, and nothing was closed to make it move. Which of the two it
         /// was is visible where it belongs: a Scene that is still owed a restore stays `restoring…`.
         case restoreDeclined(applicationName: String)
+        /// The Scene's own windows are still open, said out loud because the opposite is what people fear.
+        ///
+        /// "Closing a task closed my editor" is the failure this product would never recover from, so ending a
+        /// Scene states the non-event explicitly (invariant I6). Counted rather than named: these are the
+        /// windows the user was looking at a moment ago, and listing four application names to say that
+        /// nothing happened to them would bury the line that says what did.
+        case windowsLeftInPlace(windows: Int)
         /// State could not be read, so there are no Scenes and nothing was moved.
         case stateUnreadable(details: String)
 
@@ -42,6 +49,8 @@ extension SceneCore {
                         + " — \(applications.joined(separator: ", "))"
                 case .restoreDeclined(let applicationName):
                     "\(applicationName) could not be found — nothing was closed or moved"
+                case .windowsLeftInPlace(let windows):
+                    "\(count(windows, "window")) left in place"
                 case .attachmentsDropped(let title, let windows):
                     "\(count(windows, "window")) from “\(title)” \(windows == 1 ? "is" : "are") no longer open"
                 case .stateUnreadable:
@@ -57,7 +66,8 @@ extension SceneCore {
         var details: String? {
             switch self {
                 case .stateUnreadable(let details): details
-                case .entered, .attachmentsDropped, .windowsRestored, .restoreDeclined: nil
+                case .entered, .attachmentsDropped, .windowsRestored, .restoreDeclined,
+                     .windowsLeftInPlace: nil
             }
         }
 
@@ -71,7 +81,8 @@ extension SceneCore {
         var announces: Bool {
             switch self {
                 case .entered: false
-                case .attachmentsDropped, .stateUnreadable, .windowsRestored, .restoreDeclined: true
+                case .attachmentsDropped, .stateUnreadable, .windowsRestored, .restoreDeclined,
+                     .windowsLeftInPlace: true
             }
         }
 
