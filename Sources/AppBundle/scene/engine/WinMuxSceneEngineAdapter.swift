@@ -67,6 +67,29 @@ extension SceneCore {
             return SubstrateBinding(workspaceName: name)
         }
 
+        /// What the engine has already decided this window is, read off where it bound it.
+        ///
+        /// The mapping is one-to-one with the containers the engine has, which is the point: this cannot drift
+        /// from the engine's own classification, because it *is* the engine's own classification. A window in
+        /// the tiling tree is the work; a window the engine hung straight on the workspace is floating, which is
+        /// what it does with dialogs and with anything the user's own float rules exclude; the popup container
+        /// holds menus and completion lists; and the remaining three containers are macOS's business — a
+        /// minimized window, a natively fullscreen one, or one hidden with its application.
+        ///
+        /// A window with no parent at all is nowhere the engine is holding it, so there is nothing to move and
+        /// the answer is the same as for anything else SceneMux may not touch.
+        static func kind(of window: Window) -> AdmissionWindowKind {
+            switch window.parent?.kind {
+                case .tilingContainer: .managed
+                case .workspace: .floating
+                case .macosPopupWindowsContainer: .popup
+                case .macosMinimizedWindowsContainer,
+                     .macosFullscreenWindowsContainer,
+                     .macosHiddenAppsWindowsContainer,
+                     nil: .setAside
+            }
+        }
+
         /// Resolves the Scene's workspace, creating it if the user has not used it yet.
         ///
         /// A blank name is refused rather than normalized into something plausible: the engine would happily
