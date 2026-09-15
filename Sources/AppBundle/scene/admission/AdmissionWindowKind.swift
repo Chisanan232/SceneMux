@@ -40,6 +40,22 @@ extension SceneCore {
             }
         }
 
+        /// How a window of this kind is arranged on its surface, when that can be said at all.
+        ///
+        /// The engine's classification already carries the answer — `.managed` *means* the engine tiled it and
+        /// `.floating` *means* it did not — so this is a reading of what is there rather than a second opinion
+        /// about it. Nothing for the other two, deliberately: a popup is not on a surface in the sense a
+        /// restore cares about, and a window macOS has minimized, fullscreened or hidden was arranged by macOS
+        /// and not by anybody SceneMux can replay. Absent means "no claim", which restores as if this had
+        /// never been recorded.
+        var arrangement: WindowArrangement? {
+            switch self {
+                case .managed: .tiled
+                case .floating: .floating
+                case .popup, .setAside: nil
+            }
+        }
+
         var description: String { rawValue }
     }
 }

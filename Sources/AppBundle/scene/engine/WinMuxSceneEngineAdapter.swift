@@ -67,6 +67,16 @@ extension SceneCore {
             return SubstrateBinding(workspaceName: name)
         }
 
+        /// What the window is on the surface it is on: tiled with its neighbours, or floating above them.
+        ///
+        /// Derived from the kind the engine already assigned rather than asked separately, so there is exactly
+        /// one place in SceneMux that reads a window's parent to decide what the window is. A window macOS has
+        /// put aside — minimized, natively fullscreen, hidden with its application — has no answer here, and
+        /// nothing is recorded for it: see `AdmissionWindowKind.arrangement`.
+        func arrangement(of windowRef: WindowRef) -> WindowArrangement? {
+            resolve(windowRef).flatMap { Self.kind(of: $0).arrangement }
+        }
+
         /// What the engine has already decided this window is, read off where it bound it.
         ///
         /// The mapping is one-to-one with the containers the engine has, which is the point: this cannot drift

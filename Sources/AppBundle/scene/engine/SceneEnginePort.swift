@@ -50,6 +50,18 @@ extension SceneCore {
         ///   where it is. Nothing is recorded honestly as "nowhere to go back to" rather than filled in.
         func surface(of windowRef: WindowRef) -> SubstrateBinding?
 
+        /// How a window is arranged right now: laid out with its neighbours, or floating above them.
+        ///
+        /// The companion of `surface(of:)`, asked at the same moment and for the same reason — this is what
+        /// becomes `Attachment.originArrangement`. A surface says *where* a window was living; this says *what
+        /// it was* there, which is the other half of putting it back. Once the window is in a Scene the answer
+        /// describes the Scene's layout instead, so this too is the only chance to learn it.
+        ///
+        /// - Returns: what the window is, or nothing when the engine cannot see the window or cannot say. A
+        ///   window macOS has minimized, fullscreened or hidden is a "cannot say": nothing is recorded, and a
+        ///   restore then makes no claim about the arrangement rather than inventing one.
+        func arrangement(of windowRef: WindowRef) -> WindowArrangement?
+
         /// Make sure the Scene has somewhere to be drawn, and start a fresh projection.
         ///
         /// Called exactly once per projection, before any placement, so an implementation may also use it to

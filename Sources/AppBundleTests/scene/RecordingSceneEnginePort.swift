@@ -35,6 +35,9 @@ final class RecordingSceneEnginePort: SceneCore.SceneEnginePort {
     /// Where the engine says each window currently lives. A window absent from this has no surface, which is
     /// the "nothing to go back to" case.
     var surfaces: [SceneCore.WindowRef: SceneCore.SubstrateBinding] = [:]
+    /// What the engine says each window is arranged as. A window absent from this is one the engine cannot
+    /// say anything about, which is the "no claim about the arrangement" case.
+    var arrangements: [SceneCore.WindowRef: SceneCore.WindowArrangement] = [:]
     /// What the engine says about moving a particular window. Absent means it moves, which keeps the ordinary
     /// case out of every test that is about something else.
     var moveAnswers: [SceneCore.WindowRef: SceneCore.SceneWindowMove] = [:]
@@ -51,6 +54,10 @@ final class RecordingSceneEnginePort: SceneCore.SceneEnginePort {
 
     func surface(of windowRef: SceneCore.WindowRef) -> SceneCore.SubstrateBinding? {
         surfaces[windowRef]
+    }
+
+    func arrangement(of windowRef: SceneCore.WindowRef) -> SceneCore.WindowArrangement? {
+        arrangements[windowRef]
     }
 
     func move(
