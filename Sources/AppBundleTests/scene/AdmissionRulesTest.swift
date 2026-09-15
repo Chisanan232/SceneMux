@@ -67,4 +67,25 @@ final class AdmissionRulesTest: XCTestCase {
 
         XCTAssertEqual(decision, .ignore)
     }
+
+    func testAnApplicationNobodyHasClassifiedIsDeclinedEvenWithAnEmptySlotWaiting() throws {
+        // The explicit safe fallback, asserted together with the chain that produces it: an unknown application
+        // resolves to `HomeRules.fallback`, that is `personal`, and `personal` is served by no Slot role. The
+        // Slot is empty and eligible in every other way, so nothing but the fallback is stopping this.
+        let stranger = "com.example.something-scenemux-has-never-heard-of"
+        let terminal = SceneCoreFixtures.slot(role: .terminal, order: 0)
+        let scene = try SceneCoreFixtures.scene(
+            slots: [terminal],
+            state: .active(SceneCoreFixtures.activeSubstrate),
+        )
+
+        let decision = SceneCore.AdmissionRules.decide(
+            try SceneCoreFixtures.admissionCandidate(stranger, in: scene),
+        )
+
+        XCTAssertEqual(SceneCore.HomeRules.shippedOnly.home(of: stranger), .personal)
+        XCTAssertEqual(SceneCore.HomeRules.shippedOnly.source(of: stranger), .fallback)
+        XCTAssertEqual(SceneCore.AdmissionRules.roles(serving: .personal), [])
+        XCTAssertEqual(decision, .ignore)
+    }
 }
