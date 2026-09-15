@@ -47,7 +47,7 @@ extension SceneCore {
         /// Nothing is focused, raised or activated to answer this — it reads the focus the engine already has,
         /// which is why "mount the window I am looking at" does not disturb the window it is about.
         func focusedWindow() -> WindowRef? {
-            focus.windowOrNil.flatMap(reference)
+            focus.windowOrNil.flatMap(Self.reference)
         }
 
         /// The workspace a window sits on, named the way a Scene can record it.
@@ -195,7 +195,7 @@ extension SceneCore {
         /// Nothing is created, launched or focused here. A window that is not there is simply not there, and
         /// invariant I10 has SceneMux leave it at that.
         private func resolve(_ windowRef: WindowRef) -> Window? {
-            let candidates = inventory
+            let candidates = Self.inventory
                 .filter { $0.app.rawAppBundleId == windowRef.bundleId }
                 .sorted { $0.windowId < $1.windowId }
             return candidates.getOrNil(atIndex: windowRef.ordinalWithinApp)
@@ -210,9 +210,14 @@ extension SceneCore {
         /// Nothing to describe it with means no ref. An application with no bundle id — a helper process, a
         /// system panel — cannot be named in a way that survives a restart, and inventing a name for it is
         /// how a Scene comes back pointing at whatever happens to be there next time.
-        private func reference(_ window: Window) -> WindowRef? {
+        ///
+        /// Static because the window-detection hook needs it and has no adapter to hand: it is called from the
+        /// engine's own detection path, not from a projection. Nothing here reads the instance, and it must
+        /// stay that way — a description that depended on which projection was running would not be the
+        /// inverse of anything.
+        static func reference(_ window: Window) -> WindowRef? {
             guard let bundleId = window.app.rawAppBundleId else { return nil }
-            let ordinal = inventory
+            let ordinal = Self.inventory
                 .filter { $0.app.rawAppBundleId == bundleId }
                 .sorted { $0.windowId < $1.windowId }
                 .firstIndex { $0.windowId == window.windowId }
@@ -224,7 +229,7 @@ extension SceneCore {
         ///
         /// Follows `Window.get(byId:)`: under test the tree is the only inventory there is, because no
         /// `MacWindow` was ever registered from the Accessibility API.
-        private var inventory: [Window] {
+        static var inventory: [Window] {
             isUnitTest
                 ? Workspace.all.flatMap { $0.allLeafWindowsRecursive }
                 : MacWindow.allWindows
