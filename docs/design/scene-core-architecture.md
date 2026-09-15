@@ -634,6 +634,48 @@ SceneMux would be moving a dialog into a Slot. Only `managed` is eligible for a 
 whole of the conservative handling of dialogs and popups: they are not excluded by an editable rule, they
 arrive as a kind no rule can route.
 
+### What v0.1.0 decides, in order
+
+`AdmissionRules.decide` is one function that decides by declining. Each row below is a reason to leave the
+window alone, checked in this order, and only a window that survives all seven is moved at all:
+
+| # | Declined | Because |
+| --- | --- | --- |
+| 1 | Anything that is not an ordinary managed window | A dialog, a popup or a minimized window is not the work |
+| 2 | Anything detected during startup | A Scene is still `active` after a relaunch, and startup is the engine taking stock rather than a person opening a window |
+| 3 | A window already attached to a Scene | Invariant I4, and what makes a second detection of the same window harmless |
+| 4 | Every window, when no Scene is on screen | There is no intent to serve. This is the ordinary case |
+| 5 | A window not on the active Scene's own workspace | Somebody switched workspaces with the Scene still open; pulling their new window across would move it out from under them |
+| 6 | A window whose Home no Slot of this Scene serves | See the table below |
+| 7 | A window with nowhere left to go | Every serving Slot is full and none of them is a tab group |
+
+What survives is placed by one of exactly two rules:
+
+| Rule id | Decision | When |
+| --- | --- | --- |
+| `empty-slot-serving-home` | `route` | The first empty Slot, in Slot order, whose role serves the window's Home |
+| `tab-group-serving-home` | `tab` | Every serving Slot is full and one of them is a tab group — which is the Scene saying that more of these are welcome |
+
+Both attach as `.sceneOwned`. `mount`, the `.borrowed` verb, is only ever reached by explicit user action in
+v0.1.0: a window first seen while the Scene was already open has no earlier place to be sent back to, and
+recording it as borrowed would promise a restore whose destination would have to be invented — which
+invariant I8 forbids.
+
+Which Slot roles serve a Home:
+
+| Semantic Home | Slot roles served |
+| --- | --- |
+| Development | `editor`, `terminal` |
+| Communication | `communication` |
+| Observability | `observability` |
+| Personal | *none* |
+
+`Personal` serving nothing is the load-bearing row. It is both the answer for the applications SceneMux
+classifies as the user's own and the answer for every application it has never heard of, because
+`HomeRules.fallback` is `personal` — so **both** of the stated rules above fall out of row 6 rather than
+existing as special cases that could be edited away. A browser window cannot be routed anywhere by any rule,
+and neither can an unrecognised one.
+
 ### Where admission attaches, and where it does not
 
 The engine already has the two seams admission needs:
