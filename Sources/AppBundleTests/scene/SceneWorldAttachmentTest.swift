@@ -79,4 +79,24 @@ final class SceneWorldAttachmentTest: XCTestCase {
         XCTAssertEqual(once.scene(scene.id)?.attachments, [])
         XCTAssertEqual(twice, once)
     }
+
+    func testARestoreStillOwedCannotBeDetachedBehindTheTeardownsBack() throws {
+        // The one way an `ending` Scene loses an attachment is `resolving(_:for:in:)`, which needs an outcome
+        // saying the window was actually dealt with. Dropping it here instead would discharge the promise to
+        // send a borrowed window home without keeping it — and nothing would ever notice.
+        let slot = SceneCoreFixtures.slot(role: .communication)
+        let window = try SceneCoreFixtures.windowRef(SceneCoreFixtures.App.line)
+        let closing = try SceneCoreFixtures.scene(slots: [slot], state: .ending)
+            .attaching(SceneCoreFixtures.attachment(
+                windowRef: window,
+                slotId: slot.id,
+                ownership: .borrowed,
+                originSurface: SceneCoreFixtures.communicationSurface,
+            ))
+        let world = try SceneCore.SceneWorld(scenes: [closing])
+
+        XCTAssertThrowsError(try world.detaching(window, from: closing.id)) { error in
+            XCTAssertEqual(error as? SceneCore.SceneLifecycleError, .sceneIsClosing(closing.id))
+        }
+    }
 }
