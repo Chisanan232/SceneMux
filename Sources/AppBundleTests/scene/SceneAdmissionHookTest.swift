@@ -71,4 +71,20 @@ final class SceneAdmissionHookTest: XCTestCase {
         XCTAssertEqual(attachment.slotId, slotId)
         XCTAssertEqual(attachment.origin, .admission(ruleId: Rule.emptySlotServingHome))
     }
+
+    /// The conservative half, at the level where it actually matters. A dialog is a real window the engine
+    /// really detects; what makes it safe is that the engine floated it, the adapter says so, and no rule can
+    /// route a window it is told is floating. Nothing about this test knows what a dialog looks like.
+    func testAFloatingWindowIsDescribedAsFloatingAndSoIsLeftAlone() throws {
+        let (workspace, _) = try sceneOnScreen(with: .terminal)
+        // Bound straight onto the workspace rather than into its tiling tree, which is what the engine does
+        // with a dialog and with anything the user's own float rules exclude.
+        let window = TestWindow.new(id: 1, parent: workspace, app: TestApp(bundleId: App.terminal))
+
+        XCTAssertEqual(SceneCore.WinMuxSceneEngineAdapter.kind(of: window), .floating)
+        sceneAdmitDetectedWindow(window)
+
+        XCTAssertEqual(SceneCore.SceneRuntime.shared.snapshot.activeScene?.slots.first?.windows, [])
+        XCTAssertEqual(store.load().scenes.first?.attachments, [])
+    }
 }
