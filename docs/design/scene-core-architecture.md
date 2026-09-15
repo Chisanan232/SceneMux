@@ -326,9 +326,18 @@ the user did. See [Ownership](#ownership).
 
 `homeAtAttachTime` exists for a specific failure mode: the user re-homes an application (say, moves
 Slack from `communication` to `development`) *while* a Scene that borrowed it is still open. What should
-ending the Scene do? Answer: restore to the Home the window has **now**, and use `homeAtAttachTime` only
-to explain to the user what changed — the UX spec shows this as a one-line note on the restore feedback,
-never as a silent divergence. The recorded value is evidence, not a destination.
+ending the Scene do? Answer: **nothing differently.** A restore replays `originSurface`, the surface the
+window was actually on when it was borrowed, so the destination is the one thing a re-home cannot change
+— and `homeAtAttachTime` is how the surfaces name that destination, both in the row's reversibility line
+and in the HUD line after a close. The recorded value is evidence, not a destination; the surface is the
+destination.
+
+What must never happen is the silent version: a row saying `Development` and a window coming back to the
+place its Communication windows live, with nothing anywhere connecting the two. So the row says both — it
+names the new Home *and* that the window still goes back where it came from — and the close message names
+the Home the destination stood for. When [HORO-1221](https://lightning-dust-mite.atlassian.net/browse/HORO-1221)
+gives a Home a designated surface of its own, "restore to the Home it has now" becomes expressible for
+the first time, and that is the ticket that decides whether it should be.
 
 ### The invariants
 
