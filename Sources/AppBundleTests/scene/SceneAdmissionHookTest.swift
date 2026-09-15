@@ -87,4 +87,23 @@ final class SceneAdmissionHookTest: XCTestCase {
         XCTAssertEqual(SceneCore.SceneRuntime.shared.snapshot.activeScene?.slots.first?.windows, [])
         XCTAssertEqual(store.load().scenes.first?.attachments, [])
     }
+
+    /// Nothing happens when there is no Scene, which is the state SceneMux is in nearly all of the time. The
+    /// inherited engine's own new-window behaviour is what remains, untouched — the window is still exactly
+    /// where it bound it, and no Scene exists to have taken it.
+    func testWithNoSceneOnScreenTheHookChangesNothing() throws {
+        let workspace = Workspace.get(byName: "on-screen")
+        XCTAssertTrue(workspace.focusWorkspace())
+        let window = TestWindow.new(
+            id: 1,
+            parent: workspace.rootTilingContainer,
+            app: TestApp(bundleId: App.terminal),
+        )
+
+        sceneAdmitDetectedWindow(window)
+
+        XCTAssertEqual(workspace.rootTilingContainer.layoutDescription, .h_tiles([.window(1)]))
+        XCTAssertNil(SceneCore.SceneRuntime.shared.snapshot.activeScene)
+        XCTAssertEqual(store.load().scenes.flatMap(\.attachments), [])
+    }
 }
