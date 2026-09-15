@@ -54,6 +54,25 @@ final class MountCommandTest: XCTestCase {
         XCTAssertTrue(window?.isMounted == true)
     }
 
+    /// `--own` is a real override, not a suggestion: the reply says which verb happened, and the recorded
+    /// ownership is what teardown will obey. The Home is still the application's, which is why the sentence
+    /// still names it — owning a window and deciding what it is for are different powers.
+    func testOwningIsTheOtherVerbAndSaysSo() async throws {
+        try await exec("scene new --title 'Debug PROD-123' --template empty")
+        try await exec("scene 1")
+        try await exec("slot new --role terminal")
+        port.focused = try SceneCoreFixtures.windowRef(SceneCoreFixtures.App.terminal)
+
+        let result = try await parseCommand("mount --slot 1 --own").cmdOrDie.run(.defaultEnv, .emptyStdin)
+
+        XCTAssertEqual(result.stdout, [
+            "Attached \(SceneCoreFixtures.App.terminal) to the terminal slot. "
+                + "This Scene owns it; it is still a Development window.",
+        ])
+        XCTAssertTrue(SceneCore.SceneRuntime.shared.snapshot.activeScene?.slots.first?.windows.first?.isMounted
+            == false)
+    }
+
     @discardableResult
     private func exec(_ command: String) async throws -> CmdResult {
         try await parseCommand(command).cmdOrDie.run(.defaultEnv, .emptyStdin)
