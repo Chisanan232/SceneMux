@@ -301,6 +301,7 @@ final class SceneOrchestratorTest: XCTestCase {
         XCTAssertEqual(orchestrator.quarantined.map(\.sceneTitle), ["Debug PROD-123"])
         XCTAssertEqual(orchestrator.quarantined.map(\.windowRef), [windowRef])
     }
+
     func testAMountedWindowSurvivesARelaunchWithItsTermsIntact() throws {
         // The whole point of recording an attachment rather than remembering it: the promise to send a borrowed
         // chat window home has to outlive the process that made it.
@@ -325,6 +326,7 @@ final class SceneOrchestratorTest: XCTestCase {
         XCTAssertEqual(holder.scene.id, scene.id)
         XCTAssertEqual(holder.attachment, attachment)
     }
+
     func testAFailedSaveLeavesTheWindowInNoSceneAtAll() throws {
         // A full disk during a mount. The attachment is what permits SceneMux to move the window later, so one
         // that exists only in memory is the dangerous case: the window would be in a Scene this run believes in
