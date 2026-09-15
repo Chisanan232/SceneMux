@@ -35,8 +35,8 @@ extension SceneCore {
 
         private let engine: any SceneEnginePort
         private let projector: SceneProjector
-        /// Which Home each application belongs to, as the user's config has it.
-        private let homes: HomeRules
+        /// Home rules a test handed over, in place of the user's config.
+        private let injectedHomes: HomeRules?
         private let naming: ApplicationNaming
         private let orchestrator: SceneOrchestrator?
         /// Why there are no Scenes at all, when the reason is that state could not even be reached.
@@ -54,7 +54,7 @@ extension SceneCore {
         init(
             store: SceneStateStore? = nil,
             engine: any SceneEnginePort = WinMuxSceneEngineAdapter(),
-            homes: HomeRules = .shippedOnly,
+            homes: HomeRules? = nil,
             naming: @escaping ApplicationNaming = SceneRuntime.desktopNaming,
         ) {
             var resolved = store
@@ -68,7 +68,7 @@ extension SceneCore {
                 }
             }
             self.engine = engine
-            self.homes = homes
+            injectedHomes = homes
             self.naming = naming
             self.unavailability = unavailability
             projector = SceneProjector(port: engine)
@@ -76,10 +76,20 @@ extension SceneCore {
             snapshot = SceneShellSnapshot(
                 world: .empty,
                 diagnostics: unavailability.map { [$0] } ?? [],
-                homes: homes,
+                homes: homes ?? HomeRules(overrides: config.sceneHome),
                 naming: naming,
             )
             refresh()
+        }
+
+        /// Which Home each application belongs to.
+        ///
+        /// Read from the config on every use rather than captured once, so that editing `[scene-home]` and
+        /// reloading takes effect on the next thing SceneMux says. Home policy lives in the user's own file and
+        /// SceneMux never writes it back — a Home the app could change behind the user's editor is a Home
+        /// neither of them owns.
+        private var homes: HomeRules {
+            injectedHomes ?? HomeRules(overrides: config.sceneHome)
         }
 
         /// What the user is owed as soon as the app is up: a refusal, or the Scenes that lost windows.
