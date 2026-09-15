@@ -1,23 +1,30 @@
 # HORO-1107 — Semantic Home and mounting, interactive verification
 
-Captures from an interactive pass over the built debug app on a real Mac. HORO-1106 built the surfaces
-that *describe* windows in Slots; this ticket is the first one in which there are windows to describe,
-so these captures are the first evidence that the Phase 1 distinction — a window's Home is one fact and
-its place in a Scene is another — is visible rather than merely designed.
+An interactive pass over the built debug app on a real Mac, recorded in text. HORO-1106 built the surfaces
+that *describe* windows in Slots; this ticket is the first one in which there are windows to describe, so
+this is the first evidence that the Phase 1 distinction — a window's Home is one fact and its place in a
+Scene is another — is visible rather than merely designed.
 
-Every image is a single-window capture of SceneMux's *own* window — `screencapture -o -l <windowID>` —
-of the switcher panel, the close confirmation and the lifecycle HUD. No full-screen capture was taken.
-No other application's window, content or **title** appears in any of them: SceneMux's window rows name
-the application, never the document. See
+The record is **text only, by policy**: visual media captured on this workstation does not leave it, so
+nothing in this directory is an image and none was committed or attached anywhere. The pass itself was
+still interactive and the surfaces were still read on screen; what is written below is the state each one
+showed, transcribed. See
 [`../../../development/ui-verification.md`](../../../development/ui-verification.md).
 
-| Capture | What it proves |
+| Surface, and the state it was in | What it proves |
 | --- | --- |
-| [`01-switcher-mounted.png`](01-switcher-mounted.png) | One window borrowed into the editor Slot of `Debug PROD-123`, shown as `Development · mounted` — the Home the rules gave the application and the fact that it is in a Scene, side by side and separate (invariant I1) |
-| [`02-switcher-three-slots.png`](02-switcher-three-slots.png) | Three semantic Slots populated at once, two different Homes (`Development`, `Observability`), and the editor Slot composed as a `split ⬍` with two windows in it |
-| [`03-switcher-tabs-and-owned.png`](03-switcher-tabs-and-owned.png) | The same Scene with the editor Slot cycled to `tabs`, and the difference between the two ownerships on screen: the borrowed rows say `mounted`, the scene-owned row in the preview Slot says only `Development` |
-| [`04-close-confirmation.png`](04-close-confirmation.png) | The close confirmation with real windows in it: *3 borrowed windows go back to their Home* and *1 scene window stays where it is*. Nothing has been closed at this point, and nothing ever is (invariant I6) |
-| [`05-hud-window-went-home.png`](05-hud-window-went-home.png) | The HUD after a close, naming the Home a window went back to rather than a workspace number |
+| The switcher with `Debug PROD-123` expanded, one window borrowed into the editor Slot: the window row showed the application's name, its Home as the rules gave it, and the mounted marker | A window's Home and its place in a Scene are shown as two separate facts, and mounting did not change the first (invariant I1) |
+| The same Scene with three Slots occupied, holding windows of two different Homes, the editor Slot's composition read back as a split | Several semantic Slots populated at once, and composition reported by the engine rather than asserted by the Scene |
+| The same Scene after the editor Slot was cycled to tabs, with a scene-owned window in a further Slot | Composition belongs to the Slot, and the two ownerships are distinguishable on the row: the borrowed rows carry the mounted marker, the scene-owned row does not |
+| The close confirmation, listing three borrowed windows to go back to their Home and one scene window to stay where it is, with nothing done until it was confirmed | The plan is stated for real windows before anything moves, and closing a window is not among the outcomes it offers (invariant I6) |
+| The HUD after confirming, naming the Home the borrowed windows went back to and stating that the Scene's own window was left in place | The lifecycle reports a Home rather than a workspace number, and says the non-event out loud |
+
+The exact wording of every string above is pinned by unit tests rather than by this record —
+`SceneShellMessageTest`, `SceneShellWindowRowTest`, `SceneShellSlotRowTest` and `SceneShellCloseSummaryTest`
+assert the sentences, and the pass confirmed the surfaces show them for real windows.
+
+No window title, document name or window content appeared on any surface read during the pass: SceneMux's
+rows name the application only (invariant I11).
 
 ## What was exercised, and what it showed
 
