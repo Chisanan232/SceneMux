@@ -59,4 +59,24 @@ final class SceneWorldAttachmentTest: XCTestCase {
             XCTAssertEqual(error as? SceneCore.SceneLifecycleError, .sceneIsClosing(closing.id))
         }
     }
+
+    func testDetachingForgetsTheWindowAndAskingTwiceIsHarmless() throws {
+        // Idempotent because the paths that reach it include a window that has already gone and an unmount
+        // the user clicked twice. Neither is a reason to fail — the state they asked for is the state there is.
+        let slot = SceneCoreFixtures.slot(role: .communication)
+        let window = try SceneCoreFixtures.windowRef(SceneCoreFixtures.App.slack)
+        let scene = try SceneCoreFixtures.scene(slots: [slot])
+            .attaching(SceneCoreFixtures.attachment(
+                windowRef: window,
+                slotId: slot.id,
+                ownership: .borrowed,
+            ))
+        let world = try SceneCore.SceneWorld(scenes: [scene])
+
+        let once = try world.detaching(window, from: scene.id)
+        let twice = try once.detaching(window, from: scene.id)
+
+        XCTAssertEqual(once.scene(scene.id)?.attachments, [])
+        XCTAssertEqual(twice, once)
+    }
 }
