@@ -28,7 +28,9 @@ extension SceneCore {
         ///
         /// Resolved from `HomeRules` on every rebuild rather than read back from the attachment. Those are the
         /// same answer until the user re-homes an application while a Scene is borrowing it, and at that moment
-        /// the row has to say where the window is going to go, not where it was going to go yesterday.
+        /// the row has to say what the window is for *now* — the rules the user just edited are the ones they
+        /// expect to see. Where the window goes back to is a different question, and `reversibility` answers
+        /// it: a restore replays a recorded surface, which no re-home moves.
         let home: SemanticHome
         /// The Home recorded when the window was attached.
         ///
