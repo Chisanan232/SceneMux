@@ -70,4 +70,25 @@ final class SceneShellMessageTest: XCTestCase {
             "Music is shared — left untouched",
         )
     }
+
+    /// Closing the golden journey, with both chat windows going home: the restore is reported first and names
+    /// them, and the four windows the Scene left alone are counted in a line of their own.
+    func testClosingTheGoldenJourneySaysWhatWentHomeAndWhatWasLeftAlone() throws {
+        let plan = SceneCore.SceneTeardownPlan(try SceneCoreFixtures.debugScene())
+        let outcomes = Dictionary(
+            uniqueKeysWithValues: plan.pending.map { ($0.windowRef, SceneCore.SceneTeardownOutcome.restored) },
+        )
+
+        let messages = SceneCore.SceneShellMessage.onClose(
+            plan,
+            outcomes: outcomes,
+            homes: .shippedOnly,
+            naming: { [App.line: "LINE", App.slack: "Slack"][$0] },
+        )
+
+        XCTAssertEqual(messages.map(\.text), [
+            "2 windows went back to Communication — LINE, Slack",
+            "4 windows left in place",
+        ])
+    }
 }
