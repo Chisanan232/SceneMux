@@ -92,6 +92,10 @@ extension SceneCore {
             injectedHomes ?? HomeRules(overrides: config.sceneHome)
         }
 
+        /// The Home rules, for a surface that wants to *show* them. Read-only for the same reason `homes` is:
+        /// there is one writer of Home policy and it is the person's config file.
+        var homeRules: HomeRules { homes }
+
         /// What the user is owed as soon as the app is up: a refusal, or the Scenes that lost windows.
         ///
         /// Read once by whatever shows the HUD, at startup, rather than posted from `init` — a message posted
