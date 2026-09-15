@@ -34,12 +34,6 @@ public struct MountCmdArgs: CmdArgs {
     /// `.sharedPersistent` is deliberately unreachable from the command line: it is what unreadable state
     /// degrades to, not something to ask for.
     public var own: Bool = false
-
-    public init(rawArgs: [String], slotNumber: Int, own: Bool = false) {
-        self.commonState = .init(rawArgs.slice)
-        self.slotNumber = slotNumber
-        self.own = own
-    }
 }
 
 func parseMountCmdArgs(_ args: StrArrSlice) -> ParsedCmd<MountCmdArgs> {
