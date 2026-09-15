@@ -15,6 +15,7 @@ public enum CmdKind: String, CaseIterable, Equatable, Sendable {
     case focusBackAndForth = "focus-back-and-forth"
     case focusMonitor = "focus-monitor"
     case fullscreen
+    case home
     case joinWith = "join-with"
     case layout
     case listApps = "list-apps"
@@ -26,6 +27,7 @@ public enum CmdKind: String, CaseIterable, Equatable, Sendable {
     case macosNativeFullscreen = "macos-native-fullscreen"
     case macosNativeMinimize = "macos-native-minimize"
     case mode
+    case mount
     case move = "move"
     case moveMouse = "move-mouse"
     case moveNodeToMonitor = "move-node-to-monitor"
@@ -45,6 +47,7 @@ public enum CmdKind: String, CaseIterable, Equatable, Sendable {
     case summonWorkspace = "summon-workspace"
     case swap
     case triggerBinding = "trigger-binding"
+    case unmount
     case volume
     case workspace
     case workspaceBackAndForth = "workspace-back-and-forth"
@@ -82,6 +85,8 @@ func initSubcommands() -> [String: any SubCommandParserProtocol] {
                 result[kind.rawValue] = SubCommandParser(parseFocusMonitorCmdArgs)
             case .fullscreen:
                 result[kind.rawValue] = SubCommandParser(parseFullscreenCmdArgs)
+            case .home:
+                result[kind.rawValue] = SubCommandParser(parseHomeCmdArgs)
             case .joinWith:
                 result[kind.rawValue] = SubCommandParser(JoinWithCmdArgs.init)
             case .layout:
@@ -104,6 +109,8 @@ func initSubcommands() -> [String: any SubCommandParserProtocol] {
                 result[kind.rawValue] = SubCommandParser(MacosNativeMinimizeCmdArgs.init)
             case .mode:
                 result[kind.rawValue] = SubCommandParser(ModeCmdArgs.init)
+            case .mount:
+                result[kind.rawValue] = SubCommandParser(parseMountCmdArgs)
             case .move:
                 result[kind.rawValue] = SubCommandParser(parseMoveCmdArgs)
                 // deprecated
@@ -146,6 +153,8 @@ func initSubcommands() -> [String: any SubCommandParserProtocol] {
                 result[kind.rawValue] = SubCommandParser(parseSwapCmdArgs)
             case .triggerBinding:
                 result[kind.rawValue] = SubCommandParser(parseTriggerBindingCmdArgs)
+            case .unmount:
+                result[kind.rawValue] = SubCommandParser(UnmountCmdArgs.init)
             case .volume:
                 result[kind.rawValue] = SubCommandParser(VolumeCmdArgs.init)
             case .workspace:

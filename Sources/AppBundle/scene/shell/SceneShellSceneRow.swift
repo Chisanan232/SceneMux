@@ -112,7 +112,7 @@ extension SceneCore {
             }
         }
 
-        init(scene: Scene, index: Int, naming: ApplicationNaming) {
+        init(scene: Scene, index: Int, homes: HomeRules, naming: ApplicationNaming) {
             id = scene.id
             self.index = index
             title = scene.title
@@ -126,6 +126,7 @@ extension SceneCore {
                         slot: slot,
                         index: offset + 1,
                         attachments: scene.attachments(in: slot.id),
+                        homes: homes,
                         naming: naming,
                     )
                 }

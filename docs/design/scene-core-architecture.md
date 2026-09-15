@@ -183,6 +183,28 @@ a Scene ending months after it started still restores a window somewhere real. I
 too — the companion spec shows the Home *category* on a row, never the workspace number, because the
 category is the part that is stable and meaningful.
 
+#### What HORO-1107 implements of the three tiers, and what it does not
+
+Only the middle tier ships in v0.1.0, and the deviation is recorded here rather than left for the next
+person to infer from the code:
+
+| Tier | In v0.1.0 | Why |
+| --- | --- | --- |
+| A workspace designated for that Home | **Deferred — HORO-1221** | There is no way for a user to designate one yet. A `[scene-home]` key naming a workspace per Home is a config change, a settings surface and a migration, and none of it is needed for a window to come back correctly |
+| The workspace the window was last in outside any Scene | **Ships.** Recorded as `Attachment.originSurface` at the moment of mounting, and it is the only thing `SceneRestorer` aims at | It is the one answer that is a *fact* rather than a policy: the window was observably there. Invariant I8 is satisfied by replaying an observation, not by resolving a rule |
+| A workspace created for that Home | **Declined** | Creating a workspace is a visible change to somebody's desktop, made at the moment a task ends, to hold a window they did not ask to move there. A window whose recorded surface is gone is left where it is and the person is told — `leftInPlace(reason:)` — which is recoverable in a way an invented workspace is not |
+
+So the shipped resolution is narrower than the three tiers above, and deliberately more conservative: a
+restore either replays where the window came from or does nothing at all. An attachment with no recorded
+surface — written by an earlier build, or by a build that could not see the window's workspace — is
+therefore left in place rather than guessed at, which is `SceneRestorer`'s second refusal.
+
+A surface is *all* a restore replays, which is narrower than it sounds: a window that was floating before
+it was borrowed comes back to the right workspace **tiled**, because the recorded fact is a workspace and
+not an arrangement. HORO-1222 carries that, and until it is closed the `v0.1.0` evidence bar's "returned to
+their owner's arrangement" is an overstatement of what happens — see
+[`evidence/horo-1107/README.md`](evidence/horo-1107/README.md).
+
 ## Slot
 
 A **Slot** is a named role inside a Scene — *the place where the editor goes*, not *the rectangle at
@@ -304,9 +326,18 @@ the user did. See [Ownership](#ownership).
 
 `homeAtAttachTime` exists for a specific failure mode: the user re-homes an application (say, moves
 Slack from `communication` to `development`) *while* a Scene that borrowed it is still open. What should
-ending the Scene do? Answer: restore to the Home the window has **now**, and use `homeAtAttachTime` only
-to explain to the user what changed — the UX spec shows this as a one-line note on the restore feedback,
-never as a silent divergence. The recorded value is evidence, not a destination.
+ending the Scene do? Answer: **nothing differently.** A restore replays `originSurface`, the surface the
+window was actually on when it was borrowed, so the destination is the one thing a re-home cannot change
+— and `homeAtAttachTime` is how the surfaces name that destination, both in the row's reversibility line
+and in the HUD line after a close. The recorded value is evidence, not a destination; the surface is the
+destination.
+
+What must never happen is the silent version: a row saying `Development` and a window coming back to the
+place its Communication windows live, with nothing anywhere connecting the two. So the row says both — it
+names the new Home *and* that the window still goes back where it came from — and the close message names
+the Home the destination stood for. When [HORO-1221](https://lightning-dust-mite.atlassian.net/browse/HORO-1221)
+gives a Home a designated surface of its own, "restore to the Home it has now" becomes expressible for
+the first time, and that is the ticket that decides whether it should be.
 
 ### The invariants
 
@@ -765,13 +796,20 @@ Projection is one-directional: **Scene state → engine tree.** Entering a Scene
 asks the adapter to place each attachment's window; the adapter uses the inherited verbs (`join-with`,
 `layout tab-group`, tree binding) and the engine computes every rectangle.
 
-`SceneEnginePort` is three methods, and the order they run in is the whole protocol:
+Projection is three of the port's methods, and the order they run in is the whole of it:
 
 | Step | Method | What it is for |
 | --- | --- | --- |
 | 1 | `prepareSubstrate(_:)` | Make the Scene's workspace usable, or refuse. A refusal ends the projection before a single window has moved — better a Scene that did not open than a Scene half-scattered across the wrong workspace |
 | 2 | `place(_:on:)`, once per occupied Slot, in Slot order | Build one Slot: resolve its windows, build a container if the composition needs one, bind. Call order *is* Slot order — the port has no position argument, because a Slot's place among its siblings is where it was built, and a second way of saying it could only ever disagree with the first |
 | 3 | `settle(_:)` | Run the engine's own normalization and read the resulting composition of each Slot back |
+
+The rest of the port answers what a single operation needs to know, and each entry was added by the ticket
+that had a caller for it: `currentSubstrate()` says whether there is anywhere to draw at all, `focusedWindow()` says which
+window the person means, `surface(of:)` says where it is right now — recorded as `Attachment.originSurface`
+at the one moment it is knowable — and `move(_:to:)` is the whole of "put this window there", used both to
+mount one and to send it back. None of them names a container, a frame or a monitor, for the reason the
+seam exists.
 
 Two things follow from step 1 being separate. An empty Slot is never offered to the engine at all — there
 is nothing to build — but it is still in the report, so the UX can draw it (I13). And a Slot whose windows

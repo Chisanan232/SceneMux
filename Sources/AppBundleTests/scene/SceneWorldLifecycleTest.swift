@@ -124,6 +124,11 @@ final class SceneWorldLifecycleTest: XCTestCase {
             [try SceneCoreFixtures.windowRef(App.line), try SceneCoreFixtures.windowRef(App.slack)],
         )
         XCTAssertEqual(closed.plan.pending.map(\.recordedHome), [.communication, .communication])
+        // And each one knows the place that Home stood for, or the restore would have nowhere to aim.
+        XCTAssertEqual(
+            closed.plan.pending.map(\.homeSurface),
+            [SceneCoreFixtures.communicationSurface, SceneCoreFixtures.communicationSurface],
+        )
         XCTAssertEqual(
             closed.plan.cleanupCandidates.map(\.windowRef),
             [

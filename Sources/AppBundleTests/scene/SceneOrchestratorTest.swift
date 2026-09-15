@@ -301,4 +301,53 @@ final class SceneOrchestratorTest: XCTestCase {
         XCTAssertEqual(orchestrator.quarantined.map(\.sceneTitle), ["Debug PROD-123"])
         XCTAssertEqual(orchestrator.quarantined.map(\.windowRef), [windowRef])
     }
+
+    func testAMountedWindowSurvivesARelaunchWithItsTermsIntact() throws {
+        // The whole point of recording an attachment rather than remembering it: the promise to send a borrowed
+        // chat window home has to outlive the process that made it.
+        let store = store(in: try temporaryDirectory())
+        let orchestrator = SceneCore.SceneOrchestrator(store: store)
+        let scene = try orchestrator.createScene(title: "Debug PROD-123")
+        let slot = try orchestrator.addSlot(role: .communication, to: scene.id)
+        let windowRef = try SceneCoreFixtures.windowRef(App.line)
+
+        let attachment = try orchestrator.attach(
+            windowRef,
+            to: slot.id,
+            of: scene.id,
+            ownership: .borrowed,
+            home: .communication,
+            originSurface: SceneCoreFixtures.communicationSurface,
+        )
+
+        XCTAssertTrue(attachment.isMount)
+        let relaunched = SceneCore.SceneOrchestrator(store: store)
+        let holder = try XCTUnwrap(relaunched.world.holder(of: windowRef))
+        XCTAssertEqual(holder.scene.id, scene.id)
+        XCTAssertEqual(holder.attachment, attachment)
+    }
+
+    func testAFailedSaveLeavesTheWindowInNoSceneAtAll() throws {
+        // A full disk during a mount. The attachment is what permits SceneMux to move the window later, so one
+        // that exists only in memory is the dangerous case: the window would be in a Scene this run believes in
+        // and the next run has never heard of, with nothing recording where it came from.
+        let directory = try temporaryDirectory()
+        let store = store(in: directory)
+        let orchestrator = SceneCore.SceneOrchestrator(store: store)
+        let scene = try orchestrator.createScene(title: "Debug PROD-123")
+        let slot = try orchestrator.addSlot(role: .communication, to: scene.id)
+        let windowRef = try SceneCoreFixtures.windowRef(App.line)
+        try makeUnwritable(directory)
+
+        XCTAssertThrowsError(try orchestrator.attach(
+            windowRef,
+            to: slot.id,
+            of: scene.id,
+            ownership: .borrowed,
+            home: .communication,
+            originSurface: SceneCoreFixtures.communicationSurface,
+        ))
+
+        XCTAssertNil(orchestrator.world.holder(of: windowRef))
+    }
 }

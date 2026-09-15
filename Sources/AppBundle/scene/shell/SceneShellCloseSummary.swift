@@ -63,9 +63,11 @@ extension SceneCore {
             groups.contains { $0.ownership == .borrowed && !$0.windows.isEmpty }
         }
 
-        init(scene: Scene, naming: ApplicationNaming) {
+        init(scene: Scene, homes: HomeRules, naming: ApplicationNaming) {
             sceneTitle = scene.title
-            let rows = scene.attachments.map { SceneShellWindowRow(attachment: $0, naming: naming) }
+            let rows = scene.attachments.map {
+                SceneShellWindowRow(attachment: $0, homes: homes, naming: naming)
+            }
             groups = [Ownership.borrowed, .sceneOwned, .sharedPersistent].compactMap { ownership in
                 let held = scene.attachments.filter { $0.ownership == ownership }.map(\.windowRef)
                 let windows = rows.filter { held.contains($0.windowRef) }

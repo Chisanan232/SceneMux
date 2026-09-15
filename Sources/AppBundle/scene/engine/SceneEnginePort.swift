@@ -3,10 +3,10 @@ import Foundation
 extension SceneCore {
     /// The whole of what Scene Core asks of a window engine.
     ///
-    /// Three questions, all of them in Scene vocabulary: *is there something to draw on*, *build this Slot
-    /// here*, and *what did that actually become*. There is deliberately no way to ask for a container, an
-    /// orientation, a frame or a monitor, because the moment the domain can ask for those it starts
-    /// depending on how one particular engine spells them, and the seam stops being a seam.
+    /// Every question is in Scene vocabulary: *is there something to draw on*, *which window does the user
+    /// mean*, *build this Slot here*, and *what did that actually become*. There is deliberately no way to
+    /// ask for a container, an orientation, a frame or a monitor, because the moment the domain can ask for
+    /// those it starts depending on how one particular engine spells them, and the seam stops being a seam.
     ///
     /// Only `WinMuxSceneEngineAdapter` implements this against the inherited tree. That file is the single
     /// place allowed to know both languages — see `docs/design/scene-core-architecture.md`. Tests implement
@@ -28,6 +28,28 @@ extension SceneCore {
         ///   entering a Scene is refused rather than aimed at a guess.
         func currentSubstrate() -> SubstrateBinding?
 
+        /// The window the user is looking at, as a reference a Scene can keep.
+        ///
+        /// What "mount this window" means: the person asking has one window in mind, and it is the one they
+        /// just clicked or typed into. Asked of the engine because the engine is what knows, and returned as a
+        /// `WindowRef` because that is the only window identity anything above the seam is allowed to hold —
+        /// no window object escapes into Scene state, where it would go stale the moment the app quit.
+        ///
+        /// - Returns: the focused window, or nothing when the focus is an empty workspace or a window this
+        ///   build cannot describe. Nothing means the request is refused rather than applied to a guess.
+        func focusedWindow() -> WindowRef?
+
+        /// The surface a window is on right now.
+        ///
+        /// Asked once, at the moment a window is attached, and recorded — this is what becomes
+        /// `Attachment.originSurface`, and it is the only chance to learn it. Afterwards the window is in the
+        /// Scene's substrate and the same question answers "in the Scene", which is why teardown reads the
+        /// record rather than asking again.
+        ///
+        /// - Returns: where the window is, or nothing when the engine cannot see the window or cannot say
+        ///   where it is. Nothing is recorded honestly as "nowhere to go back to" rather than filled in.
+        func surface(of windowRef: WindowRef) -> SubstrateBinding?
+
         /// Make sure the Scene has somewhere to be drawn, and start a fresh projection.
         ///
         /// Called exactly once per projection, before any placement, so an implementation may also use it to
@@ -45,6 +67,18 @@ extension SceneCore {
         /// children, so an implementation that appends in call order produces the order the Scene asked for.
         /// Empty Slots are never placed, which is exactly why they cannot leave a gap in the tiling.
         func place(_ group: SceneLayoutGroup, on binding: SubstrateBinding) -> SceneSlotPlacement
+
+        /// Put one window onto one surface, and say what happened.
+        ///
+        /// The whole of "send it home", and the whole of "bring it here": both are this call with a different
+        /// destination. Exactly one window is affected — whatever else is on either surface is not reordered,
+        /// not resized and not moved out — and the window is not focused, raised or activated by moving it,
+        /// because a restore that stole focus would drag the user away from what they are doing.
+        ///
+        /// An implementation may not improvise. If the surface is not there, the answer is
+        /// `SceneWindowMove.surfaceIsGone` and the window stays where it is; creating a workspace to satisfy
+        /// the request would move somebody's window somewhere they have never been.
+        func move(_ windowRef: WindowRef, to binding: SubstrateBinding) -> SceneWindowMove
 
         /// Let the engine finish — normalize, lay out — and report what each Slot's composition became.
         ///

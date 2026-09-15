@@ -19,6 +19,7 @@ final class SceneShellWindowRowTest: XCTestCase {
                 ownership: .borrowed,
                 homeAtAttachTime: .communication,
             ),
+            homes: .shippedOnly,
             naming: naming,
         )
 
@@ -41,6 +42,7 @@ final class SceneShellWindowRowTest: XCTestCase {
                 ownership: .sceneOwned,
                 homeAtAttachTime: .development,
             ),
+            homes: .shippedOnly,
             naming: naming,
         )
 
@@ -59,9 +61,72 @@ final class SceneShellWindowRowTest: XCTestCase {
                 windowRef: try SceneCoreFixtures.windowRef(App.grafana),
                 slotId: .generate(),
             ),
+            homes: .shippedOnly,
             naming: naming,
         )
 
         XCTAssertEqual(row.applicationName, App.grafana)
+    }
+
+    /// The row shows the Home the window has *now*. The recorded one is kept only to explain the difference,
+    /// which is exactly what the architecture says `homeAtAttachTime` is for: evidence, not a destination.
+    func testARowFollowsTheUsersCurrentHomeRulesAndNotTheRecordedOne() throws {
+        let row = SceneCore.SceneShellWindowRow(
+            attachment: SceneCoreFixtures.attachment(
+                windowRef: try SceneCoreFixtures.windowRef(App.slack),
+                slotId: .generate(),
+                ownership: .borrowed,
+                homeAtAttachTime: .communication,
+            ),
+            homes: SceneCore.HomeRules(overrides: [App.slack: .development]),
+            naming: naming,
+        )
+
+        XCTAssertEqual(row.home, .development)
+        XCTAssertEqual(row.recordedHome, .communication)
+        XCTAssertEqual(row.trailing, "Development · mounted")
+        XCTAssertTrue(row.homeChangedWhileBorrowed)
+    }
+
+    /// And says so where the user is looking, without promising the window will follow the new Home: a restore
+    /// replays the surface it was borrowed from, so the destination is the one thing the re-home did not change.
+    func testTheReversibilityLineNamesTheHomeChangeAndBothHomes() throws {
+        let row = SceneCore.SceneShellWindowRow(
+            attachment: SceneCoreFixtures.attachment(
+                windowRef: try SceneCoreFixtures.windowRef(App.slack),
+                slotId: .generate(),
+                ownership: .borrowed,
+                homeAtAttachTime: .communication,
+            ),
+            homes: SceneCore.HomeRules(overrides: [App.slack: .development]),
+            naming: naming,
+        )
+
+        XCTAssertEqual(
+            row.reversibility,
+            "Borrowed into this Scene. Its Home changed to Development while it was borrowed; "
+                + "it still goes back where it came from, in Communication.",
+        )
+    }
+
+    /// The same row, with nothing re-homed, must not acquire the note. A "Home changed" line on every borrowed
+    /// window would make the one that matters unreadable.
+    func testAnUnchangedHomeSaysNothingAboutHavingChanged() throws {
+        let row = SceneCore.SceneShellWindowRow(
+            attachment: SceneCoreFixtures.attachment(
+                windowRef: try SceneCoreFixtures.windowRef(App.slack),
+                slotId: .generate(),
+                ownership: .borrowed,
+                homeAtAttachTime: .communication,
+            ),
+            homes: .shippedOnly,
+            naming: naming,
+        )
+
+        XCTAssertFalse(row.homeChangedWhileBorrowed)
+        XCTAssertEqual(
+            row.reversibility,
+            "Borrowed into this Scene. Goes back to Communication when the Scene closes.",
+        )
     }
 }

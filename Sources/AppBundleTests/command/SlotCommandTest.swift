@@ -21,8 +21,8 @@ final class SlotCommandTest: XCTestCase {
         )
     }
 
-    /// The grammar, and what it refuses. Sending a window to a Slot is deliberately not part of it yet, so
-    /// `slot 2` is not a command rather than a command that quietly does nothing.
+    /// The grammar, and what it refuses. Sending a window to a Slot is deliberately not part of it — that is
+    /// `mount --slot <n>`, whose subject is the window — so `slot 2` is not a command at all.
     func testParseCommand() {
         XCTAssertTrue(parseCommand("slot list --json").cmdOrNil is SlotCommand)
         XCTAssertTrue(parseCommand("slot new --role editor --label Review").cmdOrNil is SlotCommand)

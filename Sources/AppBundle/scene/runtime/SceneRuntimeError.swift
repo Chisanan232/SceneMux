@@ -19,6 +19,14 @@ extension SceneCore {
         case noSceneNumbered(Int)
         /// A Slot number that does not name a Slot of the active Scene.
         case noSlotNumbered(Int)
+        /// The action is about "the window I am looking at", and the engine says there is not one.
+        ///
+        /// An empty workspace, or a window this build cannot describe well enough to record. Refused rather
+        /// than applied to whichever window happens to be nearby: mounting the wrong window would move
+        /// somebody's window into a task it has nothing to do with.
+        case noFocusedWindow
+        /// The action is about taking a window out of a Scene, and no Scene has it.
+        case windowNotInAScene
 
         var description: String {
             switch self {
@@ -27,6 +35,8 @@ extension SceneCore {
                 case .noActiveScene: "No Scene is on screen, so there was nothing to do."
                 case .noSceneNumbered(let index): "There is no Scene \(index)."
                 case .noSlotNumbered(let index): "The Scene on screen has no Slot \(index)."
+                case .noFocusedWindow: "SceneMux can’t tell which window you mean, so nothing was changed."
+                case .windowNotInAScene: "That window isn’t in a Scene, so there was nothing to give back."
             }
         }
     }

@@ -42,6 +42,26 @@ extension SceneCore {
             return SubstrateBinding(workspaceName: name)
         }
 
+        /// The focused window, described the way Scene state describes windows.
+        ///
+        /// Nothing is focused, raised or activated to answer this — it reads the focus the engine already has,
+        /// which is why "mount the window I am looking at" does not disturb the window it is about.
+        func focusedWindow() -> WindowRef? {
+            focus.windowOrNil.flatMap(reference)
+        }
+
+        /// The workspace a window sits on, named the way a Scene can record it.
+        ///
+        /// A window with no workspace at all — floating, or in a tree the engine has not settled yet — has no
+        /// surface to report, and a blank workspace name is refused exactly as `prepareSubstrate` refuses one:
+        /// a recorded destination nobody can name is worse than none, because a restore would aim at it.
+        func surface(of windowRef: WindowRef) -> SubstrateBinding? {
+            guard let name = resolve(windowRef)?.nodeWorkspace?.name,
+                  !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            else { return nil }
+            return SubstrateBinding(workspaceName: name)
+        }
+
         /// Resolves the Scene's workspace, creating it if the user has not used it yet.
         ///
         /// A blank name is refused rather than normalized into something plausible: the engine would happily
@@ -55,6 +75,38 @@ extension SceneCore {
             }
             _ = Workspace.get(byName: binding.workspaceName).rootTilingContainer
             return true
+        }
+
+        /// Moves one window onto one workspace, the way the inherited engine moves one.
+        ///
+        /// Built out of `workspaceAppendBindingData` and `bind`, which is what `MoveNodeToWorkspaceCommand`
+        /// does — minus its focus handling. That omission is the point: a borrowed chat window going home at
+        /// the end of a task must not pull the user onto the workspace it went to, and neither must a window
+        /// arriving in a Slot pull them away from the one they are on.
+        ///
+        /// An unregistered workspace is `surfaceIsGone` rather than a workspace created on the spot. The
+        /// engine would happily register any name, and a restore aimed at a workspace conjured up to receive
+        /// it is the one thing invariant I8 is not allowed to do — the window would be "home" somewhere the
+        /// user has never seen.
+        ///
+        /// A window already on that workspace answers `moved`, because the caller asked for a state and the
+        /// state is true. Rebinding it anyway would reorder the windows already there for no reason.
+        func move(_ windowRef: WindowRef, to binding: SubstrateBinding) -> SceneWindowMove {
+            guard let window = resolve(windowRef) else { return .windowIsGone }
+            guard let workspace = Workspace.existing(byName: binding.workspaceName) else {
+                return .surfaceIsGone(reason: "workspace \"\(binding.workspaceName)\" does not exist any more")
+            }
+            guard window.nodeWorkspace != workspace else { return .moved }
+
+            if window.isFloating {
+                window.bind(to: workspace, adaptiveWeight: WEIGHT_AUTO, index: INDEX_BIND_LAST)
+            } else {
+                let target = workspaceAppendBindingData(targetWorkspace: workspace, index: INDEX_BIND_LAST)
+                window.bind(to: target.parent, adaptiveWeight: target.adaptiveWeight, index: target.index)
+            }
+            return window.nodeWorkspace == workspace
+                ? .moved
+                : .failed(reason: "the engine did not accept the window onto \"\(binding.workspaceName)\"")
         }
 
         /// Builds one Slot by binding its windows into the substrate, appending after whatever is already
@@ -147,6 +199,25 @@ extension SceneCore {
                 .filter { $0.app.rawAppBundleId == windowRef.bundleId }
                 .sorted { $0.windowId < $1.windowId }
             return candidates.getOrNil(atIndex: windowRef.ordinalWithinApp)
+        }
+
+        /// Describes an engine window as a `WindowRef`, the exact inverse of `resolve(_:)`.
+        ///
+        /// Both directions have to agree on one thing — the order an application's windows are in — or a ref
+        /// made here would resolve back to a different window. So the ordinal is computed from the same
+        /// window-id-ascending order, from the same inventory, in one place: this file.
+        ///
+        /// Nothing to describe it with means no ref. An application with no bundle id — a helper process, a
+        /// system panel — cannot be named in a way that survives a restart, and inventing a name for it is
+        /// how a Scene comes back pointing at whatever happens to be there next time.
+        private func reference(_ window: Window) -> WindowRef? {
+            guard let bundleId = window.app.rawAppBundleId else { return nil }
+            let ordinal = inventory
+                .filter { $0.app.rawAppBundleId == bundleId }
+                .sorted { $0.windowId < $1.windowId }
+                .firstIndex { $0.windowId == window.windowId }
+            guard let ordinal else { return nil }
+            return try? WindowRef(bundleId: bundleId, ordinalWithinApp: ordinal)
         }
 
         /// Every window the engine currently knows about.

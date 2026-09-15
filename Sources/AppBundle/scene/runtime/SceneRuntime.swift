@@ -35,6 +35,8 @@ extension SceneCore {
 
         private let engine: any SceneEnginePort
         private let projector: SceneProjector
+        /// Home rules a test handed over, in place of the user's config.
+        private let injectedHomes: HomeRules?
         private let naming: ApplicationNaming
         private let orchestrator: SceneOrchestrator?
         /// Why there are no Scenes at all, when the reason is that state could not even be reached.
@@ -52,6 +54,7 @@ extension SceneCore {
         init(
             store: SceneStateStore? = nil,
             engine: any SceneEnginePort = WinMuxSceneEngineAdapter(),
+            homes: HomeRules? = nil,
             naming: @escaping ApplicationNaming = SceneRuntime.desktopNaming,
         ) {
             var resolved = store
@@ -65,6 +68,7 @@ extension SceneCore {
                 }
             }
             self.engine = engine
+            injectedHomes = homes
             self.naming = naming
             self.unavailability = unavailability
             projector = SceneProjector(port: engine)
@@ -72,10 +76,31 @@ extension SceneCore {
             snapshot = SceneShellSnapshot(
                 world: .empty,
                 diagnostics: unavailability.map { [$0] } ?? [],
+                homes: homes ?? HomeRules(overrides: config.sceneHome),
                 naming: naming,
             )
             refresh()
         }
+
+        /// Which Home each application belongs to.
+        ///
+        /// Read from the config on every use rather than captured once, so that editing `[scene-home]` and
+        /// reloading takes effect on the next thing SceneMux says. Home policy lives in the user's own file and
+        /// SceneMux never writes it back — a Home the app could change behind the user's editor is a Home
+        /// neither of them owns.
+        private var homes: HomeRules {
+            injectedHomes ?? HomeRules(overrides: config.sceneHome)
+        }
+
+        /// The Home rules, for a surface that wants to *show* them. Read-only for the same reason `homes` is:
+        /// there is one writer of Home policy and it is the person's config file.
+        var homeRules: HomeRules { homes }
+
+        /// Which application the user is looking at, when the engine can say — a bundle id and nothing else.
+        ///
+        /// Deliberately not the window: a surface that only needs to answer "what is *this* app for?" should not
+        /// be handed a window reference it could then act on, and a bundle id is all a Home is resolved from.
+        var focusedApplication: String? { engine.focusedWindow()?.bundleId }
 
         /// What the user is owed as soon as the app is up: a refusal, or the Scenes that lost windows.
         ///
@@ -92,12 +117,38 @@ extension SceneCore {
 
         /// The teardowns a previous run did not finish.
         ///
-        /// Surfaced rather than executed. Carrying a restore out means moving another application's window,
-        /// which is the work of the ticket that implements mounting and teardown execution; until then a Scene
-        /// that was closing stays `restoring…` and says so, which is true, instead of being quietly marked
-        /// finished on a promise nobody kept.
+        /// Read, not executed: a Scene that was closing when the app stopped is `restoring…` until somebody
+        /// carries the remaining steps out, and that is `resumeUnfinishedTeardowns()`.
         var unfinishedTeardowns: [SceneTeardownPlan] {
             orchestrator?.unfinishedTeardowns ?? []
+        }
+
+        /// Finish what a previous run left owed, and tell the user what happened to their windows.
+        ///
+        /// Called once, at startup, after the engine is up — a restore before the workspaces exist would aim a
+        /// window at a surface the runtime has not seen yet. Nothing is decided here: the steps were derived from
+        /// the attachments those Scenes still hold, so this only carries out promises that are already recorded
+        /// and were already the user's decision.
+        ///
+        /// Safe to call when there is nothing owed, which is the ordinary case: it moves nothing and says
+        /// nothing. A restore that fails again stays owed and will be attempted at the next launch, without
+        /// anything having counted the attempts.
+        ///
+        /// Whether the surfaces are rebuilt depends on whether there was a plan, not on whether there is
+        /// anything to say about it. A Scene whose last borrowed window turned out to be gone finishes in
+        /// silence — and still finishes, so the switcher must stop showing it as `restoring…`.
+        @discardableResult
+        func resumeUnfinishedTeardowns() -> [SceneShellMessage] {
+            guard let orchestrator else { return [] }
+            let plans = orchestrator.unfinishedTeardowns
+            guard !plans.isEmpty else { return [] }
+            var messages: [SceneShellMessage] = []
+            for plan in plans {
+                let outcomes = carryOut(plan, with: orchestrator)
+                messages += SceneShellMessage.onClose(plan, outcomes: outcomes, naming: naming)
+            }
+            refresh()
+            return messages
         }
 
         /// Define a Scene and hand back its row. Creating does not enter it.
@@ -150,20 +201,26 @@ extension SceneCore {
             guard let scene = orchestrator.world.scene(id) else {
                 throw SceneLifecycleError.unknownScene(id)
             }
-            return SceneShellCloseSummary(scene: scene, naming: naming)
+            return SceneShellCloseSummary(scene: scene, homes: homes, naming: naming)
         }
 
-        /// End a Scene, and hand back what its windows are owed.
+        /// End a Scene: send its borrowed windows home, leave everything else alone, and say what happened.
         ///
-        /// A Scene holding no windows is finished by this call. One holding borrowed windows keeps its
-        /// attachments and stays `restoring…` until something carries the plan out, which is the honest state
-        /// of affairs in this build rather than an oversight.
+        /// The intent is written before anything moves and each outcome is recorded as it happens, so a crash
+        /// half way through leaves a Scene that still owes exactly the restores it has not done. A window whose
+        /// restore failed keeps its attachment, which is why closing again — or simply launching again — is the
+        /// retry.
+        ///
+        /// Nothing is closed here, for any ownership, on any outcome (invariant I6). The windows the Scene owns
+        /// stay open and the user is told so, in the same breath as being told which windows went home.
         @discardableResult
         func close(_ id: SceneId) throws -> SceneTeardownPlan {
             let orchestrator = try requireOrchestrator()
             let plan = try orchestrator.close(id)
             layoutDiagnostics = []
+            let outcomes = carryOut(plan, with: orchestrator)
             refresh()
+            post(SceneShellMessage.onClose(plan, outcomes: outcomes, naming: naming))
             return plan
         }
 
@@ -175,6 +232,94 @@ extension SceneCore {
             reproject()
             refresh()
             return slot
+        }
+
+        /// Put the window the user is looking at into a Slot of the Scene on screen.
+        ///
+        /// Borrowed by default, because that is the reversible half of the bargain: the window goes back where
+        /// it came from when the task ends. `.sceneOwned` is the explicit other branch — `--own`, or `⌥` on the
+        /// drop — and it is a claim about the window, not a convenience, so it is never inferred from anything.
+        ///
+        /// Two facts are recorded now because now is the only time they are true: the Home the rules give the
+        /// application, and the surface the window is on. Once the window is in the Scene, asking where it lives
+        /// answers "in the Scene", and the way back would be gone.
+        ///
+        /// Nothing is focused or raised to do this. The window is already the one in front of the user; the
+        /// projection that follows puts it in its Slot, and the user stays where they are.
+        @discardableResult
+        func mount(into slotId: SlotId, ownership: Ownership = .borrowed) throws -> SceneShellWindowRow {
+            let orchestrator = try requireOrchestrator()
+            let active = try requireActive()
+            guard let windowRef = engine.focusedWindow() else { throw SceneRuntimeError.noFocusedWindow }
+            let attachment = try orchestrator.attach(
+                windowRef,
+                to: slotId,
+                of: active.id,
+                ownership: ownership,
+                home: homes.home(of: windowRef),
+                originSurface: engine.surface(of: windowRef),
+            )
+            reproject()
+            refresh()
+            return SceneShellWindowRow(attachment: attachment, homes: homes, naming: naming)
+        }
+
+        /// Give a window back and take it out of its Scene.
+        ///
+        /// The move happens first and the state changes after, which is the opposite order from closing a Scene
+        /// and deliberately so — see `SceneOrchestrator.detach`. A restore that is still owed leaves the
+        /// attachment exactly where it was, so asking again later is the retry and there is no counter to lose.
+        ///
+        /// A `.sharedPersistent` window is refused out loud instead of being moved. That ownership means the
+        /// user said this window is nobody's task, and invariant I7 makes it the one thing here that is not
+        /// SceneMux's to touch — so the answer is the HUD line saying so, and no window moves.
+        ///
+        /// A window the Scene *owns* leaves the Scene without going anywhere, and the reason says which of the
+        /// two it was. Nothing borrowed it, so there is no surface it is owed; the restorer's own words for a
+        /// step it may not act on are about a permission the teardown lacks, and reading them here would make
+        /// an answered request look like a refused one.
+        @discardableResult
+        func unmount(_ windowRef: WindowRef) throws -> SceneTeardownOutcome {
+            let orchestrator = try requireOrchestrator()
+            guard let holder = orchestrator.world.holder(of: windowRef) else {
+                throw SceneRuntimeError.windowNotInAScene
+            }
+            guard holder.attachment.ownership != .sharedPersistent else {
+                post(.sharedWindowSkipped(applicationName: naming(windowRef.bundleId) ?? windowRef.bundleId))
+                return .leftInPlace(reason: "it is shared")
+            }
+            let step = SceneTeardownStep(holder.attachment)
+            guard step.needsWork else {
+                try orchestrator.detach(windowRef, from: holder.scene.id)
+                reproject()
+                refresh()
+                return .leftInPlace(reason: "the Scene owned it, so there is nowhere to send it back to")
+            }
+            let outcome = SceneRestorer(port: engine).restore(step)
+            guard outcome.isFinal else { return outcome }
+            try orchestrator.detach(windowRef, from: holder.scene.id)
+            reproject()
+            refresh()
+            return outcome
+        }
+
+        /// Give back the window the user is looking at.
+        ///
+        /// The counterpart of `mount`, and the same reason for existing: a surface that acts on "the focused
+        /// window" must not have to construct a `WindowRef` of its own, because a `WindowRef` assembled by a
+        /// caller is a caller that can name a window the engine never saw.
+        ///
+        /// The row is built *before* the window is given back, so the reply can name the application and the
+        /// Home of an attachment that no longer exists a line later.
+        @discardableResult
+        func unmountFocusedWindow() throws -> (window: SceneShellWindowRow, outcome: SceneTeardownOutcome) {
+            let orchestrator = try requireOrchestrator()
+            guard let windowRef = engine.focusedWindow() else { throw SceneRuntimeError.noFocusedWindow }
+            guard let holder = orchestrator.world.holder(of: windowRef) else {
+                throw SceneRuntimeError.windowNotInAScene
+            }
+            let window = SceneShellWindowRow(attachment: holder.attachment, homes: homes, naming: naming)
+            return (window, try unmount(windowRef))
         }
 
         /// Take an empty Slot out of the Scene on screen.
@@ -217,6 +362,15 @@ extension SceneCore {
             self.message = message
         }
 
+        /// Show several things, in the order they matter.
+        ///
+        /// The HUD is what queues them — it shows one at a time and waits for each to go — so this publishes
+        /// them one after another rather than deciding which of them the user gets to see. Nothing is merged:
+        /// "your chat windows went home" and "your editor is still open" are two different reassurances.
+        func post(_ messages: [SceneShellMessage]) {
+            for message in messages { post(message) }
+        }
+
         /// Esc, or the HUD's own dwell running out.
         func dismissMessage() {
             message = nil
@@ -238,6 +392,30 @@ extension SceneCore {
             return active
         }
 
+        /// Carry out every restore a plan still owes, recording each outcome before attempting the next.
+        ///
+        /// Recorded one at a time on purpose: the state on disk is the only thing that survives a crash, and a
+        /// batch written at the end would leave a window already home and still recorded as owed — which the
+        /// next run would "restore" a second time, moving a window the user had since put somewhere else.
+        ///
+        /// A failed record is not a failed restore. The window is where it should be either way, so the loop
+        /// carries on to the other windows and the attachment simply stays, which means the same restore is
+        /// attempted again later. Giving up on the rest of somebody's chat windows because one write failed
+        /// would be the worse of the two outcomes.
+        private func carryOut(
+            _ plan: SceneTeardownPlan,
+            with orchestrator: SceneOrchestrator,
+        ) -> [WindowRef: SceneTeardownOutcome] {
+            let restorer = SceneRestorer(port: engine)
+            var outcomes: [WindowRef: SceneTeardownOutcome] = [:]
+            for step in plan.pending {
+                let outcome = restorer.restore(step)
+                outcomes[step.windowRef] = outcome
+                try? orchestrator.resolve(outcome, for: step.windowRef, in: plan.sceneId)
+            }
+            return outcomes
+        }
+
         /// Draw the Scene on screen again, if there is one.
         ///
         /// Called after anything that changes what the active Scene's layout should be, and never after a
@@ -256,6 +434,7 @@ extension SceneCore {
             snapshot = SceneShellSnapshot(
                 world: orchestrator?.world ?? .empty,
                 diagnostics: diagnostics,
+                homes: homes,
                 naming: naming,
             )
         }

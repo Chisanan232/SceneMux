@@ -1,4 +1,5 @@
 @testable import AppBundle
+import Combine
 import Foundation
 import XCTest
 
@@ -6,15 +7,27 @@ import XCTest
 @MainActor
 final class SceneRuntimeTest: XCTestCase {
     private var port = RecordingSceneEnginePort()
+    /// The state file the most recent `runtime()` was built over — a relaunch's only inheritance.
+    private var stateFile: URL!
 
-    private func runtime() throws -> SceneCore.SceneRuntime {
-        let directory = FileManager.default.temporaryDirectory
-            .appending(path: "SceneMuxTests-\(UUID().uuidString)", directoryHint: .isDirectory)
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        addTeardownBlock { try? FileManager.default.removeItem(at: directory) }
+    /// A runtime over a state file of its own, with a fresh recording engine.
+    ///
+    /// `over:` builds a *second* runtime over an existing state file, which is how a relaunch is written: the
+    /// first runtime's file is all that survives it, and the new engine has no memory of what the old one was
+    /// asked. Anything the second runtime knows, it read back from disk.
+    private func runtime(over existingStateFile: URL? = nil) throws -> SceneCore.SceneRuntime {
+        if let existingStateFile {
+            stateFile = existingStateFile
+        } else {
+            let directory = FileManager.default.temporaryDirectory
+                .appending(path: "SceneMuxTests-\(UUID().uuidString)", directoryHint: .isDirectory)
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            addTeardownBlock { try? FileManager.default.removeItem(at: directory) }
+            stateFile = directory.appending(path: "scene-state.json")
+        }
         port = RecordingSceneEnginePort()
         return SceneCore.SceneRuntime(
-            store: SceneCore.SceneStateStore(url: directory.appending(path: "scene-state.json")),
+            store: SceneCore.SceneStateStore(url: stateFile),
             engine: port,
             naming: { _ in nil },
         )
@@ -130,5 +143,213 @@ final class SceneRuntimeTest: XCTestCase {
         XCTAssertEqual(try runtime.cycleComposition(of: slot.id).composition, .tabbed)
         XCTAssertEqual(try runtime.cycleComposition(of: slot.id).composition, .single)
         XCTAssertEqual(try runtime.slot(numbered: 1).trailing, "empty")
+    }
+
+    /// Mounting borrows the window the user is looking at, and records the two things that will be gone a moment
+    /// later: what the application is for, and which surface it was on. Without the second one there is no way
+    /// home.
+    func testMountingBorrowsTheFocusedWindowAndRecordsWhereItCameFrom() throws {
+        let runtime = try runtime()
+        let windowRef = try SceneCoreFixtures.windowRef(SceneCoreFixtures.App.line)
+        port.focused = windowRef
+        port.surfaces[windowRef] = SceneCoreFixtures.communicationSurface
+        let scene = try runtime.createScene(title: "Debug PROD-123")
+        try runtime.enter(scene.id)
+        let slot = try runtime.slot(numbered: 1)
+
+        let row = try runtime.mount(into: slot.id)
+
+        XCTAssertEqual(row.windowRef, windowRef)
+        XCTAssertEqual(row.home, .communication)
+        XCTAssertTrue(row.isMounted)
+        XCTAssertEqual(runtime.snapshot.activeScene?.windowCount, 1)
+        XCTAssertEqual(
+            runtime.snapshot.activeScene?.slots.first?.windows.map(\.windowRef),
+            [windowRef],
+        )
+    }
+
+    /// No focused window means no guess. The alternative — mounting whichever window the engine mentions first —
+    /// would put a stranger's window into somebody's task, and they would find out by closing the Scene.
+    func testMountingWithNothingFocusedIsRefusedAndTheSceneIsUnchanged() throws {
+        let runtime = try runtime()
+        let scene = try runtime.createScene(title: "Debug PROD-123")
+        try runtime.enter(scene.id)
+        let slot = try runtime.slot(numbered: 1)
+
+        XCTAssertThrowsError(try runtime.mount(into: slot.id)) { error in
+            XCTAssertEqual(error as? SceneCore.SceneRuntimeError, .noFocusedWindow)
+        }
+        XCTAssertEqual(runtime.snapshot.activeScene?.windowCount, 0)
+        XCTAssertEqual(port.requestedMoves.count, 0)
+    }
+
+    /// Unmounting is the reverse of mounting, in the other order: the window goes back first, and only then is it
+    /// taken out of the Scene. What the user sees is a chat window on the workspace it came from and a Scene that
+    /// no longer mentions it.
+    func testUnmountingSendsTheWindowBackAndTakesItOutOfTheScene() throws {
+        let runtime = try runtime()
+        let windowRef = try SceneCoreFixtures.windowRef(SceneCoreFixtures.App.line)
+        port.focused = windowRef
+        port.surfaces[windowRef] = SceneCoreFixtures.communicationSurface
+        let scene = try runtime.createScene(title: "Debug PROD-123")
+        try runtime.enter(scene.id)
+        try runtime.mount(into: try runtime.slot(numbered: 1).id)
+
+        let outcome = try runtime.unmount(windowRef)
+
+        XCTAssertEqual(outcome, .restored)
+        XCTAssertEqual(port.requestedMoves.map(\.binding), [SceneCoreFixtures.communicationSurface])
+        XCTAssertEqual(runtime.snapshot.activeScene?.windowCount, 0)
+    }
+
+    /// Closing a Scene, both halves at once: the borrowed window goes back to the workspace it was borrowed
+    /// from, the scene-owned one is left exactly where it is rather than closed, and the user is told both —
+    /// which is the whole reversibility promise, and the reason a Scene is safe to end.
+    func testClosingASceneSendsTheBorrowedWindowsHomeAndSaysWhatStayed() throws {
+        let runtime = try runtime()
+        var said: [SceneCore.SceneShellMessage] = []
+        let subscription = runtime.$message.sink { if let message = $0 { said.append(message) } }
+        defer { subscription.cancel() }
+        let scene = try runtime.createScene(title: "Debug PROD-123", template: .empty)
+        try runtime.enter(scene.id)
+        let terminal = try runtime.addSlot(role: .terminal)
+        let comms = try runtime.addSlot(role: .communication)
+        for (bundleId, slotId, ownership) in [
+            (SceneCoreFixtures.App.terminal, terminal.id, SceneCore.Ownership.sceneOwned),
+            (SceneCoreFixtures.App.line, comms.id, .borrowed),
+        ] {
+            let windowRef = try SceneCoreFixtures.windowRef(bundleId)
+            port.focused = windowRef
+            port.surfaces[windowRef] = SceneCoreFixtures.communicationSurface
+            try runtime.mount(into: slotId, ownership: ownership)
+        }
+        said.removeAll()
+
+        let plan = try runtime.close(scene.id)
+
+        XCTAssertEqual(plan.pending.map(\.windowRef.bundleId), [SceneCoreFixtures.App.line])
+        XCTAssertEqual(said.map(\.text), [
+            "1 window went back to Communication — \(SceneCoreFixtures.App.line)",
+            "1 window left in place",
+        ])
+        XCTAssertEqual(runtime.snapshot.scenes, [])
+        XCTAssertEqual(runtime.unfinishedTeardowns, [])
+    }
+
+    /// Asking for a window back that no Scene is holding is a mistake worth naming, not a silent no-op: the
+    /// caller is a person who believes SceneMux borrowed something, and "there was nothing to give back" is the
+    /// only answer that tells them it did not.
+    func testUnmountingAWindowNoSceneIsHoldingIsRefusedByThatName() throws {
+        let runtime = try runtime()
+        let scene = try runtime.createScene(title: "Debug PROD-123", template: .empty)
+        try runtime.enter(scene.id)
+        let windowRef = try SceneCoreFixtures.windowRef(SceneCoreFixtures.App.music)
+
+        XCTAssertThrowsError(try runtime.unmount(windowRef)) { error in
+            XCTAssertEqual(error as? SceneCore.SceneRuntimeError, .windowNotInAScene)
+        }
+        XCTAssertEqual(port.requestedMoves.count, 0)
+    }
+
+    /// Invariant I7, from the surface a person actually touches. A window recorded as the desktop's — which is
+    /// also where every unreadable ownership degrades to — is not moved even when they explicitly ask for it
+    /// back, and the refusal is said out loud rather than swallowed. Silence here would read as "done".
+    func testASharedWindowIsRefusedOutLoudAndNeverMoved() throws {
+        let runtime = try runtime()
+        var said: [SceneCore.SceneShellMessage] = []
+        let subscription = runtime.$message.sink { if let message = $0 { said.append(message) } }
+        defer { subscription.cancel() }
+        let scene = try runtime.createScene(title: "Debug PROD-123", template: .empty)
+        try runtime.enter(scene.id)
+        let slot = try runtime.addSlot(role: .communication)
+        let windowRef = try SceneCoreFixtures.windowRef(SceneCoreFixtures.App.music)
+        port.focused = windowRef
+        port.surfaces[windowRef] = SceneCoreFixtures.communicationSurface
+        try runtime.mount(into: slot.id, ownership: .sharedPersistent)
+        said.removeAll()
+
+        XCTAssertEqual(try runtime.unmount(windowRef), .leftInPlace(reason: "it is shared"))
+
+        XCTAssertEqual(said.map(\.text), ["\(SceneCoreFixtures.App.music) is shared — left untouched"])
+        XCTAssertEqual(port.requestedMoves.count, 0)
+        XCTAssertEqual(runtime.snapshot.scenes.first?.slots.first?.windows.count, 1)
+    }
+
+    /// Giving back a window the Scene owns. Nothing borrowed it, so there is nowhere to send it back to and it
+    /// stays exactly where it is — but the request was still answered: it is out of the Scene. The reason has to
+    /// say which of the two happened, or a person who pressed the key reads "left where it is" as "nothing
+    /// happened" and presses it again on a window that is already out.
+    func testGivingBackAnOwnedWindowTakesItOutOfTheSceneWithoutMovingIt() throws {
+        let runtime = try runtime()
+        let scene = try runtime.createScene(title: "Debug PROD-123", template: .empty)
+        try runtime.enter(scene.id)
+        let slot = try runtime.addSlot(role: .editor)
+        let windowRef = try SceneCoreFixtures.windowRef(SceneCoreFixtures.App.ide)
+        port.focused = windowRef
+        port.surfaces[windowRef] = SceneCoreFixtures.communicationSurface
+        try runtime.mount(into: slot.id, ownership: .sceneOwned)
+
+        let outcome = try runtime.unmount(windowRef)
+
+        XCTAssertEqual(
+            outcome,
+            .leftInPlace(reason: "the Scene owned it, so there is nowhere to send it back to"),
+        )
+        XCTAssertEqual(port.requestedMoves.count, 0)
+        XCTAssertEqual(runtime.snapshot.activeScene?.windowCount, 0)
+    }
+
+    /// Invariant I14 across a relaunch. An app that would not let go of its window leaves the restore *owed*,
+    /// not forgotten: the Scene stays half-closed on disk, and the next launch finishes the journey home. The
+    /// alternative is the failure this whole design exists to prevent — a borrowed chat window abandoned in the
+    /// layout of a task that ended days ago.
+    func testARestoreTheAppRefusedIsStillOwedAndTheNextLaunchFinishesIt() throws {
+        let firstLaunch = try runtime()
+        let scene = try firstLaunch.createScene(title: "Debug PROD-123", template: .empty)
+        try firstLaunch.enter(scene.id)
+        let slot = try firstLaunch.addSlot(role: .communication)
+        let windowRef = try SceneCoreFixtures.windowRef(SceneCoreFixtures.App.line)
+        port.focused = windowRef
+        port.surfaces[windowRef] = SceneCoreFixtures.communicationSurface
+        try firstLaunch.mount(into: slot.id)
+        port.moveAnswers[windowRef] = .failed(reason: "the app is busy")
+
+        try firstLaunch.close(scene.id)
+
+        XCTAssertEqual(firstLaunch.unfinishedTeardowns.map(\.sceneId), [scene.id])
+
+        let relaunched = try runtime(over: stateFile)
+
+        XCTAssertEqual(relaunched.resumeUnfinishedTeardowns().map(\.text), [
+            "1 window went back to Communication — \(SceneCoreFixtures.App.line)",
+        ])
+        XCTAssertEqual(port.requestedMoves.map(\.binding), [SceneCoreFixtures.communicationSurface])
+        XCTAssertEqual(relaunched.unfinishedTeardowns, [])
+        XCTAssertEqual(relaunched.snapshot.scenes, [])
+    }
+
+    /// The same relaunch, for a window the user closed in the meantime. There is nothing to tell them — a
+    /// window they closed themselves is not news — but the Scene has still ended, and a switcher that went on
+    /// listing it as `restoring…` would be showing a task waiting on a window that no longer exists.
+    func testASilentResumeStillStopsShowingTheSceneAsRestoring() throws {
+        let firstLaunch = try runtime()
+        let scene = try firstLaunch.createScene(title: "Debug PROD-123", template: .empty)
+        try firstLaunch.enter(scene.id)
+        let slot = try firstLaunch.addSlot(role: .communication)
+        let windowRef = try SceneCoreFixtures.windowRef(SceneCoreFixtures.App.line)
+        port.focused = windowRef
+        port.surfaces[windowRef] = SceneCoreFixtures.communicationSurface
+        try firstLaunch.mount(into: slot.id)
+        port.moveAnswers[windowRef] = .failed(reason: "the app is busy")
+        try firstLaunch.close(scene.id)
+
+        let relaunched = try runtime(over: stateFile)
+        port.moveAnswers[windowRef] = .windowIsGone
+
+        XCTAssertEqual(relaunched.resumeUnfinishedTeardowns(), [])
+
+        XCTAssertEqual(relaunched.unfinishedTeardowns, [])
+        XCTAssertEqual(relaunched.snapshot.scenes, [])
     }
 }

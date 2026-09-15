@@ -13,11 +13,16 @@ extension SceneCore {
         let ownership: Ownership
         /// The Home recorded when the window was attached.
         ///
-        /// A *fallback*, not the destination. A restore aims at the Home the window has **now**, because the
-        /// user may have re-homed the application since; this is what to use when it has no Home now. The
-        /// resolution itself belongs to the Home surface (HORO-1107), which is why a step carries the record
-        /// rather than a resolved place.
+        /// Evidence, not a destination — what the step needs in order to *explain* itself. The place a
+        /// restore aims at is `homeSurface`; this is how the user is told which Home that place stood for,
+        /// including when they have re-homed the application since and the two no longer agree.
         let recordedHome: SemanticHome
+        /// Where the window goes back to: the surface it was on before the Scene took it.
+        ///
+        /// `nil` when the attachment never recorded one — state from an older build, or a build that could
+        /// not tell. Then the window stays exactly where it is and the user is told so, which is
+        /// `SceneTeardownOutcome.leftInPlace`. A step with nowhere to aim never guesses.
+        let homeSurface: SubstrateBinding?
 
         /// What may be done to the window. Ownership decides, always.
         var effect: SceneTeardownEffect {
@@ -37,6 +42,7 @@ extension SceneCore {
             windowRef = attachment.windowRef
             ownership = attachment.ownership
             recordedHome = attachment.homeAtAttachTime
+            homeSurface = attachment.originSurface
         }
     }
 }

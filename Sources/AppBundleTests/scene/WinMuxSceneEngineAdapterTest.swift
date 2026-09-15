@@ -385,6 +385,75 @@ final class WinMuxSceneEngineAdapterTest: XCTestCase {
         XCTAssertTrue(report.isFullyRealised, report.diagnostics.joined(separator: " "))
     }
 
+    /// "Mount the window I am looking at" has to mean the window the engine says is focused, described the
+    /// way Scene state describes one — and the ordinal has to be the one `resolve` would read back, or the ref
+    /// would name a different window of the same application.
+    func testTheFocusedWindowComesBackAsTheRefThatResolvesToIt() throws {
+        let ide = TestApp(bundleId: App.ide)
+        TestWindow.new(id: 1, parent: elsewhere, app: ide)
+        let second = TestWindow.new(id: 2, parent: elsewhere, app: ide)
+        XCTAssertTrue(second.focusWindow())
+
+        let focused = SceneCore.WinMuxSceneEngineAdapter().focusedWindow()
+
+        XCTAssertEqual(focused, try SceneCore.WindowRef(bundleId: App.ide, ordinalWithinApp: 1))
+    }
+
+    /// The one moment a window's origin surface is knowable is before it joins the Scene, so the seam has to be
+    /// able to answer it — and has to answer nothing at all for a window it cannot see, rather than a plausible
+    /// place a later restore would aim at.
+    func testTheSurfaceOfAWindowIsTheWorkspaceItIsOn() throws {
+        let line = TestApp(bundleId: App.line)
+        TestWindow.new(id: 1, parent: Workspace.get(byName: "chat").rootTilingContainer, app: line)
+        let adapter = SceneCore.WinMuxSceneEngineAdapter()
+
+        XCTAssertEqual(
+            adapter.surface(of: try SceneCore.WindowRef(bundleId: App.line, ordinalWithinApp: 0)),
+            SceneCore.SubstrateBinding(workspaceName: "chat"),
+        )
+        XCTAssertNil(adapter.surface(of: try SceneCore.WindowRef(bundleId: App.slack, ordinalWithinApp: 0)))
+    }
+
+    /// Sending one window home moves exactly that window, and does not bring the user with it. A restore that
+    /// stole focus would drag somebody away from what they were doing at the end of every task.
+    func testMovingAWindowHomeLeavesEveryOtherWindowAndTheFocusAlone() throws {
+        let home = Workspace.get(byName: "chat").rootTilingContainer
+        let resident = TestWindow.new(id: 1, parent: home, app: TestApp(bundleId: App.slack))
+        TestWindow.new(id: 2, parent: elsewhere, app: TestApp(bundleId: App.line))
+        let working = TestWindow.new(id: 3, parent: elsewhere, app: TestApp(bundleId: App.ide))
+        XCTAssertTrue(working.focusWindow())
+
+        let move = SceneCore.WinMuxSceneEngineAdapter().move(
+            try SceneCore.WindowRef(bundleId: App.line, ordinalWithinApp: 0),
+            to: SceneCore.SubstrateBinding(workspaceName: "chat"),
+        )
+
+        XCTAssertEqual(move, .moved)
+        XCTAssertEqual(Workspace.get(byName: "chat").rootTilingContainer.layoutDescription,
+                       .h_tiles([.window(1), .window(2)]))
+        XCTAssertEqual(resident.nodeWorkspace?.name, "chat")
+        XCTAssertEqual(focus.windowOrNil?.windowId, 3)
+    }
+
+    /// A surface that no longer exists is not a surface to create. The window stays exactly where it is and the
+    /// caller is told why, because a workspace conjured up to receive a restore would send somebody's window
+    /// somewhere they have never been — and call it home.
+    func testARestoreAimedAtAVanishedWorkspaceMovesNothing() throws {
+        let window = TestWindow.new(id: 1, parent: elsewhere, app: TestApp(bundleId: App.line))
+        let windowRef = try SceneCore.WindowRef(bundleId: App.line, ordinalWithinApp: 0)
+
+        let move = SceneCore.WinMuxSceneEngineAdapter().move(
+            windowRef,
+            to: SceneCore.SubstrateBinding(workspaceName: "a-workspace-nobody-registered"),
+        )
+
+        XCTAssertEqual(move, .surfaceIsGone(
+            reason: "workspace \"a-workspace-nobody-registered\" does not exist any more",
+        ))
+        XCTAssertEqual(window.nodeWorkspace?.name, "elsewhere")
+        XCTAssertNil(Workspace.existing(byName: "a-workspace-nobody-registered"))
+    }
+
     private func rect(ofWindowId id: UInt32) -> Rect {
         Window.get(byId: id).orDie().lastAppliedLayoutPhysicalRect.orDie()
     }

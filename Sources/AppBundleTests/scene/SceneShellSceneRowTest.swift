@@ -4,7 +4,12 @@ import XCTest
 
 final class SceneShellSceneRowTest: XCTestCase {
     private func row(_ scene: SceneCore.Scene, index: Int = 1) -> SceneCore.SceneShellSceneRow {
-        SceneCore.SceneShellSceneRow(scene: scene, index: index, naming: { _ in nil })
+        SceneCore.SceneShellSceneRow(
+            scene: scene,
+            index: index,
+            homes: .shippedOnly,
+            naming: { _ in nil },
+        )
     }
 
     /// The distinction the sidebar exists to make: a Scene that was left still holds its work, and must not be
