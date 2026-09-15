@@ -275,4 +275,33 @@ final class SceneRuntimeTest: XCTestCase {
         XCTAssertEqual(port.requestedMoves.count, 0)
         XCTAssertEqual(runtime.snapshot.scenes.first?.slots.first?.windows.count, 1)
     }
+
+    /// Invariant I14 across a relaunch. An app that would not let go of its window leaves the restore *owed*,
+    /// not forgotten: the Scene stays half-closed on disk, and the next launch finishes the journey home. The
+    /// alternative is the failure this whole design exists to prevent — a borrowed chat window abandoned in the
+    /// layout of a task that ended days ago.
+    func testARestoreTheAppRefusedIsStillOwedAndTheNextLaunchFinishesIt() throws {
+        let firstLaunch = try runtime()
+        let scene = try firstLaunch.createScene(title: "Debug PROD-123", template: .empty)
+        try firstLaunch.enter(scene.id)
+        let slot = try firstLaunch.addSlot(role: .communication)
+        let windowRef = try SceneCoreFixtures.windowRef(SceneCoreFixtures.App.line)
+        port.focused = windowRef
+        port.surfaces[windowRef] = SceneCoreFixtures.communicationSurface
+        try firstLaunch.mount(into: slot.id)
+        port.moveAnswers[windowRef] = .failed(reason: "the app is busy")
+
+        try firstLaunch.close(scene.id)
+
+        XCTAssertEqual(firstLaunch.unfinishedTeardowns.map(\.sceneId), [scene.id])
+
+        let relaunched = try runtime(over: stateFile)
+
+        XCTAssertEqual(relaunched.resumeUnfinishedTeardowns().map(\.text), [
+            "1 window went back to Communication — \(SceneCoreFixtures.App.line)",
+        ])
+        XCTAssertEqual(port.requestedMoves.map(\.binding), [SceneCoreFixtures.communicationSurface])
+        XCTAssertEqual(relaunched.unfinishedTeardowns, [])
+        XCTAssertEqual(relaunched.snapshot.scenes, [])
+    }
 }
