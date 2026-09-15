@@ -878,7 +878,9 @@ is a rule that survives exactly as long as reviewers keep noticing:
    the Phase 0 rule about mergeability applied to Phase 1: an `upstream` merge that touches
    `NewWindowBinding.swift` or `WorkspaceProjects.swift` must still merge into code its author would
    recognise. Where the engine must call outward — the admission hook on window detection — it calls one
-   named function with no Scene types in its signature.
+   named function with no Scene types in its signature. That function is `sceneAdmitDetectedWindow(_:)`, one
+   line at the tail of `onWindowDetected`, and it lives in the adapter's own file because that is the only
+   file allowed to know both a `Window` and a Scene.
 
 `SceneEnginePort` is introduced *with its adapter and its caller, in the ticket that needs it*. It is not
 added ahead of time as an empty protocol: the repository's own rules forbid abstractions with no callers,
