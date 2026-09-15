@@ -72,6 +72,35 @@ final class SceneAdmissionHookTest: XCTestCase {
         XCTAssertEqual(attachment.origin, .admission(ruleId: Rule.emptySlotServingHome))
     }
 
+    /// The lifecycle half of the same story: a window a rule brought in is the Scene's own, so ending the Scene
+    /// leaves it exactly where it is.
+    ///
+    /// Asserted through `close` rather than by reading the ownership back off the attachment, because the thing
+    /// worth proving is that admission hands the lifecycle an *ordinary* attachment — its teardown step is
+    /// derived the usual way, from the ownership, by code that does not know a rule was involved. Nothing
+    /// downstream of admission has a special case for it, and this is what says so.
+    func testAWindowARuleBroughtInStaysWhereItIsWhenTheSceneEnds() throws {
+        let (workspace, _) = try sceneOnScreen(with: .terminal)
+        let window = TestWindow.new(
+            id: 1,
+            parent: workspace.rootTilingContainer,
+            app: TestApp(bundleId: App.terminal),
+        )
+        let runtime = SceneCore.SceneRuntime.shared
+        sceneAdmitDetectedWindow(window)
+        let sceneId = try XCTUnwrap(runtime.snapshot.activeScene?.id)
+
+        let plan = try runtime.close(sceneId)
+
+        let step = try XCTUnwrap(plan.steps.first)
+        XCTAssertEqual(step.windowRef, try SceneCoreFixtures.windowRef(App.terminal))
+        // The Home the rules gave it at the time, recorded on the attachment by admission — which is how the
+        // user is told which Home a window belonged to, and the reason `admit` passes one at all.
+        XCTAssertEqual(step.recordedHome, .development)
+        XCTAssertEqual(step.effect, .leaveInPlace)
+        XCTAssertEqual(window.nodeWorkspace, workspace)
+    }
+
     /// The conservative half, at the level where it actually matters. A dialog is a real window the engine
     /// really detects; what makes it safe is that the engine floated it, the adapter says so, and no rule can
     /// route a window it is told is floating. Nothing about this test knows what a dialog looks like.
