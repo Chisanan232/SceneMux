@@ -301,4 +301,28 @@ final class SceneOrchestratorTest: XCTestCase {
         XCTAssertEqual(orchestrator.quarantined.map(\.sceneTitle), ["Debug PROD-123"])
         XCTAssertEqual(orchestrator.quarantined.map(\.windowRef), [windowRef])
     }
+    func testAMountedWindowSurvivesARelaunchWithItsTermsIntact() throws {
+        // The whole point of recording an attachment rather than remembering it: the promise to send a borrowed
+        // chat window home has to outlive the process that made it.
+        let store = store(in: try temporaryDirectory())
+        let orchestrator = SceneCore.SceneOrchestrator(store: store)
+        let scene = try orchestrator.createScene(title: "Debug PROD-123")
+        let slot = try orchestrator.addSlot(role: .communication, to: scene.id)
+        let windowRef = try SceneCoreFixtures.windowRef(App.line)
+
+        let attachment = try orchestrator.attach(
+            windowRef,
+            to: slot.id,
+            of: scene.id,
+            ownership: .borrowed,
+            home: .communication,
+            originSurface: SceneCoreFixtures.communicationSurface,
+        )
+
+        XCTAssertTrue(attachment.isMount)
+        let relaunched = SceneCore.SceneOrchestrator(store: store)
+        let holder = try XCTUnwrap(relaunched.world.holder(of: windowRef))
+        XCTAssertEqual(holder.scene.id, scene.id)
+        XCTAssertEqual(holder.attachment, attachment)
+    }
 }
