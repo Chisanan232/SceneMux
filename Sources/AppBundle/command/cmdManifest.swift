@@ -28,6 +28,7 @@ extension CmdArgs {
             case let args as MacosNativeFullscreenCmdArgs: MacosNativeFullscreenCommand(args: args)
             case let args as MacosNativeMinimizeCmdArgs: MacosNativeMinimizeCommand(args: args)
             case let args as ModeCmdArgs: ModeCommand(args: args)
+            case let args as MountCmdArgs: MountCommand(args: args)
             case let args as MoveCmdArgs: MoveCommand(args: args)
             case let args as MoveMouseCmdArgs: MoveMouseCommand(args: args)
             case let args as MoveNodeToMonitorCmdArgs: MoveNodeToMonitorCommand(args: args)
