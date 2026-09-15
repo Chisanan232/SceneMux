@@ -18,11 +18,15 @@ with nothing automatic enabled and a deliberately empty `[mode.main.binding]`, s
 window by accident, and every mutating command targeted by `--window-id` rather than by focus.
 
 ```
-$ ./.debug/SceneMuxApp --config-path /tmp/horo1222/scenemux.toml   # git 4dcf589a
+$ ./.debug/SceneMuxApp --config-path /tmp/horo1222/scenemux.toml
 $ ./.debug/scenemux doctor
+SceneMux doctor — git 4dcf589a
 accessibility: granted / screen capture: granted
 [1] Built-in Retina Display 1728x1117 (main) activeWorkspace=1
 ```
+
+`doctor` names the build the passes ran on: `4dcf589a`, which is every code commit of this ticket. The
+commits after it on the branch change documentation only, so nothing below was invalidated by them.
 
 Targets were throwaway TextEdit documents and Activity Monitor, and nothing else. The baseline snapshot was
 taken only once `scenemux agent query` returned the same answer twice, per the convergence caveat in
