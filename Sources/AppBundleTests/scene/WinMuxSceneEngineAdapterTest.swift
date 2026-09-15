@@ -385,6 +385,20 @@ final class WinMuxSceneEngineAdapterTest: XCTestCase {
         XCTAssertTrue(report.isFullyRealised, report.diagnostics.joined(separator: " "))
     }
 
+    /// "Mount the window I am looking at" has to mean the window the engine says is focused, described the
+    /// way Scene state describes one — and the ordinal has to be the one `resolve` would read back, or the ref
+    /// would name a different window of the same application.
+    func testTheFocusedWindowComesBackAsTheRefThatResolvesToIt() throws {
+        let ide = TestApp(bundleId: App.ide)
+        TestWindow.new(id: 1, parent: elsewhere, app: ide)
+        let second = TestWindow.new(id: 2, parent: elsewhere, app: ide)
+        XCTAssertTrue(second.focusWindow())
+
+        let focused = SceneCore.WinMuxSceneEngineAdapter().focusedWindow()
+
+        XCTAssertEqual(focused, try SceneCore.WindowRef(bundleId: App.ide, ordinalWithinApp: 1))
+    }
+
     private func rect(ofWindowId id: UInt32) -> Rect {
         Window.get(byId: id).orDie().lastAppliedLayoutPhysicalRect.orDie()
     }
