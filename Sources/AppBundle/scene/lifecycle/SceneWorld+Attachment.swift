@@ -53,4 +53,18 @@ extension SceneCore.SceneWorld {
         }
         return try replacing(try scene.detaching(windowRef))
     }
+
+    /// The Scene holding this window, and the terms it holds it on, if any Scene does.
+    ///
+    /// By I4 there is at most one answer, which is what makes this a lookup rather than a search. Callers use
+    /// it to answer the question the user is really asking — "is this window in something already?" — before
+    /// proposing to attach it somewhere else.
+    func holder(of windowRef: SceneCore.WindowRef) -> (scene: SceneCore.Scene, attachment: SceneCore.Attachment)? {
+        for scene in scenes {
+            if let attachment = scene.attachment(for: windowRef) {
+                return (scene, attachment)
+            }
+        }
+        return nil
+    }
 }
