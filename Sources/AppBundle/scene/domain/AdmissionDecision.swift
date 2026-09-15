@@ -69,10 +69,6 @@ extension SceneCore {
             }
         }
 
-        /// Whether carrying this decision out would move a window. Every decision that does not attach also
-        /// does not touch anything — which is the property worth being able to assert.
-        var movesAWindow: Bool { attachment != nil }
-
         var description: String {
             switch self {
                 case .claim(let slotId, let ruleId): "claim \(slotId) by \(ruleId)"

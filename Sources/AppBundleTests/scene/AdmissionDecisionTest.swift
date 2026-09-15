@@ -36,8 +36,9 @@ final class AdmissionDecisionTest: XCTestCase {
         // harmless", and neither is `quarantine`. Nothing happens, including to a window whose record is
         // broken — which is invariant I6 arriving by way of the decision rather than by way of a reminder.
         for decision: SceneCore.AdmissionDecision in [.float, .ignore, .quarantine(reason: "unreadable")] {
-            XCTAssertNil(decision.attachment, "\(decision) should attach nothing")
-            XCTAssertFalse(decision.movesAWindow, "\(decision) should move nothing")
+            // Attaching nothing *is* moving nothing: `SceneRuntime.admit` returns before it touches anything
+            // when this is nil, so there is one fact here rather than two.
+            XCTAssertNil(decision.attachment, "\(decision) should attach nothing, and so move nothing")
         }
     }
 }
