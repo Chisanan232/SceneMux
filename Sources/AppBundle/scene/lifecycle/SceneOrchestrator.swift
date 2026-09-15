@@ -181,6 +181,21 @@ extension SceneCore {
             return attachment
         }
 
+        /// Take a window out of a Scene, once whatever was owed to it has been done.
+        ///
+        /// Called *after* the window has been sent back, not before, which is the opposite order from `close`
+        /// and for the same reason. A close writes its intent first because it has a plan to resume from; an
+        /// unmount has none, so a state change written before the move would leave a window in the Scene's
+        /// layout with nothing anywhere saying it belonged elsewhere. Detaching afterwards means the worst case
+        /// is a window that is already home and still recorded as attached, and asking again puts it home
+        /// again, which changes nothing.
+        ///
+        /// Read the attachment before calling this — through `SceneWorld.holder(of:)` — because the terms it
+        /// carries are what said the restore was permitted, and they are gone once it is dropped.
+        func detach(_ windowRef: WindowRef, from id: SceneId) throws {
+            try apply(try world.detaching(windowRef, from: id))
+        }
+
         /// Put a Scene on screen, projected onto this substrate.
         ///
         /// Pressing the same shortcut twice is not an error and does nothing the second time. Entering while a
