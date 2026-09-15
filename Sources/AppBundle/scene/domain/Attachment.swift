@@ -21,9 +21,10 @@ extension SceneCore {
         let ownership: Ownership
         /// The window's Home at the moment it was attached. Recorded, never rewritten.
         ///
-        /// Not a destination: if the user re-homes the application while the Scene is open, the window is
-        /// restored to the Home it has *now*, and this value only explains to them what changed. Evidence,
-        /// not instruction — see `docs/design/scene-core-architecture.md`.
+        /// Not a destination: `originSurface` is where the window goes back to, so re-homing the application
+        /// while the Scene is open changes nothing about where it lands. This value is what lets the surfaces
+        /// name the Home that destination stood for. Evidence, not instruction — see
+        /// `docs/design/scene-core-architecture.md`.
         let homeAtAttachTime: SemanticHome
         /// Where the window was when it was attached — the surface a restore aims at. Recorded, never
         /// rewritten.
