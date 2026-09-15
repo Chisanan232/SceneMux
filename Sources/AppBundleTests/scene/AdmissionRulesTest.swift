@@ -107,4 +107,22 @@ final class AdmissionRulesTest: XCTestCase {
 
         XCTAssertEqual(decision, .ignore)
     }
+
+    func testADialogAPopupAndAMinimizedWindowAreAllLeftAlone() throws {
+        // The same terminal, with the same empty terminal Slot waiting, four times: only the kind differs. A save
+        // sheet, a completion list and a window somebody minimized are not the work, and moving one of them
+        // would break the interaction it belongs to.
+        let terminal = SceneCoreFixtures.slot(role: .terminal, order: 0)
+        let scene = try SceneCoreFixtures.scene(
+            slots: [terminal],
+            state: .active(SceneCoreFixtures.activeSubstrate),
+        )
+
+        for kind in SceneCore.AdmissionWindowKind.allCases where kind != .managed {
+            let decision = SceneCore.AdmissionRules.decide(
+                try SceneCoreFixtures.admissionCandidate(App.terminal, kind: kind, in: scene),
+            )
+            XCTAssertEqual(decision, .ignore, "a \(kind) window should be left alone")
+        }
+    }
 }
