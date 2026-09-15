@@ -171,4 +171,18 @@ final class AdmissionRulesTest: XCTestCase {
 
         XCTAssertEqual(decision, .ignore)
     }
+
+    func testASceneThatIsMerelyDefinedDoesNotCollectWindows() throws {
+        // A Scene the person wrote down but has not opened. Its Slots are real and its roles serve development,
+        // and it still gets nothing: a Scene collects windows because it is on screen, not because it exists.
+        // Without this, every Scene ever defined would compete for every new window.
+        let terminal = SceneCoreFixtures.slot(role: .terminal, order: 0)
+        let scene = try SceneCoreFixtures.scene(slots: [terminal], state: .defined)
+
+        let decision = SceneCore.AdmissionRules.decide(
+            try SceneCoreFixtures.admissionCandidate(App.terminal, in: scene),
+        )
+
+        XCTAssertEqual(decision, .ignore)
+    }
 }
