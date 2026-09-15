@@ -503,6 +503,28 @@ final class WinMuxSceneEngineAdapterTest: XCTestCase {
         XCTAssertEqual(workspace.rootTilingContainer.layoutDescription, .h_tiles([.window(1), .window(2)]))
     }
 
+    /// The case a "has it moved yet?" shortcut gets wrong: a Scene projected onto the window's own workspace
+    /// leaves it on the right surface and on the wrong side of the floating/tiled line, so answering "already
+    /// there" would end the task with the window still arranged the way the Scene arranged it.
+    func testAWindowAlreadyOnItsSurfaceIsStillPutBackAsWhatItWas() throws {
+        let workspace = Workspace.get(byName: "chat")
+        let resident = TestWindow.new(id: 1, parent: workspace.rootTilingContainer, app: TestApp(bundleId: App.slack))
+        let line = TestWindow.new(id: 2, parent: workspace, app: TestApp(bundleId: App.line))
+        // The Scene was drawn on "chat" itself, so the projection tiled the window where it already was.
+        line.bind(to: workspace.rootTilingContainer, adaptiveWeight: WEIGHT_AUTO, index: INDEX_BIND_LAST)
+
+        let move = SceneCore.WinMuxSceneEngineAdapter().move(
+            try SceneCore.WindowRef(bundleId: App.line, ordinalWithinApp: 0),
+            to: SceneCore.SubstrateBinding(workspaceName: "chat"),
+            as: .floating,
+        )
+
+        XCTAssertEqual(move, .moved)
+        XCTAssertTrue(line.isFloating)
+        XCTAssertEqual(workspace.rootTilingContainer.layoutDescription, .h_tiles([.window(1)]))
+        XCTAssertEqual(resident.nodeWorkspace?.name, "chat")
+    }
+
     /// A surface that no longer exists is not a surface to create. The window stays exactly where it is and the
     /// caller is told why, because a workspace conjured up to receive a restore would send somebody's window
     /// somewhere they have never been — and call it home.
