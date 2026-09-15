@@ -90,7 +90,16 @@ extension SceneCore {
         /// An implementation may not improvise. If the surface is not there, the answer is
         /// `SceneWindowMove.surfaceIsGone` and the window stays where it is; creating a workspace to satisfy
         /// the request would move somebody's window somewhere they have never been.
-        func move(_ windowRef: WindowRef, to binding: SubstrateBinding) -> SceneWindowMove
+        ///
+        /// - Parameter arrangement: what the window should be once it is there, when the caller knows. `nil`
+        ///   is not a preference for either one: it means no claim is being made, and the engine should do
+        ///   with the window whatever it would have done anyway. Passing a value is how a restore returns a
+        ///   floating window floating instead of as one more tile.
+        func move(
+            _ windowRef: WindowRef,
+            to binding: SubstrateBinding,
+            as arrangement: WindowArrangement?,
+        ) -> SceneWindowMove
 
         /// Let the engine finish — normalize, lay out — and report what each Slot's composition became.
         ///

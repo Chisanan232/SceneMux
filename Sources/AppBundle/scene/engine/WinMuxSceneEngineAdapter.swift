@@ -127,24 +127,50 @@ extension SceneCore {
         /// it is the one thing invariant I8 is not allowed to do — the window would be "home" somewhere the
         /// user has never seen.
         ///
-        /// A window already on that workspace answers `moved`, because the caller asked for a state and the
-        /// state is true. Rebinding it anyway would reorder the windows already there for no reason.
-        func move(_ windowRef: WindowRef, to binding: SubstrateBinding) -> SceneWindowMove {
+        /// A window already on that workspace *as what the caller asked for* answers `moved`, because the
+        /// caller asked for a state and the state is true. Rebinding it anyway would reorder the windows
+        /// already there for no reason. A window on the right workspace and the wrong side of the
+        /// floating/tiled line is not in the asked-for state, so it is rebound — which is the whole of
+        /// returning a borrowed window as what it was rather than merely to where it was.
+        ///
+        /// The arrangement is carried out by choosing what to bind the window to, because in this engine that
+        /// *is* the difference: a window whose parent is the workspace floats above it, and one whose parent is
+        /// a tiling container is laid out inside it. There is no second step that could fail on its own, and
+        /// nothing here sets a size or a position — the arrangement is a mode, never a frame (invariant I11).
+        func move(
+            _ windowRef: WindowRef,
+            to binding: SubstrateBinding,
+            as arrangement: WindowArrangement?,
+        ) -> SceneWindowMove {
             guard let window = resolve(windowRef) else { return .windowIsGone }
             guard let workspace = Workspace.existing(byName: binding.workspaceName) else {
                 return .surfaceIsGone(reason: "workspace \"\(binding.workspaceName)\" does not exist any more")
             }
-            guard window.nodeWorkspace != workspace else { return .moved }
+            let wanted = arrangement ?? Self.currentArrangement(of: window)
+            guard window.nodeWorkspace != workspace || wanted != Self.currentArrangement(of: window) else {
+                return .moved
+            }
 
-            if window.isFloating {
-                window.bind(to: workspace, adaptiveWeight: WEIGHT_AUTO, index: INDEX_BIND_LAST)
-            } else {
-                let target = workspaceAppendBindingData(targetWorkspace: workspace, index: INDEX_BIND_LAST)
-                window.bind(to: target.parent, adaptiveWeight: target.adaptiveWeight, index: target.index)
+            switch wanted {
+                case .floating:
+                    window.bindAsFloatingWindow(to: workspace)
+                case .tiled:
+                    let target = workspaceAppendBindingData(targetWorkspace: workspace, index: INDEX_BIND_LAST)
+                    window.bind(to: target.parent, adaptiveWeight: target.adaptiveWeight, index: target.index)
             }
             return window.nodeWorkspace == workspace
                 ? .moved
                 : .failed(reason: "the engine did not accept the window onto \"\(binding.workspaceName)\"")
+        }
+
+        /// What the inherited engine would call this window's arrangement right now.
+        ///
+        /// Deliberately the engine's own `isFloating` question rather than `kind(of:)`, and the difference is
+        /// the point: `kind(of:)` answers nothing for a window macOS has minimized, fullscreened or hidden,
+        /// whereas a move needs *some* answer for every window in order to leave one nobody recorded an
+        /// arrangement for behaving exactly as it did before any of this was recorded.
+        private static func currentArrangement(of window: Window) -> WindowArrangement {
+            window.isFloating ? .floating : .tiled
         }
 
         /// Builds one Slot by binding its windows into the substrate, appending after whatever is already

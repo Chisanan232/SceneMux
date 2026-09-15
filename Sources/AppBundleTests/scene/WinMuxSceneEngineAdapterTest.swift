@@ -447,6 +447,7 @@ final class WinMuxSceneEngineAdapterTest: XCTestCase {
         let move = SceneCore.WinMuxSceneEngineAdapter().move(
             try SceneCore.WindowRef(bundleId: App.line, ordinalWithinApp: 0),
             to: SceneCore.SubstrateBinding(workspaceName: "chat"),
+            as: nil,
         )
 
         XCTAssertEqual(move, .moved)
@@ -466,6 +467,7 @@ final class WinMuxSceneEngineAdapterTest: XCTestCase {
         let move = SceneCore.WinMuxSceneEngineAdapter().move(
             windowRef,
             to: SceneCore.SubstrateBinding(workspaceName: "a-workspace-nobody-registered"),
+            as: nil,
         )
 
         XCTAssertEqual(move, .surfaceIsGone(

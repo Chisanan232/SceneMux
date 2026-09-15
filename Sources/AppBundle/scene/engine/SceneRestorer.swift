@@ -27,6 +27,11 @@ extension SceneCore {
         /// nowhere to aim does not become a guess: the window stays, the Scene finishes, and the person is
         /// told which window stayed and why.
         ///
+        /// What the window was on that surface goes with the request, and an attachment that recorded nothing
+        /// asks for nothing: the arrangement is replayed when it is known and left to the engine when it is not.
+        /// That is what makes a floating window come back floating without turning a missing record into a
+        /// guess about somebody's layout.
+        ///
         /// Every other answer is the engine's, translated rather than interpreted. The one distinction that
         /// carries weight is `failed`, which leaves the attachment in place so the restore is still owed and
         /// gets tried again — after the app stops being busy, or after the next launch.
@@ -37,7 +42,7 @@ extension SceneCore {
             guard let surface = step.homeSurface else {
                 return .leftInPlace(reason: "SceneMux has no record of where it came from")
             }
-            return switch port.move(step.windowRef, to: surface) {
+            return switch port.move(step.windowRef, to: surface, as: step.homeArrangement) {
                 case .moved: .restored
                 case .windowIsGone: .windowIsGone
                 case .surfaceIsGone(let reason): .leftInPlace(reason: reason)

@@ -42,7 +42,11 @@ final class RecordingSceneEnginePort: SceneCore.SceneEnginePort {
     /// case out of every test that is about something else.
     var moveAnswers: [SceneCore.WindowRef: SceneCore.SceneWindowMove] = [:]
     /// Every move asked for, in order — including the ones that were refused.
-    private(set) var requestedMoves: [(windowRef: SceneCore.WindowRef, binding: SceneCore.SubstrateBinding)] = []
+    private(set) var requestedMoves: [(
+        windowRef: SceneCore.WindowRef,
+        binding: SceneCore.SubstrateBinding,
+        arrangement: SceneCore.WindowArrangement?
+    )] = []
 
     func currentSubstrate() -> SceneCore.SubstrateBinding? {
         substrate
@@ -63,11 +67,13 @@ final class RecordingSceneEnginePort: SceneCore.SceneEnginePort {
     func move(
         _ windowRef: SceneCore.WindowRef,
         to binding: SceneCore.SubstrateBinding,
+        as arrangement: SceneCore.WindowArrangement?,
     ) -> SceneCore.SceneWindowMove {
-        requestedMoves.append((windowRef, binding))
+        requestedMoves.append((windowRef, binding, arrangement))
         if let answer = moveAnswers[windowRef] { return answer }
         if invisibleWindows.contains(windowRef) { return .windowIsGone }
         surfaces[windowRef] = binding
+        if let arrangement { arrangements[windowRef] = arrangement }
         return .moved
     }
 
