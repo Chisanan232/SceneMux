@@ -22,4 +22,22 @@ extension ConfigTest {
             "com.tinyspeck.slackmacgap": .communication,
         ])
     }
+
+    /// A fifth Home is an error on the line that typed it, and the other lines still apply. One typo in a
+    /// twenty-application table must not silently return every window to the shipped defaults.
+    func testParseSceneHomeRejectsOneLineAndKeepsTheRest() {
+        let (parsed, errors) = parseConfig(
+            """
+            [scene-home]
+                'com.apple.Terminal' = 'development'
+                'com.apple.Music' = 'entertainment'
+            """,
+        )
+        assertEquals(errors.count, 1)
+        XCTAssertTrue(
+            errors.first?.description.contains("(development|communication|observability|personal)") == true,
+            "the four Homes are listed back at the user: \(errors)",
+        )
+        assertEquals(parsed.sceneHome, ["com.apple.Terminal": .development])
+    }
 }
