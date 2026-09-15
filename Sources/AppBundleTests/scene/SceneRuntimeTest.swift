@@ -155,4 +155,19 @@ final class SceneRuntimeTest: XCTestCase {
             [windowRef],
         )
     }
+
+    /// No focused window means no guess. The alternative — mounting whichever window the engine mentions first —
+    /// would put a stranger's window into somebody's task, and they would find out by closing the Scene.
+    func testMountingWithNothingFocusedIsRefusedAndTheSceneIsUnchanged() throws {
+        let runtime = try runtime()
+        let scene = try runtime.createScene(title: "Debug PROD-123")
+        try runtime.enter(scene.id)
+        let slot = try runtime.slot(numbered: 1)
+
+        XCTAssertThrowsError(try runtime.mount(into: slot.id)) { error in
+            XCTAssertEqual(error as? SceneCore.SceneRuntimeError, .noFocusedWindow)
+        }
+        XCTAssertEqual(runtime.snapshot.activeScene?.windowCount, 0)
+        XCTAssertEqual(port.requestedMoves.count, 0)
+    }
 }
