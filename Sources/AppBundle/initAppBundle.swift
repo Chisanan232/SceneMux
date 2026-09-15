@@ -58,6 +58,13 @@ import Foundation
         // What reading state found, said once, now that there is somewhere to say it. A refusal posted from the
         // runtime's initializer would have been a message with no HUD to appear on.
         SceneMessageHud.shared.enqueue(SceneCore.SceneRuntime.shared.startupMessages)
+        // A Scene that was closing when SceneMux last stopped still owes its borrowed windows a journey home.
+        // Inside a session, because sending one back rebinds it in the inherited tree and it is the session
+        // that follows which actually moves it — and only now, because a restore aimed at a workspace the
+        // runtime has not read yet would find nothing there.
+        try await runLightSession(.startup, .forceRun) {
+            SceneMessageHud.shared.enqueue(SceneCore.SceneRuntime.shared.resumeUnfinishedTeardowns())
+        }
         if bootstrappedConfigUrl != nil {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 ShortcutSettingsModel.shared.requestWindowOpen()
