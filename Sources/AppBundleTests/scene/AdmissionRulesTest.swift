@@ -21,4 +21,23 @@ final class AdmissionRulesTest: XCTestCase {
 
         XCTAssertEqual(decision, .route(slotId: terminal.id, ruleId: Rule.emptySlotServingHome))
     }
+
+    func testSlotOrderDecidesWhichOfTwoEmptyServingSlotsGetsTheWindow() throws {
+        // Stored editor-first and ordered terminal-first, because "the first empty development Slot" has to
+        // mean the first one the person sees rather than the first one the Scene happens to hold. A Home is
+        // coarser than a Slot role — nothing SceneMux may read says whether an IDE window is an editor or a
+        // terminal — so Slot order is the whole of the tie-break, and it has to be the visible order.
+        let editor = SceneCoreFixtures.slot(role: .editor, order: 1)
+        let terminal = SceneCoreFixtures.slot(role: .terminal, order: 0)
+        let scene = try SceneCoreFixtures.scene(
+            slots: [editor, terminal],
+            state: .active(SceneCoreFixtures.activeSubstrate),
+        )
+
+        let decision = SceneCore.AdmissionRules.decide(
+            try SceneCoreFixtures.admissionCandidate(App.ide, in: scene),
+        )
+
+        XCTAssertEqual(decision, .route(slotId: terminal.id, ruleId: Rule.emptySlotServingHome))
+    }
 }
