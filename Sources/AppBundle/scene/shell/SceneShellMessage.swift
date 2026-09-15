@@ -8,14 +8,20 @@ extension SceneCore {
     /// ignore toasts — including the one that says their borrowed chat window went home. A silent leave is the
     /// design, not an omission.
     ///
-    /// Restoring, missing restore targets, skipped shared windows and admission refusals are the other half of
-    /// this table. They arrive with the ticket that executes teardown and admits windows; a message that could
-    /// be *constructed* but never *posted* would be a promise in the code with nothing behind it.
+    /// Admission refusals are the one row of the table this build still cannot honestly report: nothing in
+    /// v0.1.0 admits a window it was not told about, so a message about ignoring one would be a promise in the
+    /// code with nothing behind it. Everything else here is posted by something.
     enum SceneShellMessage: Equatable, Sendable {
         /// A Scene is now the one on screen, and this is its size.
         case entered(sceneTitle: String, slots: Int, windows: Int)
         /// Windows a Scene used to hold are gone, so it came back smaller than it left.
         case attachmentsDropped(sceneTitle: String, windows: Int)
+        /// Borrowed windows are back where they came from — the one thing closing a Scene must confirm.
+        ///
+        /// One message per Home, and it names the applications. `2 windows went back to Communication` alone
+        /// would leave the user checking which two; naming them is what makes the line verifiable at a glance,
+        /// and an application name is the only window fact SceneMux is willing to show (invariant I11).
+        case windowsRestored(home: SemanticHome, applications: [String])
         /// State could not be read, so there are no Scenes and nothing was moved.
         case stateUnreadable(details: String)
 
@@ -24,6 +30,9 @@ extension SceneCore {
             switch self {
                 case .entered(let title, let slots, let windows):
                     "\(title) · \(count(slots, "slot")), \(count(windows, "window"))"
+                case .windowsRestored(let home, let applications):
+                    "\(count(applications.count, "window")) went back to \(home.displayName)"
+                        + " — \(applications.joined(separator: ", "))"
                 case .attachmentsDropped(let title, let windows):
                     "\(count(windows, "window")) from “\(title)” \(windows == 1 ? "is" : "are") no longer open"
                 case .stateUnreadable:
@@ -39,7 +48,7 @@ extension SceneCore {
         var details: String? {
             switch self {
                 case .stateUnreadable(let details): details
-                case .entered, .attachmentsDropped: nil
+                case .entered, .attachmentsDropped, .windowsRestored: nil
             }
         }
 
@@ -53,7 +62,7 @@ extension SceneCore {
         var announces: Bool {
             switch self {
                 case .entered: false
-                case .attachmentsDropped, .stateUnreadable: true
+                case .attachmentsDropped, .stateUnreadable, .windowsRestored: true
             }
         }
 
