@@ -276,6 +276,30 @@ final class SceneRuntimeTest: XCTestCase {
         XCTAssertEqual(runtime.snapshot.scenes.first?.slots.first?.windows.count, 1)
     }
 
+    /// Giving back a window the Scene owns. Nothing borrowed it, so there is nowhere to send it back to and it
+    /// stays exactly where it is — but the request was still answered: it is out of the Scene. The reason has to
+    /// say which of the two happened, or a person who pressed the key reads "left where it is" as "nothing
+    /// happened" and presses it again on a window that is already out.
+    func testGivingBackAnOwnedWindowTakesItOutOfTheSceneWithoutMovingIt() throws {
+        let runtime = try runtime()
+        let scene = try runtime.createScene(title: "Debug PROD-123", template: .empty)
+        try runtime.enter(scene.id)
+        let slot = try runtime.addSlot(role: .editor)
+        let windowRef = try SceneCoreFixtures.windowRef(SceneCoreFixtures.App.ide)
+        port.focused = windowRef
+        port.surfaces[windowRef] = SceneCoreFixtures.communicationSurface
+        try runtime.mount(into: slot.id, ownership: .sceneOwned)
+
+        let outcome = try runtime.unmount(windowRef)
+
+        XCTAssertEqual(
+            outcome,
+            .leftInPlace(reason: "the Scene owned it, so there is nowhere to send it back to"),
+        )
+        XCTAssertEqual(port.requestedMoves.count, 0)
+        XCTAssertEqual(runtime.snapshot.activeScene?.windowCount, 0)
+    }
+
     /// Invariant I14 across a relaunch. An app that would not let go of its window leaves the restore *owed*,
     /// not forgotten: the Scene stays half-closed on disk, and the next launch finishes the journey home. The
     /// alternative is the failure this whole design exists to prevent — a borrowed chat window abandoned in the
