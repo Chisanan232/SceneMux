@@ -29,9 +29,16 @@ final class RecordingSceneEnginePort: SceneCore.SceneEnginePort {
 
     /// Where the engine says a Scene would be drawn, or nothing when it says there is nowhere.
     var substrate: SceneCore.SubstrateBinding? = SceneCore.SubstrateBinding(workspaceName: "3")
+    /// The window the engine says the user is looking at. Nothing, unless a test says otherwise — mounting
+    /// "the focused window" when there is none has to be a case the caller handles.
+    var focused: SceneCore.WindowRef?
 
     func currentSubstrate() -> SceneCore.SubstrateBinding? {
         substrate
+    }
+
+    func focusedWindow() -> SceneCore.WindowRef? {
+        focused
     }
 
     func prepareSubstrate(_ binding: SceneCore.SubstrateBinding) -> Bool {

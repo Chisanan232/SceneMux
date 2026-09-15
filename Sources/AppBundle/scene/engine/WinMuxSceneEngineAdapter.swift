@@ -42,6 +42,14 @@ extension SceneCore {
             return SubstrateBinding(workspaceName: name)
         }
 
+        /// The focused window, described the way Scene state describes windows.
+        ///
+        /// Nothing is focused, raised or activated to answer this — it reads the focus the engine already has,
+        /// which is why "mount the window I am looking at" does not disturb the window it is about.
+        func focusedWindow() -> WindowRef? {
+            focus.windowOrNil.flatMap(reference)
+        }
+
         /// Resolves the Scene's workspace, creating it if the user has not used it yet.
         ///
         /// A blank name is refused rather than normalized into something plausible: the engine would happily
@@ -147,6 +155,25 @@ extension SceneCore {
                 .filter { $0.app.rawAppBundleId == windowRef.bundleId }
                 .sorted { $0.windowId < $1.windowId }
             return candidates.getOrNil(atIndex: windowRef.ordinalWithinApp)
+        }
+
+        /// Describes an engine window as a `WindowRef`, the exact inverse of `resolve(_:)`.
+        ///
+        /// Both directions have to agree on one thing — the order an application's windows are in — or a ref
+        /// made here would resolve back to a different window. So the ordinal is computed from the same
+        /// window-id-ascending order, from the same inventory, in one place: this file.
+        ///
+        /// Nothing to describe it with means no ref. An application with no bundle id — a helper process, a
+        /// system panel — cannot be named in a way that survives a restart, and inventing a name for it is
+        /// how a Scene comes back pointing at whatever happens to be there next time.
+        private func reference(_ window: Window) -> WindowRef? {
+            guard let bundleId = window.app.rawAppBundleId else { return nil }
+            let ordinal = inventory
+                .filter { $0.app.rawAppBundleId == bundleId }
+                .sorted { $0.windowId < $1.windowId }
+                .firstIndex { $0.windowId == window.windowId }
+            guard let ordinal else { return nil }
+            return try? WindowRef(bundleId: bundleId, ordinalWithinApp: ordinal)
         }
 
         /// Every window the engine currently knows about.

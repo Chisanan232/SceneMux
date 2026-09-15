@@ -3,10 +3,10 @@ import Foundation
 extension SceneCore {
     /// The whole of what Scene Core asks of a window engine.
     ///
-    /// Three questions, all of them in Scene vocabulary: *is there something to draw on*, *build this Slot
-    /// here*, and *what did that actually become*. There is deliberately no way to ask for a container, an
-    /// orientation, a frame or a monitor, because the moment the domain can ask for those it starts
-    /// depending on how one particular engine spells them, and the seam stops being a seam.
+    /// Every question is in Scene vocabulary: *is there something to draw on*, *which window does the user
+    /// mean*, *build this Slot here*, and *what did that actually become*. There is deliberately no way to
+    /// ask for a container, an orientation, a frame or a monitor, because the moment the domain can ask for
+    /// those it starts depending on how one particular engine spells them, and the seam stops being a seam.
     ///
     /// Only `WinMuxSceneEngineAdapter` implements this against the inherited tree. That file is the single
     /// place allowed to know both languages — see `docs/design/scene-core-architecture.md`. Tests implement
@@ -27,6 +27,17 @@ extension SceneCore {
         /// - Returns: the substrate, or nothing when there is nothing usable to draw on — in which case
         ///   entering a Scene is refused rather than aimed at a guess.
         func currentSubstrate() -> SubstrateBinding?
+
+        /// The window the user is looking at, as a reference a Scene can keep.
+        ///
+        /// What "mount this window" means: the person asking has one window in mind, and it is the one they
+        /// just clicked or typed into. Asked of the engine because the engine is what knows, and returned as a
+        /// `WindowRef` because that is the only window identity anything above the seam is allowed to hold —
+        /// no window object escapes into Scene state, where it would go stale the moment the app quit.
+        ///
+        /// - Returns: the focused window, or nothing when the focus is an empty workspace or a window this
+        ///   build cannot describe. Nothing means the request is refused rather than applied to a guess.
+        func focusedWindow() -> WindowRef?
 
         /// Make sure the Scene has somewhere to be drawn, and start a fresh projection.
         ///
