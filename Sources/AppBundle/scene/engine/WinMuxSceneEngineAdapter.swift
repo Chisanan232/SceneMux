@@ -288,3 +288,30 @@ extension SceneCore {
         }
     }
 }
+
+/// The engine's one call outward: a window has just been detected, so let SceneMux have a look at it.
+///
+/// The seam `docs/design/scene-core-architecture.md` describes, and it is one function taking one engine type
+/// and returning nothing — the inherited engine calls it and learns no Scene vocabulary by doing so, which is
+/// what keeps this hook mergeable with upstream and keeps a Scene out of the tiling code.
+///
+/// It lives in this file for the same reason everything else here does: it is the only file in SceneMux allowed
+/// to know both `Window` and `SceneCore`, and `script/test_scene_domain_layering.py` holds every other file in
+/// `scene/` to that.
+///
+/// *Describing* the window rather than passing it along is the security boundary, not a convenience. What
+/// crosses is a bundle id, an ordinal, which container the engine chose and a workspace name. The window title
+/// does not, the process does not, and neither can be reached from the other side.
+///
+/// Nothing here decides anything and nothing here can fail loudly. A window that cannot be described in a way
+/// that survives a restart is left alone, and so is a window the rules decline — which is nearly all of them.
+@MainActor
+func sceneAdmitDetectedWindow(_ window: Window) {
+    guard let windowRef = SceneCore.WinMuxSceneEngineAdapter.reference(window) else { return }
+    SceneCore.SceneRuntime.shared.admit(SceneCore.AdmissionSubject(
+        windowRef: windowRef,
+        kind: SceneCore.WinMuxSceneEngineAdapter.kind(of: window),
+        surface: SceneCore.WinMuxSceneEngineAdapter.surface(of: window),
+        detectedDuringStartup: isStartup,
+    ))
+}
