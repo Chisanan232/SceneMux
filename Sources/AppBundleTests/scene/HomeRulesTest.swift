@@ -44,4 +44,15 @@ final class HomeRulesTest: XCTestCase {
         XCTAssertEqual(rules.source(of: "com.example.SomethingNobodyHasHeardOf"), .fallback)
         XCTAssertEqual(SceneCore.HomeRules.fallback, .personal)
     }
+
+    /// A rule typed with the wrong capitals still applies. Reverse-DNS bundle ids are conventionally
+    /// lowercase but not reliably so — `com.apple.Terminal` ships capitals — and a config file is typed by
+    /// hand. A rule that silently did not apply because of one letter is the least debuggable kind.
+    func testBundleIdsAreMatchedIgnoringCaseAndSurroundingSpace() {
+        let rules = SceneCore.HomeRules(overrides: ["  COM.APPLE.MUSIC  ": .observability])
+
+        XCTAssertEqual(rules.home(of: App.music), .observability)
+        XCTAssertEqual(rules.source(of: App.music), .userOverride)
+        XCTAssertEqual(rules.home(of: "COM.APPLE.terminal"), .development)
+    }
 }
