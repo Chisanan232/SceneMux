@@ -29,6 +29,48 @@ final class SceneRestorerTest: XCTestCase {
         XCTAssertEqual(port.requestedMoves.map(\.binding), [SceneCoreFixtures.communicationSurface])
     }
 
+    func testTheRestoreAsksForTheArrangementTheWindowWasRecordedAsHaving() throws {
+        // A floating chat window returned to its own workspace as one more tile has been resized and shuffled
+        // in among its neighbours. It is on the right surface and it is not what it was, which is not what
+        // "it goes back where it came from" promised.
+        let port = RecordingSceneEnginePort()
+        let slot = SceneCoreFixtures.slot(role: .communication)
+        let step = SceneCore.SceneTeardownStep(SceneCoreFixtures.attachment(
+            windowRef: try SceneCoreFixtures.windowRef(App.line),
+            slotId: slot.id,
+            ownership: .borrowed,
+            homeAtAttachTime: .communication,
+            originSurface: SceneCoreFixtures.communicationSurface,
+            originArrangement: .floating,
+        ))
+
+        let outcome = SceneCore.SceneRestorer(port: port).restore(step)
+
+        XCTAssertEqual(outcome, .restored)
+        XCTAssertEqual(port.requestedMoves.map(\.arrangement), [.floating])
+    }
+
+    func testAnAttachmentThatRecordedNoArrangementAsksForNone() throws {
+        // State from a build that did not record one, or a window the engine could not describe. The
+        // temptation is `.tiled`, since that is what most windows are — and it would quietly float-to-tile
+        // somebody's window on the strength of a value nobody ever observed.
+        let port = RecordingSceneEnginePort()
+        let slot = SceneCoreFixtures.slot(role: .communication)
+        let step = SceneCore.SceneTeardownStep(SceneCoreFixtures.attachment(
+            windowRef: try SceneCoreFixtures.windowRef(App.slack),
+            slotId: slot.id,
+            ownership: .borrowed,
+            homeAtAttachTime: .communication,
+            originSurface: SceneCoreFixtures.communicationSurface,
+        ))
+
+        let outcome = SceneCore.SceneRestorer(port: port).restore(step)
+
+        XCTAssertEqual(outcome, .restored)
+        XCTAssertEqual(port.requestedMoves.count, 1)
+        XCTAssertNil(port.requestedMoves[0].arrangement)
+    }
+
     func testTheEnginesAnswerDecidesWhetherTheRestoreIsStillOwed() throws {
         // Spelled out as the whole table, because the difference between these rows is whether the attachment
         // survives — and an attachment that survives is a window SceneMux will move again later. A `failed`
