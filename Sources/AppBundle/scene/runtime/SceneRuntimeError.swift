@@ -25,6 +25,8 @@ extension SceneCore {
         /// than applied to whichever window happens to be nearby: mounting the wrong window would move
         /// somebody's window into a task it has nothing to do with.
         case noFocusedWindow
+        /// The action is about taking a window out of a Scene, and no Scene has it.
+        case windowNotInAScene
 
         var description: String {
             switch self {
@@ -34,6 +36,7 @@ extension SceneCore {
                 case .noSceneNumbered(let index): "There is no Scene \(index)."
                 case .noSlotNumbered(let index): "The Scene on screen has no Slot \(index)."
                 case .noFocusedWindow: "SceneMux can’t tell which window you mean, so nothing was changed."
+                case .windowNotInAScene: "That window isn’t in a Scene, so there was nothing to give back."
             }
         }
     }
