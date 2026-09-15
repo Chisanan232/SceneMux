@@ -107,12 +107,33 @@ extension SceneCore {
 
         /// The teardowns a previous run did not finish.
         ///
-        /// Surfaced rather than executed. Carrying a restore out means moving another application's window,
-        /// which is the work of the ticket that implements mounting and teardown execution; until then a Scene
-        /// that was closing stays `restoring…` and says so, which is true, instead of being quietly marked
-        /// finished on a promise nobody kept.
+        /// Read, not executed: a Scene that was closing when the app stopped is `restoring…` until somebody
+        /// carries the remaining steps out, and that is `resumeUnfinishedTeardowns()`.
         var unfinishedTeardowns: [SceneTeardownPlan] {
             orchestrator?.unfinishedTeardowns ?? []
+        }
+
+        /// Finish what a previous run left owed, and tell the user what happened to their windows.
+        ///
+        /// Called once, at startup, after the engine is up — a restore before the workspaces exist would aim a
+        /// window at a surface the runtime has not seen yet. Nothing is decided here: the steps were derived from
+        /// the attachments those Scenes still hold, so this only carries out promises that are already recorded
+        /// and were already the user's decision.
+        ///
+        /// Safe to call when there is nothing owed, which is the ordinary case: it moves nothing and says
+        /// nothing. A restore that fails again stays owed and will be attempted at the next launch, without
+        /// anything having counted the attempts.
+        @discardableResult
+        func resumeUnfinishedTeardowns() -> [SceneShellMessage] {
+            guard let orchestrator else { return [] }
+            var messages: [SceneShellMessage] = []
+            for plan in orchestrator.unfinishedTeardowns {
+                let outcomes = carryOut(plan, with: orchestrator)
+                messages += SceneShellMessage.onClose(plan, outcomes: outcomes, homes: homes, naming: naming)
+            }
+            guard !messages.isEmpty else { return [] }
+            refresh()
+            return messages
         }
 
         /// Define a Scene and hand back its row. Creating does not enter it.
