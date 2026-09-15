@@ -125,10 +125,12 @@ the absent record been read as `tiled`, because most windows are tiled, the wind
 
 ## What this pass did **not** prove
 
-* **A window comes back floating at whatever size the Scene left it.** What is recorded is a layout mode and
+* **A window comes back floating at whatever size the Scene left it.** Not a gap: HORO-1222 puts pixel frames
+  and tree position out of scope on purpose, because "geometry inside a workspace is the engine's business"
+  and a Scene that reproduced one would be a second window manager. What is recorded is a layout mode and
   never a frame — invariant I11 — so the inherited engine's own restore of a remembered floating size
   (`LayoutCommand`'s `lastFloatingSize`) is deliberately not replayed here. Position and size after a
-  floating restore are the engine's, not SceneMux's. A known limitation of `v0.1.0`.
+  floating restore are the engine's, not SceneMux's.
 * **Anything about minimized, fullscreened or hidden windows.** `arrangement(of:)` answers nothing for those,
   which is the same "no claim" path pass 4 exercised, but no such window was borrowed.
 * **Multi-monitor.** One display was attached throughout.

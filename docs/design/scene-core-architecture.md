@@ -212,7 +212,9 @@ quietly flatten somebody's floating window on the strength of a value nobody obs
 
 What is recorded is a *mode* and never a frame: no size, no position, no place among siblings. That is
 invariant I11, and it is the reason a window comes back floating at whatever size the Scene left it rather
-than at the size it had before it was borrowed — a known limitation of v0.1.0, not an oversight.
+than at the size it had before it was borrowed. Geometry inside a workspace is the engine's business, and a
+Scene that reproduced a tiling tree or a remembered frame would be a second window manager — so that is
+declined rather than deferred.
 
 ## Slot
 
