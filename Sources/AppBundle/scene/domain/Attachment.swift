@@ -25,6 +25,20 @@ extension SceneCore {
         /// restored to the Home it has *now*, and this value only explains to them what changed. Evidence,
         /// not instruction — see `docs/design/scene-core-architecture.md`.
         let homeAtAttachTime: SemanticHome
+        /// Where the window was when it was attached — the surface a restore aims at. Recorded, never
+        /// rewritten.
+        ///
+        /// This is the Home surface of the architecture doc, resolved at the one moment it is knowable: a
+        /// Home is a category and cannot receive a window, so restoring one means putting it back where it
+        /// was living before the Scene borrowed it. Recorded rather than looked up later because by teardown
+        /// time the answer is gone — the window is in the Scene's substrate, and asking where it is would
+        /// answer "here".
+        ///
+        /// Optional because a build that could not tell is honest about it rather than inventing a
+        /// destination: nothing to restore to means the window stays exactly where it is and the user is
+        /// told, which is `SceneTeardownOutcome.leftInPlace`. A missing value is never a reason to move a
+        /// window somewhere plausible.
+        let originSurface: SubstrateBinding?
         /// How the attachment came about.
         let origin: AttachmentOrigin
 

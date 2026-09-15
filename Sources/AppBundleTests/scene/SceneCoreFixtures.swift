@@ -41,6 +41,7 @@ enum SceneCoreFixtures {
         slotId: SceneCore.SlotId,
         ownership: SceneCore.Ownership = .sceneOwned,
         homeAtAttachTime: SceneCore.SemanticHome = .development,
+        originSurface: SceneCore.SubstrateBinding? = nil,
         origin: SceneCore.AttachmentOrigin = .userAction,
     ) -> SceneCore.Attachment {
         SceneCore.Attachment(
@@ -48,6 +49,7 @@ enum SceneCoreFixtures {
             slotId: slotId,
             ownership: ownership,
             homeAtAttachTime: homeAtAttachTime,
+            originSurface: originSurface,
             origin: origin,
         )
     }
