@@ -38,4 +38,30 @@ final class HomeCommandTest: XCTestCase {
             """,
         )
     }
+
+    /// `show` answers for one application and names who decided, because "SceneMux thinks so" and "you said so"
+    /// are different sentences and only one of them is worth arguing with. An application nobody has classified
+    /// still gets an answer — every window has a Home — and the source says as much.
+    func testShowNamesTheHomeAndWhoDecidedIt() async throws {
+        let overridden = try await exec("home show --app \(SceneCoreFixtures.App.browser)")
+        XCTAssertEqual(overridden.stdout, [
+            "\(SceneCoreFixtures.App.browser) is Development, according to your config.",
+        ])
+
+        let shipped = try await exec("home show --app \(SceneCoreFixtures.App.line)")
+        XCTAssertEqual(shipped.stdout, [
+            "\(SceneCoreFixtures.App.line) is Communication, according to SceneMux’s defaults.",
+        ])
+
+        let stranger = try await exec("home show --app com.example.Unheard")
+        XCTAssertEqual(stranger.stdout, [
+            "com.example.Unheard is Personal, "
+                + "according to the default for applications SceneMux does not know.",
+        ])
+    }
+
+    @discardableResult
+    private func exec(_ command: String) async throws -> CmdResult {
+        try await parseCommand(command).cmdOrDie.run(.defaultEnv, .emptyStdin)
+    }
 }
