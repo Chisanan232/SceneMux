@@ -108,4 +108,25 @@ final class SceneShellWindowRowTest: XCTestCase {
                 + "will go back to Development, not Communication.",
         )
     }
+
+    /// The same row, with nothing re-homed, must not acquire the note. A "Home changed" line on every borrowed
+    /// window would make the one that matters unreadable.
+    func testAnUnchangedHomeSaysNothingAboutHavingChanged() throws {
+        let row = SceneCore.SceneShellWindowRow(
+            attachment: SceneCoreFixtures.attachment(
+                windowRef: try SceneCoreFixtures.windowRef(App.slack),
+                slotId: .generate(),
+                ownership: .borrowed,
+                homeAtAttachTime: .communication,
+            ),
+            homes: .shippedOnly,
+            naming: naming,
+        )
+
+        XCTAssertFalse(row.homeChangedWhileBorrowed)
+        XCTAssertEqual(
+            row.reversibility,
+            "Borrowed into this Scene. Goes back to Communication when the Scene closes.",
+        )
+    }
 }
