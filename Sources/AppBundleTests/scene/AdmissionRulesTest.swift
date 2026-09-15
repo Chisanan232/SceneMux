@@ -54,4 +54,17 @@ final class AdmissionRulesTest: XCTestCase {
 
         XCTAssertEqual(decision, .tab(slotId: comms.id, ruleId: Rule.tabGroupServingHome))
     }
+
+    func testAWindowWithNowhereLeftToGoIsLeftWhereItIs() throws {
+        // Both development Slots of the journey are full and neither is a tab group. There is no evidence about
+        // what the person wants, so nothing happens: a second terminal stays wherever the engine put it rather
+        // than being squeezed into a Slot that already has a window in it.
+        let scene = try SceneCoreFixtures.debugScene(state: .active(SceneCoreFixtures.activeSubstrate))
+
+        let decision = SceneCore.AdmissionRules.decide(
+            try SceneCoreFixtures.admissionCandidate(App.terminal, ordinal: 1, in: scene),
+        )
+
+        XCTAssertEqual(decision, .ignore)
+    }
 }
