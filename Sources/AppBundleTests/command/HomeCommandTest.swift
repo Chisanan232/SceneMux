@@ -60,6 +60,21 @@ final class HomeCommandTest: XCTestCase {
         ])
     }
 
+    /// `list` shows the rule that will actually apply, not the two halves it came from, and marks the ones the
+    /// user wrote. Ordered by bundle id, so two runs — and two screenshots — say the same thing.
+    func testListShowsTheEffectiveRuleAndMarksTheUsersOwn() async throws {
+        let listed = try await exec("home list")
+
+        // Lowercased, because that is how the rules are keyed: a bundle id typed with capitals in a config file
+        // has to match one shipped without them.
+        let browser = listed.stdout.filter { $0.hasPrefix(SceneCoreFixtures.App.browser.lowercased()) }
+        XCTAssertEqual(browser.count, 1)
+        XCTAssertTrue(browser[0].contains("Development"), browser[0])
+        XCTAssertTrue(browser[0].trimmingCharacters(in: .whitespaces).hasSuffix("your config"), browser[0])
+        XCTAssertEqual(listed.stdout, listed.stdout.sorted())
+        XCTAssertFalse(listed.stdout.contains { $0.hasPrefix("com.example") })
+    }
+
     @discardableResult
     private func exec(_ command: String) async throws -> CmdResult {
         try await parseCommand(command).cmdOrDie.run(.defaultEnv, .emptyStdin)
