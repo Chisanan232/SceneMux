@@ -92,6 +92,31 @@ final class MountCommandTest: XCTestCase {
         XCTAssertEqual(SceneCore.SceneRuntime.shared.snapshot.activeScene?.slots.first?.windows, [])
     }
 
+    /// Every refusal, together, and every one of them says which of the three things was missing rather than
+    /// reporting success against an unchanged screen. The last row is the one that matters most: a person who
+    /// pressed the unmount binding over an ordinary window has to be told SceneMux is not holding it, because
+    /// the alternative is believing it just moved something.
+    func testEveryMissingPieceIsRefusedByName() async throws {
+        let noScene = try await exec("mount --slot 1")
+        XCTAssertEqual(noScene.stderr, ["No Scene is on screen, so there was nothing to do."])
+
+        try await exec("scene new --title 'Debug PROD-123' --template empty")
+        try await exec("scene 1")
+        let noSlot = try await exec("mount --slot 1")
+        XCTAssertEqual(noSlot.stderr, ["The Scene on screen has no Slot 1."])
+
+        try await exec("slot new --role communication")
+        let noWindow = try await exec("mount --slot 1")
+        XCTAssertEqual(noWindow.stderr, ["SceneMux can’t tell which window you mean, so nothing was changed."])
+
+        port.focused = try SceneCoreFixtures.windowRef(SceneCoreFixtures.App.music)
+        let notHeld = try await exec("unmount")
+        XCTAssertEqual(notHeld.stderr, ["That window isn’t in a Scene, so there was nothing to give back."])
+
+        XCTAssertEqual(port.requestedMoves.count, 0)
+        XCTAssertEqual(SceneCore.SceneRuntime.shared.snapshot.activeScene?.slots.first?.windows, [])
+    }
+
     @discardableResult
     private func exec(_ command: String) async throws -> CmdResult {
         try await parseCommand(command).cmdOrDie.run(.defaultEnv, .emptyStdin)
