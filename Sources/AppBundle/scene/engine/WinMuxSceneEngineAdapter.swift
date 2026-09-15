@@ -50,6 +50,18 @@ extension SceneCore {
             focus.windowOrNil.flatMap(reference)
         }
 
+        /// The workspace a window sits on, named the way a Scene can record it.
+        ///
+        /// A window with no workspace at all — floating, or in a tree the engine has not settled yet — has no
+        /// surface to report, and a blank workspace name is refused exactly as `prepareSubstrate` refuses one:
+        /// a recorded destination nobody can name is worse than none, because a restore would aim at it.
+        func surface(of windowRef: WindowRef) -> SubstrateBinding? {
+            guard let name = resolve(windowRef)?.nodeWorkspace?.name,
+                  !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            else { return nil }
+            return SubstrateBinding(workspaceName: name)
+        }
+
         /// Resolves the Scene's workspace, creating it if the user has not used it yet.
         ///
         /// A blank name is refused rather than normalized into something plausible: the engine would happily

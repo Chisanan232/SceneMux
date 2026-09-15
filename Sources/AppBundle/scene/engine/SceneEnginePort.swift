@@ -39,6 +39,17 @@ extension SceneCore {
         ///   build cannot describe. Nothing means the request is refused rather than applied to a guess.
         func focusedWindow() -> WindowRef?
 
+        /// The surface a window is on right now.
+        ///
+        /// Asked once, at the moment a window is attached, and recorded — this is what becomes
+        /// `Attachment.originSurface`, and it is the only chance to learn it. Afterwards the window is in the
+        /// Scene's substrate and the same question answers "in the Scene", which is why teardown reads the
+        /// record rather than asking again.
+        ///
+        /// - Returns: where the window is, or nothing when the engine cannot see the window or cannot say
+        ///   where it is. Nothing is recorded honestly as "nowhere to go back to" rather than filled in.
+        func surface(of windowRef: WindowRef) -> SubstrateBinding?
+
         /// Make sure the Scene has somewhere to be drawn, and start a fresh projection.
         ///
         /// Called exactly once per projection, before any placement, so an implementation may also use it to

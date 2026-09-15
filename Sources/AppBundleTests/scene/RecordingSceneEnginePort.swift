@@ -32,6 +32,9 @@ final class RecordingSceneEnginePort: SceneCore.SceneEnginePort {
     /// The window the engine says the user is looking at. Nothing, unless a test says otherwise — mounting
     /// "the focused window" when there is none has to be a case the caller handles.
     var focused: SceneCore.WindowRef?
+    /// Where the engine says each window currently lives. A window absent from this has no surface, which is
+    /// the "nothing to go back to" case.
+    var surfaces: [SceneCore.WindowRef: SceneCore.SubstrateBinding] = [:]
 
     func currentSubstrate() -> SceneCore.SubstrateBinding? {
         substrate
@@ -39,6 +42,10 @@ final class RecordingSceneEnginePort: SceneCore.SceneEnginePort {
 
     func focusedWindow() -> SceneCore.WindowRef? {
         focused
+    }
+
+    func surface(of windowRef: SceneCore.WindowRef) -> SceneCore.SubstrateBinding? {
+        surfaces[windowRef]
     }
 
     func prepareSubstrate(_ binding: SceneCore.SubstrateBinding) -> Bool {
