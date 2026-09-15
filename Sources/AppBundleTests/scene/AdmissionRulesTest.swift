@@ -142,4 +142,22 @@ final class AdmissionRulesTest: XCTestCase {
 
         XCTAssertEqual(decision, .ignore)
     }
+
+    func testAWindowThatIsAlreadySpokenForIsNotDecidedAboutTwice() throws {
+        // Invariant I4 — one attachment per window across all Scenes — and the reason a second look at the same
+        // window is harmless. The engine really does detect a window twice: once when it appears, and again when
+        // a window it had misread as a popup turns out to be an ordinary one. The second look must not produce a
+        // second decision, and it must not matter which Scene the window is already in.
+        let terminal = SceneCoreFixtures.slot(role: .terminal, order: 0)
+        let scene = try SceneCoreFixtures.scene(
+            slots: [terminal],
+            state: .active(SceneCoreFixtures.activeSubstrate),
+        )
+
+        let decision = SceneCore.AdmissionRules.decide(
+            try SceneCoreFixtures.admissionCandidate(App.terminal, in: scene, isAlreadyInAScene: true),
+        )
+
+        XCTAssertEqual(decision, .ignore)
+    }
 }
