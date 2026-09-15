@@ -88,8 +88,8 @@ final class SceneShellWindowRowTest: XCTestCase {
         XCTAssertTrue(row.homeChangedWhileBorrowed)
     }
 
-    /// And says so where the user is looking. A row that quietly showed the new Home would leave them
-    /// wondering why their chat window came back somewhere else.
+    /// And says so where the user is looking, without promising the window will follow the new Home: a restore
+    /// replays the surface it was borrowed from, so the destination is the one thing the re-home did not change.
     func testTheReversibilityLineNamesTheHomeChangeAndBothHomes() throws {
         let row = SceneCore.SceneShellWindowRow(
             attachment: SceneCoreFixtures.attachment(
@@ -104,8 +104,8 @@ final class SceneShellWindowRowTest: XCTestCase {
 
         XCTAssertEqual(
             row.reversibility,
-            "Home changed to Development while borrowed; "
-                + "will go back to Development, not Communication.",
+            "Borrowed into this Scene. Its Home changed to Development while it was borrowed; "
+                + "it still goes back where it came from, in Communication.",
         )
     }
 
