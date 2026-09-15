@@ -55,7 +55,7 @@ extension SceneCore {
                     "\(count(applications.count, "window")) went back to \(home.displayName)"
                         + " — \(applications.joined(separator: ", "))"
                 case .restoreDeclined(let applicationName):
-                    "\(applicationName) could not be found — nothing was closed or moved"
+                    "\(applicationName) did not go back — nothing was closed or moved"
                 case .windowsLeftInPlace(let windows):
                     "\(count(windows, "window")) left in place"
                 case .sharedWindowSkipped(let applicationName):

@@ -59,7 +59,7 @@ final class SceneShellMessageTest: XCTestCase {
         )
         XCTAssertEqual(
             SceneCore.SceneShellMessage.restoreDeclined(applicationName: "Slack").text,
-            "Slack could not be found — nothing was closed or moved",
+            "Slack did not go back — nothing was closed or moved",
         )
         XCTAssertEqual(
             SceneCore.SceneShellMessage.windowsLeftInPlace(windows: 4).text,
@@ -132,7 +132,7 @@ final class SceneShellMessageTest: XCTestCase {
 
         XCTAssertEqual(messages.map(\.text), [
             "1 window went back to Communication — LINE",
-            "Slack could not be found — nothing was closed or moved",
+            "Slack did not go back — nothing was closed or moved",
         ])
     }
 
