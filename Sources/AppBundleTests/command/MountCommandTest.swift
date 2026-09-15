@@ -73,6 +73,25 @@ final class MountCommandTest: XCTestCase {
             == false)
     }
 
+    /// Giving one window back, before the task ends. It goes to the workspace it was borrowed from — the
+    /// recorded one, not a Home's usual place — and it leaves the Scene, so the Slot is empty again.
+    func testUnmountingGivesTheWindowBackAndSaysWhereItWent() async throws {
+        try await exec("scene new --title 'Debug PROD-123' --template empty")
+        try await exec("scene 1")
+        try await exec("slot new --role communication")
+        port.focused = try SceneCoreFixtures.windowRef(SceneCoreFixtures.App.line)
+        port.surfaces[port.focused!] = SceneCoreFixtures.communicationSurface
+        try await exec("mount --slot 1")
+
+        let result = try await parseCommand("unmount").cmdOrDie.run(.defaultEnv, .emptyStdin)
+
+        XCTAssertEqual(result.stdout, [
+            "\(SceneCoreFixtures.App.line) went back to where it came from, a Communication window.",
+        ])
+        XCTAssertEqual(port.requestedMoves.map(\.binding), [SceneCoreFixtures.communicationSurface])
+        XCTAssertEqual(SceneCore.SceneRuntime.shared.snapshot.activeScene?.slots.first?.windows, [])
+    }
+
     @discardableResult
     private func exec(_ command: String) async throws -> CmdResult {
         try await parseCommand(command).cmdOrDie.run(.defaultEnv, .emptyStdin)
