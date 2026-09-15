@@ -215,4 +215,39 @@ final class SceneStateFormatTest: XCTestCase {
         XCTAssertEqual(read.scenes.flatMap(\.attachments), [borrowed])
         XCTAssertEqual(read.diagnostics, [])
     }
+
+    func testAnAttachmentWrittenBeforeArrangementsWereRecordedReadsAsNoClaim() throws {
+        let slot = SceneCoreFixtures.slot(role: .communication)
+        let windowRef = try SceneCoreFixtures.windowRef("com.linecorp.LINE")
+        let scene = try SceneCoreFixtures.scene(
+            slots: [slot],
+            attachments: [SceneCoreFixtures.attachment(
+                windowRef: windowRef,
+                slotId: slot.id,
+                ownership: .borrowed,
+                homeAtAttachTime: .communication,
+                originSurface: SceneCoreFixtures.communicationSurface,
+                originArrangement: .floating,
+            )],
+        )
+        // Every state file written before HORO-1222: the key is simply not there. Produced by removing it from
+        // what this build writes, so that the fixture cannot drift away from the real shape of the record.
+        let file = try fileWithTamperedScene(scene) { json in
+            var attachments = try XCTUnwrap(json["attachments"] as? [[String: Any]])
+            XCTAssertNotNil(attachments[0].removeValue(forKey: "originArrangement"))
+            json["attachments"] = attachments
+        }
+
+        let read = SceneCore.SceneStateFormat.read(file, from: path)
+
+        // A missing arrangement is the migration: nothing is quarantined, nothing is defaulted, and the Scene
+        // keeps everything else the file recorded. What the window was is simply not known, and
+        // `SceneRestorer` then aims at the surface and makes no claim about the arrangement — which is exactly
+        // what this build did before it recorded one.
+        XCTAssertEqual(read.diagnostics, [])
+        let attachment = try XCTUnwrap(read.scenes.flatMap(\.attachments).first)
+        XCTAssertNil(attachment.originArrangement)
+        XCTAssertEqual(attachment.originSurface, SceneCoreFixtures.communicationSurface)
+        XCTAssertEqual(attachment.ownership, .borrowed)
+    }
 }
