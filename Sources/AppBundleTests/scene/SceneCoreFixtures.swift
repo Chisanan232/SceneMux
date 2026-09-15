@@ -68,6 +68,38 @@ enum SceneCoreFixtures {
     /// closing it has to put them back.
     static let communicationSurface = SceneCore.SubstrateBinding(workspaceName: "2")
 
+    /// The workspace a Scene is drawn on. The same one `RecordingSceneEnginePort` offers by default, so that a
+    /// test about admission and a test about the runtime are talking about the same screen.
+    static let activeSubstrate = SceneCore.SubstrateBinding(workspaceName: "3")
+
+    /// A window the engine has just detected, described the way admission is allowed to see it.
+    ///
+    /// The Home is resolved from the shipped rules and cannot be overridden, so that a test naming
+    /// `App.terminal` is testing what a terminal really resolves to instead of what the test believed it
+    /// resolved to — and so that a change to the shipped table is visible here.
+    static func admissionCandidate(
+        _ bundleId: String = App.terminal,
+        ordinal: Int = 0,
+        kind: SceneCore.AdmissionWindowKind = .managed,
+        surface: SceneCore.SubstrateBinding? = activeSubstrate,
+        detectedDuringStartup: Bool = false,
+        in activeScene: SceneCore.Scene? = nil,
+        isAlreadyInAScene: Bool = false,
+    ) throws -> SceneCore.AdmissionCandidate {
+        let windowRef = try self.windowRef(bundleId, ordinal: ordinal)
+        return SceneCore.AdmissionCandidate(
+            subject: SceneCore.AdmissionSubject(
+                windowRef: windowRef,
+                kind: kind,
+                surface: surface,
+                detectedDuringStartup: detectedDuringStartup,
+            ),
+            home: SceneCore.HomeRules.shippedOnly.home(of: windowRef),
+            activeScene: activeScene,
+            isAlreadyInAScene: isAlreadyInAScene,
+        )
+    }
+
     /// The golden journey of `docs/design/scene-core-ux.md` as one Scene: "Debug PROD-123", five Slots and
     /// six windows. The terminal and the IDE are part of the task, the dashboard and the preview browser were
     /// opened for it, LINE and Slack were lent to it for the duration, and the music player is not in it.

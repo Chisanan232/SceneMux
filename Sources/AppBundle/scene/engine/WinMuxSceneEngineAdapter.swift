@@ -47,7 +47,7 @@ extension SceneCore {
         /// Nothing is focused, raised or activated to answer this — it reads the focus the engine already has,
         /// which is why "mount the window I am looking at" does not disturb the window it is about.
         func focusedWindow() -> WindowRef? {
-            focus.windowOrNil.flatMap(reference)
+            focus.windowOrNil.flatMap(Self.reference)
         }
 
         /// The workspace a window sits on, named the way a Scene can record it.
@@ -56,10 +56,38 @@ extension SceneCore {
         /// surface to report, and a blank workspace name is refused exactly as `prepareSubstrate` refuses one:
         /// a recorded destination nobody can name is worse than none, because a restore would aim at it.
         func surface(of windowRef: WindowRef) -> SubstrateBinding? {
-            guard let name = resolve(windowRef)?.nodeWorkspace?.name,
+            resolve(windowRef).flatMap(Self.surface)
+        }
+
+        /// The same answer for a window the caller already has, which is the shape the detection hook needs.
+        static func surface(of window: Window) -> SubstrateBinding? {
+            guard let name = window.nodeWorkspace?.name,
                   !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             else { return nil }
             return SubstrateBinding(workspaceName: name)
+        }
+
+        /// What the engine has already decided this window is, read off where it bound it.
+        ///
+        /// The mapping is one-to-one with the containers the engine has, which is the point: this cannot drift
+        /// from the engine's own classification, because it *is* the engine's own classification. A window in
+        /// the tiling tree is the work; a window the engine hung straight on the workspace is floating, which is
+        /// what it does with dialogs and with anything the user's own float rules exclude; the popup container
+        /// holds menus and completion lists; and the remaining three containers are macOS's business — a
+        /// minimized window, a natively fullscreen one, or one hidden with its application.
+        ///
+        /// A window with no parent at all is nowhere the engine is holding it, so there is nothing to move and
+        /// the answer is the same as for anything else SceneMux may not touch.
+        static func kind(of window: Window) -> AdmissionWindowKind {
+            switch window.parent?.kind {
+                case .tilingContainer: .managed
+                case .workspace: .floating
+                case .macosPopupWindowsContainer: .popup
+                case .macosMinimizedWindowsContainer,
+                     .macosFullscreenWindowsContainer,
+                     .macosHiddenAppsWindowsContainer,
+                     nil: .setAside
+            }
         }
 
         /// Resolves the Scene's workspace, creating it if the user has not used it yet.
@@ -195,7 +223,7 @@ extension SceneCore {
         /// Nothing is created, launched or focused here. A window that is not there is simply not there, and
         /// invariant I10 has SceneMux leave it at that.
         private func resolve(_ windowRef: WindowRef) -> Window? {
-            let candidates = inventory
+            let candidates = Self.inventory
                 .filter { $0.app.rawAppBundleId == windowRef.bundleId }
                 .sorted { $0.windowId < $1.windowId }
             return candidates.getOrNil(atIndex: windowRef.ordinalWithinApp)
@@ -210,9 +238,14 @@ extension SceneCore {
         /// Nothing to describe it with means no ref. An application with no bundle id — a helper process, a
         /// system panel — cannot be named in a way that survives a restart, and inventing a name for it is
         /// how a Scene comes back pointing at whatever happens to be there next time.
-        private func reference(_ window: Window) -> WindowRef? {
+        ///
+        /// Static because the window-detection hook needs it and has no adapter to hand: it is called from the
+        /// engine's own detection path, not from a projection. Nothing here reads the instance, and it must
+        /// stay that way — a description that depended on which projection was running would not be the
+        /// inverse of anything.
+        static func reference(_ window: Window) -> WindowRef? {
             guard let bundleId = window.app.rawAppBundleId else { return nil }
-            let ordinal = inventory
+            let ordinal = Self.inventory
                 .filter { $0.app.rawAppBundleId == bundleId }
                 .sorted { $0.windowId < $1.windowId }
                 .firstIndex { $0.windowId == window.windowId }
@@ -224,7 +257,7 @@ extension SceneCore {
         ///
         /// Follows `Window.get(byId:)`: under test the tree is the only inventory there is, because no
         /// `MacWindow` was ever registered from the Accessibility API.
-        private var inventory: [Window] {
+        static var inventory: [Window] {
             isUnitTest
                 ? Workspace.all.flatMap { $0.allLeafWindowsRecursive }
                 : MacWindow.allWindows
@@ -254,4 +287,31 @@ extension SceneCore {
             }
         }
     }
+}
+
+/// The engine's one call outward: a window has just been detected, so let SceneMux have a look at it.
+///
+/// The seam `docs/design/scene-core-architecture.md` describes, and it is one function taking one engine type
+/// and returning nothing — the inherited engine calls it and learns no Scene vocabulary by doing so, which is
+/// what keeps this hook mergeable with upstream and keeps a Scene out of the tiling code.
+///
+/// It lives in this file for the same reason everything else here does: it is the only file in SceneMux allowed
+/// to know both `Window` and `SceneCore`, and `script/test_scene_domain_layering.py` holds every other file in
+/// `scene/` to that.
+///
+/// *Describing* the window rather than passing it along is the security boundary, not a convenience. What
+/// crosses is a bundle id, an ordinal, which container the engine chose and a workspace name. The window title
+/// does not, the process does not, and neither can be reached from the other side.
+///
+/// Nothing here decides anything and nothing here can fail loudly. A window that cannot be described in a way
+/// that survives a restart is left alone, and so is a window the rules decline — which is nearly all of them.
+@MainActor
+func sceneAdmitDetectedWindow(_ window: Window) {
+    guard let windowRef = SceneCore.WinMuxSceneEngineAdapter.reference(window) else { return }
+    SceneCore.SceneRuntime.shared.admit(SceneCore.AdmissionSubject(
+        windowRef: windowRef,
+        kind: SceneCore.WinMuxSceneEngineAdapter.kind(of: window),
+        surface: SceneCore.WinMuxSceneEngineAdapter.surface(of: window),
+        detectedDuringStartup: isStartup,
+    ))
 }

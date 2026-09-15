@@ -24,6 +24,14 @@ private func onWindowDetected(_ window: Window) async throws {
             return
         }
     }
+    // Last, and only if the user's own callbacks did not claim the window. A `check-further-callbacks = false`
+    // callback returns above, which is the user saying they have dealt with this window — and an explicit
+    // instruction outranks a rule, here as everywhere else in Scene Core.
+    //
+    // Deliberately not built as one of these callbacks. They run arbitrary shell commands, and window admission
+    // is not something SceneMux should ask a shell to decide: it would put the placement of the user's windows
+    // behind a command line assembled from window facts. This is a function call.
+    sceneAdmitDetectedWindow(window)
 }
 
 extension WindowDetectedCallback {

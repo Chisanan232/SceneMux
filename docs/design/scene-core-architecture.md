@@ -563,15 +563,21 @@ becomes aware of, answered by a typed value, and never by a side effect:
 
 ```
 enum AdmissionDecision {
-    case claim(SlotRef)       // this window belongs to that Slot, and SceneMux says so first
-    case route(SlotRef)       // place it in that Slot of the active Scene
-    case mount(SlotRef)       // attach it as .borrowed, leaving its Home alone
-    case tab(SlotRef)         // add it to that Slot's tab group
-    case float                // leave it floating; do not tile it
-    case ignore               // not our business. The default
-    case quarantine(Reason)   // something is wrong; touch nothing and say so
+    case claim(slotId: SlotId, ruleId: String)   // this window belongs there, and SceneMux says so first
+    case route(slotId: SlotId, ruleId: String)   // place it in that Slot of the active Scene
+    case mount(slotId: SlotId, ruleId: String)   // attach it as .borrowed, leaving its Home alone
+    case tab(slotId: SlotId, ruleId: String)     // add it to that Slot's tab group
+    case float                                   // leave it floating; do not tile it
+    case ignore                                  // not our business. The default
+    case quarantine(reason: String)              // something is wrong; touch nothing and say so
 }
 ```
+
+Every attaching case carries the id of the rule that produced it, because a window that moved somewhere
+its owner did not expect has to be traceable back to the reason. It is recorded on the attachment as
+`AttachmentOrigin.admission(ruleId:)` and survives being written to the state file, so the question is
+answerable in the next session too. Which ownership each case implies is stated once, on the decision
+itself, so that nothing carrying a decision out can pair a Slot with an ownership of its own choosing.
 
 All seven cases exist in the model because admission is a first-class abstraction that later phases
 extend, and a partial enum would force a source change in every `switch` when G2 arrives. **v0.1.0
@@ -608,6 +614,68 @@ Two rules follow from that table and are worth stating as rules, because both ar
 > **An unrecognised normal user window is `ignore`.** Not floated, not quarantined, not tiled somewhere
 > plausible — left exactly as the inherited engine would have left it. Failing safe means declining to act.
 
+### What a rule is handed
+
+A rule never receives the window. It receives an `AdmissionSubject` — a `WindowRef` (bundle id plus ordinal
+within the application), the kind of window the engine decided this was, the workspace the engine put it on,
+and whether the detection happened during startup — together with the Home its application resolves to, the
+Scene currently on screen, and whether the window is already attached to some Scene. Those parts are
+assembled by `SceneRuntime`, the only layer that can see both the engine's report and SceneMux's own Scenes.
+
+So the two forbidden inputs are *absent* rather than merely unused: no field of `AdmissionSubject` could
+carry a window title or a parent pid, and `script/test_scene_domain_layering.py` holds `scene/admission/` to
+Foundation-only imports and to naming no engine type — so a rule cannot reach past the value it was given to
+fetch them. That is a stronger promise than a comment asking it not to.
+
+The engine's classification is read the same way, as *where the engine bound the window*: an
+`AdmissionWindowKind` of `managed`, `floating`, `popup` or `setAside`. Re-deriving it from window role and
+level would be a second heuristic that could disagree with the engine's own, and the day it disagreed
+SceneMux would be moving a dialog into a Slot. Only `managed` is eligible for a Slot at all, which is the
+whole of the conservative handling of dialogs and popups: they are not excluded by an editable rule, they
+arrive as a kind no rule can route.
+
+### What v0.1.0 decides, in order
+
+`AdmissionRules.decide` is one function that decides by declining. Each row below is a reason to leave the
+window alone, checked in this order, and only a window that survives all seven is moved at all:
+
+| # | Declined | Because |
+| --- | --- | --- |
+| 1 | Anything that is not an ordinary managed window | A dialog, a popup or a minimized window is not the work |
+| 2 | Anything detected during startup | A Scene is still `active` after a relaunch, and startup is the engine taking stock rather than a person opening a window |
+| 3 | A window already attached to a Scene | Invariant I4, and what makes a second detection of the same window harmless |
+| 4 | Every window, when no Scene is on screen | There is no intent to serve. This is the ordinary case |
+| 5 | A window not on the active Scene's own workspace | Somebody switched workspaces with the Scene still open; pulling their new window across would move it out from under them |
+| 6 | A window whose Home no Slot of this Scene serves | See the table below |
+| 7 | A window with nowhere left to go | Every serving Slot is full and none of them is a tab group |
+
+What survives is placed by one of exactly two rules:
+
+| Rule id | Decision | When |
+| --- | --- | --- |
+| `empty-slot-serving-home` | `route` | The first empty Slot, in Slot order, whose role serves the window's Home |
+| `tab-group-serving-home` | `tab` | Every serving Slot is full and one of them is a tab group — which is the Scene saying that more of these are welcome |
+
+Both attach as `.sceneOwned`. `mount`, the `.borrowed` verb, is only ever reached by explicit user action in
+v0.1.0: a window first seen while the Scene was already open has no earlier place to be sent back to, and
+recording it as borrowed would promise a restore whose destination would have to be invented — which
+invariant I8 forbids.
+
+Which Slot roles serve a Home:
+
+| Semantic Home | Slot roles served |
+| --- | --- |
+| Development | `editor`, `terminal` |
+| Communication | `communication` |
+| Observability | `observability` |
+| Personal | *none* |
+
+`Personal` serving nothing is the load-bearing row. It is both the answer for the applications SceneMux
+classifies as the user's own and the answer for every application it has never heard of, because
+`HomeRules.fallback` is `personal` — so **both** of the stated rules above fall out of row 6 rather than
+existing as special cases that could be edited away. A browser window cannot be routed anywhere by any rule,
+and neither can an unrecognised one.
+
 ### Where admission attaches, and where it does not
 
 The engine already has the two seams admission needs:
@@ -624,6 +692,37 @@ Admission is also deliberately **not** built on the inherited `on-window-detecte
 run arbitrary commands from the user's config file; `AGENTS.md` forbids introducing free-form command
 execution to solve orchestration problems, and a typed decision that the app itself executes is both safer
 and testable. The inherited callbacks keep working, unchanged, for the users who already have them.
+
+The hook runs *after* the user's own callbacks, and a callback with `check-further-callbacks = false` returns
+before it. That ordering is the same rule as everywhere else in Scene Core: an explicit instruction outranks
+a rule.
+
+### What G1 does not do in v0.1.0
+
+Stated rather than fixed, because each of these is a decision to decline rather than an unfinished edge:
+
+- **A Home is coarser than a Slot role.** Nothing admission may read says whether a JetBrains window is an
+  editor or a terminal, so a development window fills the first empty development Slot in Slot order. Somebody
+  who cares which window goes where mounts it explicitly. Carried by
+  [HORO-1225](https://lightning-dust-mite.atlassian.net/browse/HORO-1225), which has to answer what evidence
+  could tell the two apart without reading a window title.
+- **A `preview` Slot is never filled by a rule.** The windows that belong in one are browser windows, and
+  browsers are `personal`. Filling it would mean a rule deciding that somebody's browser is part of a task.
+- **No `personal` window is ever admitted**, which includes every application SceneMux has not classified.
+- **Nothing is admitted during startup.** Windows that already existed when SceneMux launched are never swept
+  into the Scene that happened to be open when it last stopped.
+- **Nothing is admitted onto a workspace the Scene is not on.** A window opened after switching away stays
+  where it was opened.
+- **A full Slot does not overflow.** With no empty serving Slot and no tab group, the answer is `ignore` —
+  there is no second-best Slot and no automatic split.
+- **A refused attachment is not retried.** If attaching fails, the window is left exactly where the engine put
+  it and one diagnostic line says so; the window is never closed, and nothing is moved to make room.
+- **No rule produces `claim`, `float` or `quarantine`.** `claim` is G2; `float` is the engine's own existing
+  behaviour and needs no decision from SceneMux; `quarantine` is reachable only from the corrupt-state path,
+  so a window is quarantined only where something was recorded about it that no longer makes sense — never
+  because an ordinary window could not be understood.
+- **Nothing is focused, raised or closed by admission**, on any outcome. Invariants I1 and I6 hold through
+  every path above, including the failing ones.
 
 ## Persistence: intent, not window identity
 
@@ -781,7 +880,9 @@ is a rule that survives exactly as long as reviewers keep noticing:
    the Phase 0 rule about mergeability applied to Phase 1: an `upstream` merge that touches
    `NewWindowBinding.swift` or `WorkspaceProjects.swift` must still merge into code its author would
    recognise. Where the engine must call outward — the admission hook on window detection — it calls one
-   named function with no Scene types in its signature.
+   named function with no Scene types in its signature. That function is `sceneAdmitDetectedWindow(_:)`, one
+   line at the tail of `onWindowDetected`, and it lives in the adapter's own file because that is the only
+   file allowed to know both a `Window` and a Scene.
 
 `SceneEnginePort` is introduced *with its adapter and its caller, in the ticket that needs it*. It is not
 added ahead of time as an empty protocol: the repository's own rules forbid abstractions with no callers,
@@ -851,7 +952,7 @@ the test.
 | I9 | Unreadable or unrecognised persisted state yields zero Scenes and zero window operations |
 | I10 | An unrecognised window receives `ignore`; SceneMux leaves it exactly where the inherited engine put it |
 | I11 | No Scene state contains a window title, a window frame, a monitor id or a `CGWindowID` |
-| I12 | `scene/domain/` and `scene/lifecycle/` import `Foundation` only; no engine type is named outside `scene/engine/` |
+| I12 | `scene/domain/`, `scene/lifecycle/`, `scene/shell/` and `scene/admission/` import `Foundation` only; no engine type is named outside `scene/engine/`, where only the adapter may name one |
 | I13 | A Slot with no attachments still exists in Scene state and is still shown |
 | I14 | `ended` is reachable from `ending` even when every window involved has disappeared |
 | I15 | A projection binds, unbinds or moves only the windows its Scene names. Every other window on the substrate keeps its place and its parent |

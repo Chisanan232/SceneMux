@@ -16,6 +16,13 @@ a `Window` "just to read the title". It may name Scene Core freely and the engin
 at all, which is also what keeps invariant I11 enforceable: a row that cannot reach a
 window cannot put a window title in a screenshot.
 
+`scene/admission/` — the G1 rules that decide what happens to a newly detected
+window — is held to the rule for the sharpest reason of the four: it is the one
+layer whose whole subject matter is a window that the engine has just handed over.
+Reaching for the `Window` itself would be one line, and it would silently widen what
+a rule may read from a bundle id and a container to a window title and a process. The
+rules are given a described window instead, and this is what keeps it that way.
+
 `scene/engine/` is where the two worlds finally meet, so the rule there is about
 width rather than height: exactly one file — the adapter — may name an engine
 type, and everything else in the layer stays on the Scene side of the seam. A
@@ -32,10 +39,12 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 SOURCES = REPO / "Sources"
+TESTS = SOURCES / "AppBundleTests"
 SCENE = SOURCES / "AppBundle" / "scene"
 DOMAIN = SCENE / "domain"
 LIFECYCLE = SCENE / "lifecycle"
 SHELL = SCENE / "shell"
+ADMISSION = SCENE / "admission"
 ENGINE = SCENE / "engine"
 
 # The one file in the repository allowed to hold both vocabularies at once.
@@ -76,6 +85,7 @@ class SceneDomainLayeringTest(unittest.TestCase):
 
         cls.lifecycle_files = swift_files(LIFECYCLE)
         cls.shell_files = swift_files(SHELL)
+        cls.admission_files = swift_files(ADMISSION)
         cls.engine_files = [path for path in swift_files(ENGINE) if path != ADAPTER]
 
         # Two exclusion sets, because the two layers are allowed different things. The
@@ -90,6 +100,12 @@ class SceneDomainLayeringTest(unittest.TestCase):
         declared = set()
         for path in swift_files(SOURCES):
             if directory in path.parents or path.parent == directory:
+                continue
+            # A test's own private spelling of a name is not an engine type, and the
+            # layers guarded here could not reach it if it were: the test module is
+            # invisible to the code under test. Counting it would fail the build for a
+            # collision between two files that cannot see each other.
+            if TESTS in path.parents or path.parent == TESTS:
                 continue
             declared.update(DECLARATION.findall(path.read_text()))
         return declared
@@ -109,6 +125,13 @@ class SceneDomainLayeringTest(unittest.TestCase):
         self.assertIn(
             "SceneShellSnapshot",
             {n for p in self.shell_files for n in DECLARATION.findall(p.read_text())},
+        )
+
+    def test_the_admission_layer_exists(self):
+        self.assertTrue(self.admission_files, f"no Swift files under {ADMISSION}")
+        self.assertIn(
+            "AdmissionRules",
+            {n for p in self.admission_files for n in DECLARATION.findall(p.read_text())},
         )
 
     def test_the_engine_layer_exists_and_has_exactly_one_adapter(self):
@@ -183,6 +206,27 @@ class SceneDomainLayeringTest(unittest.TestCase):
                 [],
                 f"{path.relative_to(REPO)} names engine types {trespassers}; a row describes a "
                 "window rather than reaching one, which is what keeps window titles out of it",
+            )
+
+    def test_admission_imports_foundation_only(self):
+        for path in self.admission_files:
+            for module in IMPORT.findall(path.read_text()):
+                self.assertEqual(
+                    module,
+                    "Foundation",
+                    f"{path.relative_to(REPO)} imports {module}; a rule decides from a described "
+                    "window, and describing one is somebody else's job",
+                )
+
+    def test_admission_names_no_engine_type(self):
+        for path in self.admission_files:
+            named = set(IDENTIFIER.findall(strip_comments(path.read_text())))
+            trespassers = sorted(named & self.engine_types_beyond_scene_core)
+            self.assertEqual(
+                trespassers,
+                [],
+                f"{path.relative_to(REPO)} names engine types {trespassers}; admission reads a bundle "
+                "id, a container and a workspace name, and a Window would bring a title with it",
             )
 
     def test_the_engine_layer_imports_foundation_only_apart_from_the_adapter(self):
