@@ -276,6 +276,25 @@ extension SceneCore {
             return outcome
         }
 
+        /// Give back the window the user is looking at.
+        ///
+        /// The counterpart of `mount`, and the same reason for existing: a surface that acts on "the focused
+        /// window" must not have to construct a `WindowRef` of its own, because a `WindowRef` assembled by a
+        /// caller is a caller that can name a window the engine never saw.
+        ///
+        /// The row is built *before* the window is given back, so the reply can name the application and the
+        /// Home of an attachment that no longer exists a line later.
+        @discardableResult
+        func unmountFocusedWindow() throws -> (window: SceneShellWindowRow, outcome: SceneTeardownOutcome) {
+            let orchestrator = try requireOrchestrator()
+            guard let windowRef = engine.focusedWindow() else { throw SceneRuntimeError.noFocusedWindow }
+            guard let holder = orchestrator.world.holder(of: windowRef) else {
+                throw SceneRuntimeError.windowNotInAScene
+            }
+            let window = SceneShellWindowRow(attachment: holder.attachment, homes: homes, naming: naming)
+            return (window, try unmount(windowRef))
+        }
+
         /// Take an empty Slot out of the Scene on screen.
         func removeSlot(_ slotId: SlotId) throws {
             let orchestrator = try requireOrchestrator()
