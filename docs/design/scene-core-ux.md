@@ -302,7 +302,8 @@ wrong window needs it back now, and closing the whole task to get it would make 
 goes through the same restorer the lifecycle uses, so the window ends up where closing the Scene would have
 put it. Nothing here closes a window, and a window the Scene was never allowed to move is refused out loud —
 on the HUD as well as in the reply. A window the Scene *owns* has nowhere to go back to, so it leaves the
-Scene where it stands, and the reply says which of the two happened rather than only that nothing moved.
+Scene where it stands — and the reply says that, rather than only that nothing moved, because "left where it
+is" on its own reads as "nothing happened".
 
 ## Slots and composition
 
@@ -466,7 +467,7 @@ If the app quit while a Scene was `ending`, the next launch shows the Scene as `
 
 A window that no longer exists is skipped in silence: the user closed it themselves during the task, so it
 is not news, and a line about it would bury the one about a window that really did not move. The `did not go
-back` HUD is for that case instead — a destination that has gone, or an application that refused. Nothing is
+back` HUD is for that other case — a destination that has gone, or an application that refused. Nothing is
 closed to reach a tidy state — the Scene reaches `ended` with an honest report instead (invariant I14).
 
 ## Keyboard first, pointer equal
