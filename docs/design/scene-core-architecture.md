@@ -804,8 +804,8 @@ Projection is three of the port's methods, and the order they run in is the whol
 | 2 | `place(_:on:)`, once per occupied Slot, in Slot order | Build one Slot: resolve its windows, build a container if the composition needs one, bind. Call order *is* Slot order — the port has no position argument, because a Slot's place among its siblings is where it was built, and a second way of saying it could only ever disagree with the first |
 | 3 | `settle(_:)` | Run the engine's own normalization and read the resulting composition of each Slot back |
 
-The rest of the port is what *one* window needs, and each entry was added by the ticket that had a caller
-for it: `currentSubstrate()` says whether there is anywhere to draw at all, `focusedWindow()` says which
+The rest of the port answers what a single operation needs to know, and each entry was added by the ticket
+that had a caller for it: `currentSubstrate()` says whether there is anywhere to draw at all, `focusedWindow()` says which
 window the person means, `surface(of:)` says where it is right now — recorded as `Attachment.originSurface`
 at the one moment it is knowable — and `move(_:to:)` is the whole of "put this window there", used both to
 mount one and to send it back. None of them names a container, a frame or a monitor, for the reason the
