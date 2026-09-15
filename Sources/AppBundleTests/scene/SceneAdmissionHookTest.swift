@@ -44,4 +44,31 @@ final class SceneAdmissionHookTest: XCTestCase {
         try runtime.enter(scene.id)
         return (workspace, try runtime.addSlot(role: role).id)
     }
+
+    /// The whole feature in one assertion: a terminal window appears while a debugging Scene is open, and it is
+    /// in the Scene's terminal Slot afterwards — without anybody dragging it there.
+    ///
+    /// The attachment is checked in the state file rather than in the snapshot, because the thing worth proving
+    /// is the part a person later asks about: which rule moved their window. `AttachmentOrigin.admission` with
+    /// the rule's own name in it is the answer, and it has to have survived being written to disk.
+    func testATerminalWindowAppearingDuringADebuggingSceneEndsUpInItsTerminalSlot() throws {
+        let (workspace, slotId) = try sceneOnScreen(with: .terminal)
+        let window = TestWindow.new(
+            id: 1,
+            parent: workspace.rootTilingContainer,
+            app: TestApp(bundleId: App.terminal),
+        )
+
+        sceneAdmitDetectedWindow(window)
+
+        let slot = try XCTUnwrap(SceneCore.SceneRuntime.shared.snapshot.activeScene?.slots.first)
+        XCTAssertEqual(slot.windows.map(\.windowRef), [try SceneCoreFixtures.windowRef(App.terminal)])
+        // Scene-owned, not borrowed: nothing lent this window to the Scene, so there is no earlier place to
+        // promise to send it back to.
+        XCTAssertEqual(slot.windows.first?.isMounted, false)
+
+        let attachment = try XCTUnwrap(store.load().scenes.first?.attachments.first)
+        XCTAssertEqual(attachment.slotId, slotId)
+        XCTAssertEqual(attachment.origin, .admission(ruleId: Rule.emptySlotServingHome))
+    }
 }
