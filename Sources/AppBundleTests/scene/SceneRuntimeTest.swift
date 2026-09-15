@@ -1,4 +1,5 @@
 @testable import AppBundle
+import Combine
 import Foundation
 import XCTest
 
@@ -188,5 +189,39 @@ final class SceneRuntimeTest: XCTestCase {
         XCTAssertEqual(outcome, .restored)
         XCTAssertEqual(port.requestedMoves.map(\.binding), [SceneCoreFixtures.communicationSurface])
         XCTAssertEqual(runtime.snapshot.activeScene?.windowCount, 0)
+    }
+
+    /// Closing a Scene, both halves at once: the borrowed window goes back to the workspace it was borrowed
+    /// from, the scene-owned one is left exactly where it is rather than closed, and the user is told both —
+    /// which is the whole reversibility promise, and the reason a Scene is safe to end.
+    func testClosingASceneSendsTheBorrowedWindowsHomeAndSaysWhatStayed() throws {
+        let runtime = try runtime()
+        var said: [SceneCore.SceneShellMessage] = []
+        let subscription = runtime.$message.sink { if let message = $0 { said.append(message) } }
+        defer { subscription.cancel() }
+        let scene = try runtime.createScene(title: "Debug PROD-123", template: .empty)
+        try runtime.enter(scene.id)
+        let terminal = try runtime.addSlot(role: .terminal)
+        let comms = try runtime.addSlot(role: .communication)
+        for (bundleId, slotId, ownership) in [
+            (SceneCoreFixtures.App.terminal, terminal.id, SceneCore.Ownership.sceneOwned),
+            (SceneCoreFixtures.App.line, comms.id, .borrowed),
+        ] {
+            let windowRef = try SceneCoreFixtures.windowRef(bundleId)
+            port.focused = windowRef
+            port.surfaces[windowRef] = SceneCoreFixtures.communicationSurface
+            try runtime.mount(into: slotId, ownership: ownership)
+        }
+        said.removeAll()
+
+        let plan = try runtime.close(scene.id)
+
+        XCTAssertEqual(plan.pending.map(\.windowRef.bundleId), [SceneCoreFixtures.App.line])
+        XCTAssertEqual(said.map(\.text), [
+            "1 window went back to Communication — \(SceneCoreFixtures.App.line)",
+            "1 window left in place",
+        ])
+        XCTAssertEqual(runtime.snapshot.scenes, [])
+        XCTAssertEqual(runtime.unfinishedTeardowns, [])
     }
 }
