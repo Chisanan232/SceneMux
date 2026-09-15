@@ -47,7 +47,7 @@ final class MountCommandTest: XCTestCase {
 
         XCTAssertEqual(result.stdout, [
             "Mounted \(SceneCoreFixtures.App.line) into the communication slot. "
-                + "It is still a Communication window and goes back when the Scene closes.",
+                + "Its Home is still Communication, and it goes back when the Scene closes.",
         ])
         let window = SceneCore.SceneRuntime.shared.snapshot.activeScene?.slots.first?.windows.first
         XCTAssertEqual(window?.home, .communication)
@@ -67,7 +67,7 @@ final class MountCommandTest: XCTestCase {
 
         XCTAssertEqual(result.stdout, [
             "Attached \(SceneCoreFixtures.App.terminal) to the terminal slot. "
-                + "This Scene owns it; it is still a Development window.",
+                + "This Scene owns it; its Home is still Development.",
         ])
         XCTAssertTrue(SceneCore.SceneRuntime.shared.snapshot.activeScene?.slots.first?.windows.first?.isMounted
             == false)

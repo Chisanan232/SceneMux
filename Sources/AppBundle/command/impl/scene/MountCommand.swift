@@ -24,12 +24,12 @@ struct MountCommand: Command {
             guard args.own else {
                 return io.out(
                     "Mounted \(window.applicationName) into the \(slot.title) slot. "
-                        + "It is still a \(window.home.displayName) window and goes back when the Scene closes.",
+                        + "Its Home is still \(window.home.displayName), and it goes back when the Scene closes.",
                 )
             }
             return io.out(
                 "Attached \(window.applicationName) to the \(slot.title) slot. "
-                    + "This Scene owns it; it is still a \(window.home.displayName) window.",
+                    + "This Scene owns it; its Home is still \(window.home.displayName).",
             )
         } catch let error as SceneCore.SceneRuntimeError {
             return io.err(error.description)
