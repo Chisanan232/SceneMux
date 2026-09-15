@@ -48,6 +48,7 @@ extension CmdArgs {
             case let args as SummonWorkspaceCmdArgs: SummonWorkspaceCommand(args: args)
             case let args as SwapCmdArgs: SwapCommand(args: args)
             case let args as TriggerBindingCmdArgs: TriggerBindingCommand(args: args)
+            case let args as UnmountCmdArgs: UnmountCommand(args: args)
             case let args as VolumeCmdArgs: VolumeCommand(args: args)
             case let args as WorkspaceCmdArgs: WorkspaceCommand(args: args)
             case let args as WorkspaceBackAndForthCmdArgs: WorkspaceBackAndForthCommand(args: args)
