@@ -268,6 +268,11 @@ extension SceneCore {
         /// A `.sharedPersistent` window is refused out loud instead of being moved. That ownership means the
         /// user said this window is nobody's task, and invariant I7 makes it the one thing here that is not
         /// SceneMux's to touch — so the answer is the HUD line saying so, and no window moves.
+        ///
+        /// A window the Scene *owns* leaves the Scene without going anywhere, and the reason says which of the
+        /// two it was. Nothing borrowed it, so there is no surface it is owed; the restorer's own words for a
+        /// step it may not act on are about a permission the teardown lacks, and reading them here would make
+        /// an answered request look like a refused one.
         @discardableResult
         func unmount(_ windowRef: WindowRef) throws -> SceneTeardownOutcome {
             let orchestrator = try requireOrchestrator()
@@ -278,7 +283,14 @@ extension SceneCore {
                 post(.sharedWindowSkipped(applicationName: naming(windowRef.bundleId) ?? windowRef.bundleId))
                 return .leftInPlace(reason: "it is shared")
             }
-            let outcome = SceneRestorer(port: engine).restore(SceneTeardownStep(holder.attachment))
+            let step = SceneTeardownStep(holder.attachment)
+            guard step.needsWork else {
+                try orchestrator.detach(windowRef, from: holder.scene.id)
+                reproject()
+                refresh()
+                return .leftInPlace(reason: "the Scene owned it, so there is nowhere to send it back to")
+            }
+            let outcome = SceneRestorer(port: engine).restore(step)
             guard outcome.isFinal else { return outcome }
             try orchestrator.detach(windowRef, from: holder.scene.id)
             reproject()
