@@ -192,6 +192,36 @@ extension SceneCore {
             return slot
         }
 
+        /// Put the window the user is looking at into a Slot of the Scene on screen.
+        ///
+        /// Borrowed by default, because that is the reversible half of the bargain: the window goes back where
+        /// it came from when the task ends. `.sceneOwned` is the explicit other branch — `--own`, or `⌥` on the
+        /// drop — and it is a claim about the window, not a convenience, so it is never inferred from anything.
+        ///
+        /// Two facts are recorded now because now is the only time they are true: the Home the rules give the
+        /// application, and the surface the window is on. Once the window is in the Scene, asking where it lives
+        /// answers "in the Scene", and the way back would be gone.
+        ///
+        /// Nothing is focused or raised to do this. The window is already the one in front of the user; the
+        /// projection that follows puts it in its Slot, and the user stays where they are.
+        @discardableResult
+        func mount(into slotId: SlotId, ownership: Ownership = .borrowed) throws -> SceneShellWindowRow {
+            let orchestrator = try requireOrchestrator()
+            let active = try requireActive()
+            guard let windowRef = engine.focusedWindow() else { throw SceneRuntimeError.noFocusedWindow }
+            let attachment = try orchestrator.attach(
+                windowRef,
+                to: slotId,
+                of: active.id,
+                ownership: ownership,
+                home: homes.home(of: windowRef),
+                originSurface: engine.surface(of: windowRef),
+            )
+            reproject()
+            refresh()
+            return SceneShellWindowRow(attachment: attachment, homes: homes, naming: naming)
+        }
+
         /// Take an empty Slot out of the Scene on screen.
         func removeSlot(_ slotId: SlotId) throws {
             let orchestrator = try requireOrchestrator()
