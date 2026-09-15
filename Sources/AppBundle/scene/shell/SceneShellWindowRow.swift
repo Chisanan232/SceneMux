@@ -30,6 +30,11 @@ extension SceneCore {
         /// same answer until the user re-homes an application while a Scene is borrowing it, and at that moment
         /// the row has to say where the window is going to go, not where it was going to go yesterday.
         let home: SemanticHome
+        /// The Home recorded when the window was attached.
+        ///
+        /// Kept for one purpose: comparing it with `home` is the only way to notice that the user re-homed the
+        /// application while the Scene was borrowing the window. It is never where the window goes.
+        let recordedHome: SemanticHome
         /// Whether this window was borrowed into the Scene rather than being part of it.
         let isMounted: Bool
 
@@ -49,13 +54,30 @@ extension SceneCore {
         /// A dashed leading edge says "on loan" without any text at all.
         var hasDashedLeadingEdge: Bool { isMounted }
 
+        /// Whether the user re-homed this application while the Scene was borrowing the window.
+        ///
+        /// Only a borrowed window can have this happen to it in a way that matters: a scene-owned window is
+        /// not going anywhere when the Scene ends, so a change in what it is *for* changes nothing about it.
+        var homeChangedWhileBorrowed: Bool {
+            isMounted && home != recordedHome
+        }
+
         /// What hovering or focusing a mounted row reveals: in plain words, that this is reversible.
         ///
         /// Only for a mounted row. A window the Scene owns has nothing to reverse, and inventing a sentence
         /// for it would make the borrowed case less noticeable rather than more.
+        ///
+        /// When the Home changed under the window, this line is where that is said. The alternative is the
+        /// thing the architecture calls out by name — a silent divergence between what the row said when the
+        /// window was borrowed and where it actually goes back to — and the user finds out about it by
+        /// discovering a window somewhere they did not expect.
         var reversibility: String? {
             guard isMounted else { return nil }
-            return "Borrowed into this Scene. Goes back to \(home.displayName) when the Scene closes."
+            guard homeChangedWhileBorrowed else {
+                return "Borrowed into this Scene. Goes back to \(home.displayName) when the Scene closes."
+            }
+            return "Home changed to \(home.displayName) while borrowed; "
+                + "will go back to \(home.displayName), not \(recordedHome.displayName)."
         }
 
         /// `"LINE, Communication, mounted"` — the same three facts the row shows, in the same order.
@@ -67,6 +89,7 @@ extension SceneCore {
             windowRef = attachment.windowRef
             applicationName = naming(attachment.windowRef.bundleId) ?? attachment.windowRef.bundleId
             home = homes.home(of: attachment.windowRef)
+            recordedHome = attachment.homeAtAttachTime
             isMounted = attachment.isMount
         }
     }
