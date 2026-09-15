@@ -222,6 +222,33 @@ extension SceneCore {
             return SceneShellWindowRow(attachment: attachment, homes: homes, naming: naming)
         }
 
+        /// Give a window back and take it out of its Scene.
+        ///
+        /// The move happens first and the state changes after, which is the opposite order from closing a Scene
+        /// and deliberately so — see `SceneOrchestrator.detach`. A restore that is still owed leaves the
+        /// attachment exactly where it was, so asking again later is the retry and there is no counter to lose.
+        ///
+        /// A `.sharedPersistent` window is refused out loud instead of being moved. That ownership means the
+        /// user said this window is nobody's task, and invariant I7 makes it the one thing here that is not
+        /// SceneMux's to touch — so the answer is the HUD line saying so, and no window moves.
+        @discardableResult
+        func unmount(_ windowRef: WindowRef) throws -> SceneTeardownOutcome {
+            let orchestrator = try requireOrchestrator()
+            guard let holder = orchestrator.world.holder(of: windowRef) else {
+                throw SceneRuntimeError.windowNotInAScene
+            }
+            guard holder.attachment.ownership != .sharedPersistent else {
+                post(.sharedWindowSkipped(applicationName: naming(windowRef.bundleId) ?? windowRef.bundleId))
+                return .leftInPlace(reason: "it is shared")
+            }
+            let outcome = SceneRestorer(port: engine).restore(SceneTeardownStep(holder.attachment))
+            guard outcome.isFinal else { return outcome }
+            try orchestrator.detach(windowRef, from: holder.scene.id)
+            reproject()
+            refresh()
+            return outcome
+        }
+
         /// Take an empty Slot out of the Scene on screen.
         func removeSlot(_ slotId: SlotId) throws {
             let orchestrator = try requireOrchestrator()
