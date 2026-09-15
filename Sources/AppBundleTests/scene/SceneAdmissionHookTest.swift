@@ -72,6 +72,33 @@ final class SceneAdmissionHookTest: XCTestCase {
         XCTAssertEqual(attachment.origin, .admission(ruleId: Rule.emptySlotServingHome))
     }
 
+    /// A user's own `on-window-detected` callback that says it has dealt with the window is obeyed, and no rule
+    /// gets a look at it afterwards.
+    ///
+    /// This is the precedence claim made everywhere else in Scene Core, at the one place where a rule and an
+    /// explicit instruction actually meet: `check-further-callbacks = false` is the user saying "this window is
+    /// handled", and admission is placed after the callbacks so that it is. Driven through
+    /// `tryOnWindowDetected` — the engine's own entry point — because the ordering is the thing being tested,
+    /// and calling the hook directly would test nothing about it.
+    func testACallbackThatClaimsTheWindowStopsAdmissionFromSeeingIt() async throws {
+        let (workspace, _) = try sceneOnScreen(with: .terminal)
+        var callback = WindowDetectedCallback()
+        callback.matcher.appId = App.terminal
+        callback.checkFurtherCallbacks = false
+        callback.rawRun = []
+        config.onWindowDetected = [callback]
+        let window = TestWindow.new(
+            id: 1,
+            parent: workspace.rootTilingContainer,
+            app: TestApp(bundleId: App.terminal),
+        )
+
+        try await tryOnWindowDetected(window)
+
+        XCTAssertEqual(SceneCore.SceneRuntime.shared.snapshot.activeScene?.slots.first?.windows, [])
+        XCTAssertEqual(store.load().scenes.first?.attachments, [])
+    }
+
     /// The lifecycle half of the same story: a window a rule brought in is the Scene's own, so ending the Scene
     /// leaves it exactly where it is.
     ///
