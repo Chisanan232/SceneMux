@@ -160,4 +160,15 @@ final class AdmissionRulesTest: XCTestCase {
 
         XCTAssertEqual(decision, .ignore)
     }
+
+    func testWithNoSceneOnScreenAdmissionDoesNothingAtAll() throws {
+        // The state SceneMux is in nearly all of the time. There is no task open, so there is no intent to serve,
+        // so a new terminal window is the inherited engine's business and nothing else's. This is what makes
+        // admission invisible to somebody who never defines a Scene — AC7.
+        let decision = SceneCore.AdmissionRules.decide(
+            try SceneCoreFixtures.admissionCandidate(App.terminal),
+        )
+
+        XCTAssertEqual(decision, .ignore)
+    }
 }
