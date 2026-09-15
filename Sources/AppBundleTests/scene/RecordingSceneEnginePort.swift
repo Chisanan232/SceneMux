@@ -35,6 +35,11 @@ final class RecordingSceneEnginePort: SceneCore.SceneEnginePort {
     /// Where the engine says each window currently lives. A window absent from this has no surface, which is
     /// the "nothing to go back to" case.
     var surfaces: [SceneCore.WindowRef: SceneCore.SubstrateBinding] = [:]
+    /// What the engine says about moving a particular window. Absent means it moves, which keeps the ordinary
+    /// case out of every test that is about something else.
+    var moveAnswers: [SceneCore.WindowRef: SceneCore.SceneWindowMove] = [:]
+    /// Every move asked for, in order — including the ones that were refused.
+    private(set) var requestedMoves: [(windowRef: SceneCore.WindowRef, binding: SceneCore.SubstrateBinding)] = []
 
     func currentSubstrate() -> SceneCore.SubstrateBinding? {
         substrate
@@ -46,6 +51,17 @@ final class RecordingSceneEnginePort: SceneCore.SceneEnginePort {
 
     func surface(of windowRef: SceneCore.WindowRef) -> SceneCore.SubstrateBinding? {
         surfaces[windowRef]
+    }
+
+    func move(
+        _ windowRef: SceneCore.WindowRef,
+        to binding: SceneCore.SubstrateBinding,
+    ) -> SceneCore.SceneWindowMove {
+        requestedMoves.append((windowRef, binding))
+        if let answer = moveAnswers[windowRef] { return answer }
+        if invisibleWindows.contains(windowRef) { return .windowIsGone }
+        surfaces[windowRef] = binding
+        return .moved
     }
 
     func prepareSubstrate(_ binding: SceneCore.SubstrateBinding) -> Bool {

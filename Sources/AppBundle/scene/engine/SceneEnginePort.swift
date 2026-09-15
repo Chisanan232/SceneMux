@@ -68,6 +68,18 @@ extension SceneCore {
         /// Empty Slots are never placed, which is exactly why they cannot leave a gap in the tiling.
         func place(_ group: SceneLayoutGroup, on binding: SubstrateBinding) -> SceneSlotPlacement
 
+        /// Put one window onto one surface, and say what happened.
+        ///
+        /// The whole of "send it home", and the whole of "bring it here": both are this call with a different
+        /// destination. Exactly one window is affected — whatever else is on either surface is not reordered,
+        /// not resized and not moved out — and the window is not focused, raised or activated by moving it,
+        /// because a restore that stole focus would drag the user away from what they are doing.
+        ///
+        /// An implementation may not improvise. If the surface is not there, the answer is
+        /// `SceneWindowMove.surfaceIsGone` and the window stays where it is; creating a workspace to satisfy
+        /// the request would move somebody's window somewhere they have never been.
+        func move(_ windowRef: WindowRef, to binding: SubstrateBinding) -> SceneWindowMove
+
         /// Let the engine finish — normalize, lay out — and report what each Slot's composition became.
         ///
         /// Read-back is structural on purpose: which Slots are split, tabbed or plain. Never geometry. A
