@@ -15,6 +15,8 @@ final class SceneAdmissionHookTest: XCTestCase {
     private typealias Rule = SceneCore.AdmissionRules.Rule
 
     private var store: SceneCore.SceneStateStore!
+    /// Where that state file lives, kept so that one test can take the right to write it away again.
+    private var directory: URL!
 
     /// A runtime on a temporary state file, because `SceneRuntime.shared` otherwise opens the state of whoever
     /// is running the tests — and this is the one suite that reaches the hook the running app calls.
@@ -22,6 +24,7 @@ final class SceneAdmissionHookTest: XCTestCase {
         setUpWorkspacesForTests()
         let directory = FileManager.default.temporaryDirectory
             .appending(path: "SceneMuxTests-\(UUID().uuidString)", directoryHint: .isDirectory)
+        self.directory = directory
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         addTeardownBlock { try? FileManager.default.removeItem(at: directory) }
         store = SceneCore.SceneStateStore(url: directory.appending(path: "scene-state.json"))
@@ -147,6 +150,39 @@ final class SceneAdmissionHookTest: XCTestCase {
         XCTAssertEqual(step.recordedHome, .development)
         XCTAssertEqual(step.effect, .leaveInPlace)
         XCTAssertEqual(window.nodeWorkspace, workspace)
+    }
+
+    /// Nothing happens to a window SceneMux could not record. The one failure admission can really meet is the
+    /// state file refusing to be written, and the answer is to leave the window exactly where the engine put it
+    /// — not to close it, not to send it anywhere, and not to keep it in a Scene that was never saved.
+    ///
+    /// The person is told, in one line, because a window quietly not arriving in a Slot is what gets reported as
+    /// the Scene being broken.
+    func testAWindowIsLeftAloneWhenItsAttachmentCannotBeRecorded() throws {
+        let (workspace, _) = try sceneOnScreen(with: .terminal)
+        let window = TestWindow.new(
+            id: 1,
+            parent: workspace.rootTilingContainer,
+            app: TestApp(bundleId: App.terminal),
+        )
+        // A directory nobody may write to: the state file cannot be replaced, so recording the attachment fails
+        // at the last step, after the rules have already said yes.
+        try FileManager.default.setAttributes([.posixPermissions: 0o500], ofItemAtPath: directory.path)
+        addTeardownBlock {
+            try? FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: self.directory.path)
+        }
+
+        sceneAdmitDetectedWindow(window)
+
+        XCTAssertEqual(workspace.rootTilingContainer.layoutDescription, .h_tiles([.window(1)]))
+        XCTAssertEqual(SceneCore.SceneRuntime.shared.snapshot.activeScene?.slots.first?.windows, [])
+        let diagnostics = SceneCore.SceneRuntime.shared.snapshot.diagnostics
+        XCTAssertTrue(
+            // Matched on admission's own words as well as the application, so that a projection complaining
+            // about something else cannot make this pass.
+            diagnostics.contains { $0.contains("left the new") && $0.contains(App.terminal) },
+            "the diagnostics should say which window stayed put and why: \(diagnostics)",
+        )
     }
 
     /// The conservative half, at the level where it actually matters. A dialog is a real window the engine
