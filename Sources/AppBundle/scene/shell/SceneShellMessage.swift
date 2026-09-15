@@ -36,6 +36,13 @@ extension SceneCore {
         /// windows the user was looking at a moment ago, and listing four application names to say that
         /// nothing happened to them would bury the line that says what did.
         case windowsLeftInPlace(windows: Int)
+        /// The user tried to do something to a shared window, and SceneMux did not.
+        ///
+        /// Posted only on an attempt. A shared window is one the user declared is nobody's task — a music
+        /// player, a personal browser — and reporting that it was skipped every time a Scene ends would be a
+        /// notification about a window that is deliberately never involved. Silence is correct until somebody
+        /// asks, and then a refusal has to be explained or the click looks broken (invariant I7).
+        case sharedWindowSkipped(applicationName: String)
         /// State could not be read, so there are no Scenes and nothing was moved.
         case stateUnreadable(details: String)
 
@@ -51,6 +58,8 @@ extension SceneCore {
                     "\(applicationName) could not be found — nothing was closed or moved"
                 case .windowsLeftInPlace(let windows):
                     "\(count(windows, "window")) left in place"
+                case .sharedWindowSkipped(let applicationName):
+                    "\(applicationName) is shared — left untouched"
                 case .attachmentsDropped(let title, let windows):
                     "\(count(windows, "window")) from “\(title)” \(windows == 1 ? "is" : "are") no longer open"
                 case .stateUnreadable:
@@ -67,7 +76,7 @@ extension SceneCore {
             switch self {
                 case .stateUnreadable(let details): details
                 case .entered, .attachmentsDropped, .windowsRestored, .restoreDeclined,
-                     .windowsLeftInPlace: nil
+                     .windowsLeftInPlace, .sharedWindowSkipped: nil
             }
         }
 
@@ -82,7 +91,7 @@ extension SceneCore {
             switch self {
                 case .entered: false
                 case .attachmentsDropped, .stateUnreadable, .windowsRestored, .restoreDeclined,
-                     .windowsLeftInPlace: true
+                     .windowsLeftInPlace, .sharedWindowSkipped: true
             }
         }
 
