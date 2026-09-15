@@ -399,6 +399,21 @@ final class WinMuxSceneEngineAdapterTest: XCTestCase {
         XCTAssertEqual(focused, try SceneCore.WindowRef(bundleId: App.ide, ordinalWithinApp: 1))
     }
 
+    /// The one moment a window's origin surface is knowable is before it joins the Scene, so the seam has to be
+    /// able to answer it — and has to answer nothing at all for a window it cannot see, rather than a plausible
+    /// place a later restore would aim at.
+    func testTheSurfaceOfAWindowIsTheWorkspaceItIsOn() throws {
+        let line = TestApp(bundleId: App.line)
+        TestWindow.new(id: 1, parent: Workspace.get(byName: "chat").rootTilingContainer, app: line)
+        let adapter = SceneCore.WinMuxSceneEngineAdapter()
+
+        XCTAssertEqual(
+            adapter.surface(of: try SceneCore.WindowRef(bundleId: App.line, ordinalWithinApp: 0)),
+            SceneCore.SubstrateBinding(workspaceName: "chat"),
+        )
+        XCTAssertNil(adapter.surface(of: try SceneCore.WindowRef(bundleId: App.slack, ordinalWithinApp: 0)))
+    }
+
     private func rect(ofWindowId id: UInt32) -> Rect {
         Window.get(byId: id).orDie().lastAppliedLayoutPhysicalRect.orDie()
     }
