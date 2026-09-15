@@ -190,7 +190,7 @@ person to infer from the code:
 
 | Tier | In v0.1.0 | Why |
 | --- | --- | --- |
-| A workspace designated for that Home | **Deferred — HORO-1218** | There is no way for a user to designate one yet. A `[scene-home]` key naming a workspace per Home is a config change, a settings surface and a migration, and none of it is needed for a window to come back correctly |
+| A workspace designated for that Home | **Deferred — HORO-1221** | There is no way for a user to designate one yet. A `[scene-home]` key naming a workspace per Home is a config change, a settings surface and a migration, and none of it is needed for a window to come back correctly |
 | The workspace the window was last in outside any Scene | **Ships.** Recorded as `Attachment.originSurface` at the moment of mounting, and it is the only thing `SceneRestorer` aims at | It is the one answer that is a *fact* rather than a policy: the window was observably there. Invariant I8 is satisfied by replaying an observation, not by resolving a rule |
 | A workspace created for that Home | **Declined** | Creating a workspace is a visible change to somebody's desktop, made at the moment a task ends, to hold a window they did not ask to move there. A window whose recorded surface is gone is left where it is and the person is told — `leftInPlace(reason:)` — which is recoverable in a way an invented workspace is not |
 
