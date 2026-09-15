@@ -81,4 +81,27 @@ final class SceneRestorerTest: XCTestCase {
         XCTAssertEqual(outcome, .leftInPlace(reason: "SceneMux has no record of where it came from"))
         XCTAssertEqual(port.requestedMoves.count, 0)
     }
+
+    func testAWindowTheSceneWasNeverAllowedToMoveIsNotMoved() throws {
+        // Both non-borrowed ownerships, together, and with an origin surface recorded — because a recorded
+        // surface is the one thing that could tempt an implementation into "well, we know where it goes".
+        // A scene-owned editor and a shared music window are the user's to close and to keep respectively,
+        // and neither is the restorer's to touch.
+        for ownership in [SceneCore.Ownership.sceneOwned, .sharedPersistent] {
+            let port = RecordingSceneEnginePort()
+            let slot = SceneCoreFixtures.slot(role: .editor)
+            let step = SceneCore.SceneTeardownStep(SceneCoreFixtures.attachment(
+                windowRef: try SceneCoreFixtures.windowRef(App.ide),
+                slotId: slot.id,
+                ownership: ownership,
+                homeAtAttachTime: .development,
+                originSurface: SceneCoreFixtures.communicationSurface,
+            ))
+
+            let outcome = SceneCore.SceneRestorer(port: port).restore(step)
+
+            XCTAssertEqual(outcome, .leftInPlace(reason: "the Scene was not allowed to move it"), "\(ownership)")
+            XCTAssertEqual(port.requestedMoves.count, 0, "\(ownership)")
+        }
+    }
 }
