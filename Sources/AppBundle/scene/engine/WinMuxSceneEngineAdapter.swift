@@ -56,7 +56,12 @@ extension SceneCore {
         /// surface to report, and a blank workspace name is refused exactly as `prepareSubstrate` refuses one:
         /// a recorded destination nobody can name is worse than none, because a restore would aim at it.
         func surface(of windowRef: WindowRef) -> SubstrateBinding? {
-            guard let name = resolve(windowRef)?.nodeWorkspace?.name,
+            resolve(windowRef).flatMap(Self.surface)
+        }
+
+        /// The same answer for a window the caller already has, which is the shape the detection hook needs.
+        static func surface(of window: Window) -> SubstrateBinding? {
+            guard let name = window.nodeWorkspace?.name,
                   !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             else { return nil }
             return SubstrateBinding(workspaceName: name)
