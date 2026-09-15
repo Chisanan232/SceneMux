@@ -156,10 +156,11 @@ extension SceneCore {
         /// it came from and reports that as `originSurface`, and putting it into the Slot's layout is the
         /// projector's job.
         ///
-        /// `home` and `originSurface` are asked of the caller rather than looked up, because this object cannot
-        /// see either: the Home rule table is the user's configuration and the surface is a fact about the
-        /// running engine. Both are recorded now because now is when they are still true — once the window is
-        /// in the Scene, asking where it lives answers "in the Scene".
+        /// `home`, `originSurface` and `originArrangement` are asked of the caller rather than looked up,
+        /// because this object cannot see any of them: the Home rule table is the user's configuration, and
+        /// where the window is and what it is there are facts about the running engine. All three are recorded
+        /// now because now is when they are still true — once the window is in the Scene, asking where it lives
+        /// answers "in the Scene", and asking what it is answers "whatever the Scene made it".
         func attach(
             _ windowRef: WindowRef,
             to slotId: SlotId,
@@ -167,6 +168,7 @@ extension SceneCore {
             ownership: Ownership,
             home: SemanticHome,
             originSurface: SubstrateBinding?,
+            originArrangement: WindowArrangement?,
             origin: AttachmentOrigin = .userAction,
         ) throws -> Attachment {
             let attachment = Attachment(
@@ -175,6 +177,7 @@ extension SceneCore {
                 ownership: ownership,
                 homeAtAttachTime: home,
                 originSurface: originSurface,
+                originArrangement: originArrangement,
                 origin: origin,
             )
             try apply(try world.attaching(attachment, to: id))

@@ -40,6 +40,21 @@ extension SceneCore {
         /// told, which is `SceneTeardownOutcome.leftInPlace`. A missing value is never a reason to move a
         /// window somewhere plausible.
         let originSurface: SubstrateBinding?
+        /// What the window was on that surface — tiled with its neighbours, or floating above them. Recorded
+        /// at the same moment as `originSurface`, never rewritten.
+        ///
+        /// A surface alone is not enough to put a window back: a floating chat window returned to its own
+        /// workspace as one more tile has been moved, resized and rearranged relative to everything around it,
+        /// which is not what "it goes back where it came from" promised. So the arrangement is observed while
+        /// it is still the window's own and replayed when the Scene ends.
+        ///
+        /// Optional for the same reason as the surface, and it means the same thing: state written before this
+        /// was recorded, or a window the engine could not say anything about. Absent is a claim SceneMux does
+        /// not make rather than a default it assumes — a restore then aims at the surface and leaves the
+        /// arrangement to the engine, exactly as it did before this was recorded at all.
+        ///
+        /// It is a mode and never a frame: no size, no position, no place among siblings (invariant I11).
+        let originArrangement: WindowArrangement?
         /// How the attachment came about.
         let origin: AttachmentOrigin
 

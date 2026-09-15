@@ -318,6 +318,7 @@ final class SceneOrchestratorTest: XCTestCase {
             ownership: .borrowed,
             home: .communication,
             originSurface: SceneCoreFixtures.communicationSurface,
+            originArrangement: .floating,
         )
 
         XCTAssertTrue(attachment.isMount)
@@ -346,6 +347,7 @@ final class SceneOrchestratorTest: XCTestCase {
             ownership: .borrowed,
             home: .communication,
             originSurface: SceneCoreFixtures.communicationSurface,
+            originArrangement: .floating,
         ))
 
         XCTAssertNil(orchestrator.world.holder(of: windowRef))
