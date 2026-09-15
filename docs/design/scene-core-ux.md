@@ -463,8 +463,10 @@ If the app quit while a Scene was `ending`, the next launch shows the Scene as `
 │   Finishing: 1 window goes back to Communication
 ```
 
-A window that no longer exists is skipped with the "could not be found" HUD. Nothing is closed to reach a
-tidy state — the Scene reaches `ended` with an honest report instead (invariant I14).
+A window that no longer exists is skipped in silence: the user closed it themselves during the task, so it
+is not news, and a line about it would bury the one about a window that really did not move. The `did not go
+back` HUD is for that case instead — a destination that has gone, or an application that refused. Nothing is
+closed to reach a tidy state — the Scene reaches `ended` with an honest report instead (invariant I14).
 
 ## Keyboard first, pointer equal
 
