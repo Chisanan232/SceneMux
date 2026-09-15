@@ -74,7 +74,7 @@ enum SceneCoreFixtures {
 
     /// A window the engine has just detected, described the way admission is allowed to see it.
     ///
-    /// The Home is resolved from the shipped rules rather than passed in, so that a test naming
+    /// The Home is resolved from the shipped rules and cannot be overridden, so that a test naming
     /// `App.terminal` is testing what a terminal really resolves to instead of what the test believed it
     /// resolved to — and so that a change to the shipped table is visible here.
     static func admissionCandidate(
@@ -83,7 +83,6 @@ enum SceneCoreFixtures {
         kind: SceneCore.AdmissionWindowKind = .managed,
         surface: SceneCore.SubstrateBinding? = activeSubstrate,
         detectedDuringStartup: Bool = false,
-        home: SceneCore.SemanticHome? = nil,
         in activeScene: SceneCore.Scene? = nil,
         isAlreadyInAScene: Bool = false,
     ) throws -> SceneCore.AdmissionCandidate {
@@ -95,7 +94,7 @@ enum SceneCoreFixtures {
                 surface: surface,
                 detectedDuringStartup: detectedDuringStartup,
             ),
-            home: home ?? SceneCore.HomeRules.shippedOnly.home(of: windowRef),
+            home: SceneCore.HomeRules.shippedOnly.home(of: windowRef),
             activeScene: activeScene,
             isAlreadyInAScene: isAlreadyInAScene,
         )
