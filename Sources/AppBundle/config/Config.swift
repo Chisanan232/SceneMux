@@ -63,6 +63,9 @@ struct Config: ConvenienceCopyable {
     var workspaceSidebar = WorkspaceSidebarConfig()
     var windowTabs = WindowTabsConfig()
     var workspaceToMonitorForceAssignment: [String: [MonitorDescription]] = [:]
+    /// Which Semantic Home each application belongs to, keyed by bundle id. The user's half of the Home rule
+    /// table; `SceneCore.HomeRules` holds the shipped half and decides which wins.
+    var sceneHome: [String: SceneCore.SemanticHome] = [:]
     var modes: [String: Mode] = [:]
     var onWindowDetected: [WindowDetectedCallback] = []
     var onModeChanged: [any Command] = []
