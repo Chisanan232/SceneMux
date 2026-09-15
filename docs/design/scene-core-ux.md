@@ -252,6 +252,54 @@ If the user has re-homed the application since it was mounted, that line becomes
 is explained — *"Home changed to Development while borrowed; will go back to Development"* — rather than a
 silent difference between what the row said yesterday and where the window goes today.
 
+### Home rules live in the config file
+
+A Home is resolved from an application's bundle id and nothing else, from two inputs: the table SceneMux
+ships, and the user's own overrides in the `[scene-home]` section of their config, which win.
+
+```toml
+[scene-home]
+'com.google.Chrome' = 'development'
+'com.apple.Music' = 'personal'
+```
+
+There is deliberately **no command and no control that assigns a Home.** SceneMux never writes this policy
+back, so the answer to *"why is this application Communication?"* is always a line the user can see and
+edit, rather than state that changed behind their editor. Two commands read it:
+
+| Command | Answers |
+| --- | --- |
+| `home list [--json]` | Every application either side of the table has an opinion about, with the rule that will actually apply, ordered by bundle id. Rules the user wrote are marked |
+| `home show [--app <bundle-id>]` | One application — the focused one by default — with **who decided**: *your config*, *SceneMux's defaults*, or *the default for applications SceneMux does not know* |
+
+The distinction `show` draws is the point: "SceneMux thinks Music is personal" and "you told SceneMux that
+Music is personal" are different sentences, and only one of them is worth arguing with. An application
+nobody has classified still gets an answer — every window has a Home — and it is `personal`, which claims
+the least.
+
+Editing `[scene-home]` and reloading takes effect on the next thing SceneMux says: the rules are read from
+the config on every use rather than captured at launch. Re-homing an application whose window a Scene is
+currently borrowing is safe and visible — the window row shows the new Home and explains the change, and the
+window goes back to the surface it was borrowed from either way.
+
+### Mounting a window, and giving it back
+
+| Command | What it does |
+| --- | --- |
+| `mount --slot <n>` | **Borrows** the focused window into the *n*-th Slot of the Scene on screen. Its Home does not change, and it goes back when the Scene closes |
+| `mount --slot <n> --own` | **Attaches** it instead: this Scene owns it, so ending the Scene leaves it where it is. Still never closes it |
+| `unmount` | Gives the focused window back now, one window instead of waiting for the whole task to end |
+
+`--own` is a real override rather than a suggestion the system reinterprets: ownership is whichever verb the
+person used, never a comparison of the window's Home against the Slot's role. `.sharedPersistent` is not
+reachable from any command — it is what unreadable state degrades to, not something to ask for.
+
+`unmount` exists because reversibility has to be reachable *before* the Scene ends. Somebody who mounted the
+wrong window needs it back now, and closing the whole task to get it would make the mistake expensive. It
+goes through the same restorer the lifecycle uses, so the window ends up where closing the Scene would have
+put it. Nothing here closes a window, and a window the Scene was never allowed to move is refused out loud —
+on the HUD as well as in the reply.
+
 ## Slots and composition
 
 ### Creating a Slot
@@ -280,6 +328,7 @@ want.
 | Keyboard | Select the window row in the switcher, then `⌥↑` / `⌥↓` to move it to the previous/next Slot |
 | Command | `⌃⌥⇧M` opens the switcher in *move-to-slot* mode: type a role, `⏎` |
 | From the screen | Focus a window, then `⌃⌥⇧1…5` to send it to the *n*-th Slot of the active Scene |
+| From a shell | `mount --slot <n>`, or `mount --slot <n> --own` for the other verb. `unmount` gives the focused window back |
 
 When the dragged window's Home looks foreign to the Slot's role, the drop is *proposed* as a **borrow**: the
 drop highlight is dashed and the drop hint reads *"Mount here · stays a Communication window"*. The user is
@@ -439,7 +488,8 @@ of `v0.0.0` already has.
 | `ctrl-alt-h` / `ctrl-alt-l` | `scene prev` / `scene next` | Previous / next Scene — mirroring `ctrl-h`/`ctrl-l` for workspaces and `alt-cmd-h`/`alt-cmd-l` for projects |
 | `ctrl-alt-0` | `scene leave` | Leave the active Scene. Moves nothing |
 | `ctrl-alt-backspace` | `scene close` | Close the active Scene — opens the confirmation panel; never closes anything directly |
-| `ctrl-alt-shift-1…5` | `slot <n>` | Send the focused window to the *n*-th Slot of the active Scene |
+| `ctrl-alt-shift-1…5` | `mount --slot <n>` | Borrow the focused window into the *n*-th Slot of the active Scene. Its Home does not change |
+| `ctrl-alt-shift-u` | `unmount` | Give the focused window back now, without ending the Scene |
 | `ctrl-alt-shift-m` | `slot move` | Open the switcher in *move-to-slot* mode: type a role, `⏎` |
 | `ctrl-alt-shift-n` | `slot new` | Add a Slot to the active Scene |
 | `ctrl-alt-shift-c` | `slot compose` | Cycle the focused window's Slot: single → split → tabs |
@@ -606,18 +656,20 @@ and because a deviation that is really a *not yet* needs a ticket rather than so
 | Transient HUD | `ui/scene/SceneMessageHud.swift` — one message at a time, queued rather than stacked |
 | Global bindings | The Scene half of the `ctrl-alt` namespace, in `resources/default-config.toml` |
 | Scene sidebar | Not built — HORO-1216 |
-| Settings pane | Not built — Home rules are HORO-1107, and the unreadable-state diagnostic appears in the switcher's empty state and on the HUD instead of behind a pane |
+| Settings pane | Not built. HORO-1107 put Home rules in the config file's `[scene-home]` section and gave them a read-only command (`home list`, `home show`) instead of a pane — see [Home rules live in the config file](#home-rules-live-in-the-config-file). The unreadable-state diagnostic appears in the switcher's empty state and on the HUD |
 
-Almost every deviation has one cause: **nothing in this build attaches a window to a Slot.** Mounting
-arrives with HORO-1107 and admission with HORO-1108, so anything above that describes a window *inside* a
-Slot describes a shipped, tested presentation model with nothing yet to present.
+Almost every deviation below had one cause: **nothing in HORO-1106 attached a window to a Slot.** HORO-1107
+changed that — `mount --slot <n>` borrows the focused window, `mount --slot <n> --own` attaches it, `unmount`
+gives it back — so the rows about a window *inside* a Slot now describe a surface with something to present.
+The rows kept below are the ones that are still true; the ones HORO-1107 closed are marked as closed rather
+than deleted, so the record of what was deferred and when survives.
 
 | Specified above | In this build | Why |
 | --- | --- | --- |
 | A hover-expanding Scene rail beside the workspace sidebar | The switcher carries the Scene → Slot → window outline; there is no rail | A rail's value is the *persistent* view of windows in Slots. Until one can be attached, the rail would take 44pt of every screen to say nothing. HORO-1216 |
 | A `SHARED` section, last | Not shown | `.sharedPersistent` reaches an attachment only by degradation (`Ownership.failSafe`), so there is currently nothing truthful to list. `SceneShellCloseSummary` already words the shared group and will show it the moment one exists |
-| Window rows beneath Slot rows | `SceneShellWindowRow` and `SceneSwitcherWindowRow.swift` exist and are tested, and no Slot has a window to render | Shipped now so the layer is guarded before the ticket that fills it |
-| `ctrl-alt-shift-1…5` → `slot <n>` | Unbound | There is no `slot <n>` command: *the focused window* → Slot needs the mapping attachments provide. A binding that silently does nothing is worse than an absent one. HORO-1217 |
+| Window rows beneath Slot rows | Shipped, and since HORO-1107 they have windows to render | Shipped in HORO-1106 so the layer was guarded before the ticket that filled it |
+| `ctrl-alt-shift-1…5` → `slot <n>` | **Bound in HORO-1107**, to `mount --slot <n>` rather than `slot <n>`: the subject of the sentence is the focused window, not the Slot | The binding was left out of HORO-1106 because there was nothing for it to do. `ctrl-alt-shift-u` (`unmount`) is the way back, which this specification did not ask for and reversibility needs |
 | `ctrl-alt-shift-m` → `slot move` | Unbound | No move-to-slot mode, for the same reason. HORO-1217 |
 | `ctrl-alt-shift-n` → `slot new` | Unbound; *Add slot* chips on the active Scene's row instead | `slot new` requires `--role`, so a default binding would have to choose a role on the user's behalf. HORO-1217 |
 | `ctrl-alt-shift-c` → cycle *the focused window's* Slot | Unbound; `slot compose --slot <n>` addresses a Slot by number, and the Slot row's chip does it by pointer | The focused window's Slot is not knowable yet. HORO-1217 |
@@ -625,7 +677,7 @@ Slot describes a shipped, tested presentation model with nothing yet to present.
 | `→` / `←` to disclose, `⇥` between sections | Not implemented | The switcher expands the selected Scene and has one section, so there is nothing yet to disclose or traverse |
 | A second `⏎` on a selected row renames it | `⏎` always enters; `F2`, a double-click or the row's *Rename…* renames | The two things this specification asks `⏎` for cannot both be true of the same key: the row that is selected is the row the user is about to enter, and a key whose meaning depends on how recently it was last pressed would rename a task at the moment somebody meant to start one. `F2` is unambiguous, and both pointer paths remain |
 | Drag and drop: window onto Slot, Slot reorder, drop-to-tab, detach | Not implemented | Every one of them moves an attachment. HORO-1216 |
-| `☐ also close these (asks for each)` in the close confirmation | The ownership grouping ships; the checkbox does not | With no scene-owned windows the checkbox would govern nothing, and per-window asking belongs with `SceneOrchestrator.resolve` in HORO-1107 |
+| `☐ also close these (asks for each)` in the close confirmation | The ownership grouping ships; the checkbox does not, and HORO-1107 did not add it | Closing a window is the one thing no lifecycle path in v0.1.0 does — invariant I6 — so the checkbox would need a *new* power, not a new control. Scene-owned windows are listed as cleanup candidates and left in place. HORO-1217 |
 | Menu bar reads *No Scene* when none is active | The always-visible label is the icon alone; *No Scene* is the menu's first line | A permanent *No Scene* in the menu bar of somebody who has never made one is noise, and the menu answers the question the moment it is asked |
 | HUD for about 2.5 seconds | 2.5 seconds, except a message carrying *Show details* — only `stateUnreadable` — which stays until dismissed | A disclosure that vanishes two seconds after being opened cannot be read |
 | HUD dismissible with `esc` | `esc` reaches it through a local event monitor, so while SceneMux is the active application | The alternative is a HUD that takes the keyboard away from the user's application, which a window manager must never do. The dwell covers every other case |
