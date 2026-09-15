@@ -55,4 +55,23 @@ final class HomeRulesTest: XCTestCase {
         XCTAssertEqual(rules.source(of: App.music), .userOverride)
         XCTAssertEqual(rules.home(of: "COM.APPLE.terminal"), .development)
     }
+
+    /// The effective table is the union of both halves, ordered, because a user checking their configuration
+    /// wants to see the rule that will apply rather than the two halves it came from.
+    func testTheEffectiveTableIsTheUnionOfBothHalvesInOrder() {
+        let rules = SceneCore.HomeRules(overrides: [
+            App.browser: .development,
+            "com.example.Thing": .communication,
+        ])
+
+        let effective = rules.effective
+
+        XCTAssertEqual(effective.count, SceneCore.HomeRules.shipped.count + 1)
+        XCTAssertEqual(effective.map(\.bundleId), effective.map(\.bundleId).sorted())
+        let browser = effective.first { $0.bundleId == App.browser.lowercased() }
+        XCTAssertEqual(browser?.home, .development)
+        XCTAssertEqual(browser?.source, .userOverride)
+        let thing = effective.first { $0.bundleId == "com.example.thing" }
+        XCTAssertEqual(thing?.home, .communication)
+    }
 }
