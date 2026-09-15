@@ -563,15 +563,21 @@ becomes aware of, answered by a typed value, and never by a side effect:
 
 ```
 enum AdmissionDecision {
-    case claim(SlotRef)       // this window belongs to that Slot, and SceneMux says so first
-    case route(SlotRef)       // place it in that Slot of the active Scene
-    case mount(SlotRef)       // attach it as .borrowed, leaving its Home alone
-    case tab(SlotRef)         // add it to that Slot's tab group
-    case float                // leave it floating; do not tile it
-    case ignore               // not our business. The default
-    case quarantine(Reason)   // something is wrong; touch nothing and say so
+    case claim(slotId: SlotId, ruleId: String)   // this window belongs there, and SceneMux says so first
+    case route(slotId: SlotId, ruleId: String)   // place it in that Slot of the active Scene
+    case mount(slotId: SlotId, ruleId: String)   // attach it as .borrowed, leaving its Home alone
+    case tab(slotId: SlotId, ruleId: String)     // add it to that Slot's tab group
+    case float                                   // leave it floating; do not tile it
+    case ignore                                  // not our business. The default
+    case quarantine(reason: String)              // something is wrong; touch nothing and say so
 }
 ```
+
+Every attaching case carries the id of the rule that produced it, because a window that moved somewhere
+its owner did not expect has to be traceable back to the reason. It is recorded on the attachment as
+`AttachmentOrigin.admission(ruleId:)` and survives being written to the state file, so the question is
+answerable in the next session too. Which ownership each case implies is stated once, on the decision
+itself, so that nothing carrying a decision out can pair a Slot with an ownership of its own choosing.
 
 All seven cases exist in the model because admission is a first-class abstraction that later phases
 extend, and a partial enum would force a source change in every `switch` when G2 arrives. **v0.1.0
