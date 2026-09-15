@@ -23,6 +23,14 @@ extension SceneCore {
         /// not tell. Then the window stays exactly where it is and the user is told so, which is
         /// `SceneTeardownOutcome.leftInPlace`. A step with nowhere to aim never guesses.
         let homeSurface: SubstrateBinding?
+        /// What the window was on that surface, so that it goes back as what it was and not merely to where it
+        /// was.
+        ///
+        /// `nil` when the attachment recorded none — state from a build that did not record it, or a window the
+        /// engine could not describe. Then the restore asks for the surface and says nothing about the
+        /// arrangement, and the engine keeps doing whatever it does with a window it is handed. A restore never
+        /// invents an arrangement for the same reason it never invents a surface.
+        let homeArrangement: WindowArrangement?
 
         /// What may be done to the window. Ownership decides, always.
         var effect: SceneTeardownEffect {
@@ -43,6 +51,7 @@ extension SceneCore {
             ownership = attachment.ownership
             recordedHome = attachment.homeAtAttachTime
             homeSurface = attachment.originSurface
+            homeArrangement = attachment.originArrangement
         }
     }
 }
