@@ -75,6 +75,16 @@ final class HomeCommandTest: XCTestCase {
         XCTAssertFalse(listed.stdout.contains { $0.hasPrefix("com.example") })
     }
 
+    /// With nothing focused there is no application to answer for, and the refusal says what to pass instead.
+    /// The alternative — answering for whatever was focused last, or for nothing in particular — would be a
+    /// sentence about an application the person is not looking at.
+    func testShowWithNothingFocusedSaysWhatToPass() async throws {
+        let result = try await exec("home show")
+
+        XCTAssertEqual(result.exitCode, 1)
+        XCTAssertEqual(result.stderr, ["SceneMux can’t tell which application you mean. Pass --app <bundle-id>."])
+    }
+
     @discardableResult
     private func exec(_ command: String) async throws -> CmdResult {
         try await parseCommand(command).cmdOrDie.run(.defaultEnv, .emptyStdin)
