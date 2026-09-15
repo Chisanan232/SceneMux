@@ -67,4 +67,24 @@ final class SceneShellWindowRowTest: XCTestCase {
 
         XCTAssertEqual(row.applicationName, App.grafana)
     }
+
+    /// The row shows the Home the window has *now*. The recorded one is kept only to explain the difference,
+    /// which is exactly what the architecture says `homeAtAttachTime` is for: evidence, not a destination.
+    func testARowFollowsTheUsersCurrentHomeRulesAndNotTheRecordedOne() throws {
+        let row = SceneCore.SceneShellWindowRow(
+            attachment: SceneCoreFixtures.attachment(
+                windowRef: try SceneCoreFixtures.windowRef(App.slack),
+                slotId: .generate(),
+                ownership: .borrowed,
+                homeAtAttachTime: .communication,
+            ),
+            homes: SceneCore.HomeRules(overrides: [App.slack: .development]),
+            naming: naming,
+        )
+
+        XCTAssertEqual(row.home, .development)
+        XCTAssertEqual(row.recordedHome, .communication)
+        XCTAssertEqual(row.trailing, "Development · mounted")
+        XCTAssertTrue(row.homeChangedWhileBorrowed)
+    }
 }
