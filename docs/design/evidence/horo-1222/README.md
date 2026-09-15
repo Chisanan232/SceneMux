@@ -53,8 +53,11 @@ after:   4176 TextEdit workspace=1 layout=floating
 ```
 
 The middle snapshot is the whole reason the defect existed: **inside the Scene both windows are tiled**, so
-nothing observable at teardown time distinguishes them. Before this ticket, `4176` came back `h_tiles`. It
-now comes back `floating`, and `4177` still comes back `h_tiles`.
+nothing observable at teardown time distinguishes them. `4176` now comes back `floating` and `4177` still
+comes back `h_tiles`. That the first of those used to come back `h_tiles` is the HORO-1107 pass's
+observation, not this one's — this pass did not re-run against the old build, and the unit-level equivalent
+is `WinMuxSceneEngineAdapterTest.testAWindowRecordedAsFloatingComesBackFloatingAndNotAsOneMoreTile`, whose
+assertions were confirmed to fail when the recorded arrangement is changed to `.tiled`.
 
 ## Pass 2 — the same, mid-Scene, one window at a time
 
