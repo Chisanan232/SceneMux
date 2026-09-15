@@ -289,6 +289,15 @@ extension SceneCore {
             self.message = message
         }
 
+        /// Show several things, in the order they matter.
+        ///
+        /// The HUD is what queues them — it shows one at a time and waits for each to go — so this publishes
+        /// them one after another rather than deciding which of them the user gets to see. Nothing is merged:
+        /// "your chat windows went home" and "your editor is still open" are two different reassurances.
+        func post(_ messages: [SceneShellMessage]) {
+            for message in messages { post(message) }
+        }
+
         /// Esc, or the HUD's own dwell running out.
         func dismissMessage() {
             message = nil
