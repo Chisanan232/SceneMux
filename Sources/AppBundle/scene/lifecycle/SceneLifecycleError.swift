@@ -21,6 +21,13 @@ extension SceneCore {
         /// State that says two Scenes are on screen at once. A file this build will not act on, not a
         /// request it can refuse politely.
         case moreThanOneActiveScene
+        /// Invariant I4: some other Scene already has this window. Attaching it twice would give two Scenes
+        /// the right to send the same window home, and whichever ended second would move a window it no
+        /// longer had any claim on.
+        case windowAlreadyAttached(SceneId)
+        /// The Scene is being torn down. Its attachments are the list of restores still owed, so adding one
+        /// now would promise a window a journey home that the teardown already believes it has finished.
+        case sceneIsClosing(SceneId)
 
         var description: String {
             switch self {
@@ -28,6 +35,8 @@ extension SceneCore {
                 case .unknownScene(let id): "there is no Scene \(id)"
                 case .anotherSceneIsActive(let id): "another Scene is already active (\(id))"
                 case .moreThanOneActiveScene: "more than one Scene is active"
+                case .windowAlreadyAttached(let id): "that window is already in Scene \(id)"
+                case .sceneIsClosing(let id): "Scene \(id) is closing"
             }
         }
     }
