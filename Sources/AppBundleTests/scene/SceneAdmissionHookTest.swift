@@ -99,6 +99,27 @@ final class SceneAdmissionHookTest: XCTestCase {
         XCTAssertEqual(store.load().scenes.first?.attachments, [])
     }
 
+    /// The control for the test above: the same window, the same callback, and `check-further-callbacks = true`
+    /// — and now it is admitted. Without this, "the callback stopped admission" could just as well mean that
+    /// nothing reaches admission through this path at all.
+    func testACallbackThatDefersLeavesTheWindowForAdmission() async throws {
+        let (workspace, slotId) = try sceneOnScreen(with: .terminal)
+        var callback = WindowDetectedCallback()
+        callback.matcher.appId = App.terminal
+        callback.checkFurtherCallbacks = true
+        callback.rawRun = []
+        config.onWindowDetected = [callback]
+        let window = TestWindow.new(
+            id: 1,
+            parent: workspace.rootTilingContainer,
+            app: TestApp(bundleId: App.terminal),
+        )
+
+        try await tryOnWindowDetected(window)
+
+        XCTAssertEqual(store.load().scenes.first?.attachments.first?.slotId, slotId)
+    }
+
     /// The lifecycle half of the same story: a window a rule brought in is the Scene's own, so ending the Scene
     /// leaves it exactly where it is.
     ///
