@@ -218,6 +218,17 @@ class SceneDomainLayeringTest(unittest.TestCase):
                     "window, and describing one is somebody else's job",
                 )
 
+    def test_admission_names_no_engine_type(self):
+        for path in self.admission_files:
+            named = set(IDENTIFIER.findall(strip_comments(path.read_text())))
+            trespassers = sorted(named & self.engine_types_beyond_scene_core)
+            self.assertEqual(
+                trespassers,
+                [],
+                f"{path.relative_to(REPO)} names engine types {trespassers}; admission reads a bundle "
+                "id, a container and a workspace name, and a Window would bring a title with it",
+            )
+
     def test_the_engine_layer_imports_foundation_only_apart_from_the_adapter(self):
         for path in self.engine_files:
             for module in IMPORT.findall(path.read_text()):
