@@ -201,6 +201,16 @@ class SceneDomainLayeringTest(unittest.TestCase):
                 "window rather than reaching one, which is what keeps window titles out of it",
             )
 
+    def test_admission_imports_foundation_only(self):
+        for path in self.admission_files:
+            for module in IMPORT.findall(path.read_text()):
+                self.assertEqual(
+                    module,
+                    "Foundation",
+                    f"{path.relative_to(REPO)} imports {module}; a rule decides from a described "
+                    "window, and describing one is somebody else's job",
+                )
+
     def test_the_engine_layer_imports_foundation_only_apart_from_the_adapter(self):
         for path in self.engine_files:
             for module in IMPORT.findall(path.read_text()):
