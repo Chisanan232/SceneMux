@@ -8,26 +8,32 @@ extension SceneCore {
     /// people adding rules to it. An unrecognised window is not floated, not quarantined and not tiled
     /// somewhere plausible; it is left exactly where the inherited engine left it.
     ///
-    /// Precedence is the order of the guards, and it is the part worth reading:
+    /// Precedence is the order of the guards, and it is the part worth reading. In the order they are checked,
+    /// `decide` declines:
     ///
-    /// | # | Declines | Because |
-    /// | --- | --- | --- |
-    /// | 1 | Anything that is not an ordinary managed window | A dialog, a popup or a minimized window is not the work |
-    /// | 2 | Anything detected during startup | A Scene is still `active` after a relaunch, and startup is the engine taking stock, not a person opening a window |
-    /// | 3 | A window already in a Scene | Invariant I4, and what makes a second look at the same window harmless |
-    /// | 4 | Every window, when no Scene is on screen | There is no intent to serve |
-    /// | 5 | A window that is not on the Scene's own workspace | Somebody switched workspaces with the Scene still open; pulling their new window onto the Scene's would move it out from under them |
-    /// | 6 | A window whose Home no Slot of this Scene serves | Including every `personal` window — see below |
-    /// | 7 | A window with nowhere left to go | Every serving Slot is full and none of them is a tab group |
+    /// 1. anything that is not an ordinary managed window — a dialog, a popup or a minimized window is not
+    ///    the work;
+    /// 2. anything detected during startup — a Scene is still `active` after a relaunch, and startup is the
+    ///    engine taking stock rather than a person opening a window;
+    /// 3. a window already in a Scene — invariant I4, and what makes a second look at the same window
+    ///    harmless;
+    /// 4. every window, when no Scene is on screen — there is no intent to serve, which is the ordinary case;
+    /// 5. a window that is not on the Scene's own workspace — somebody switched workspaces with the Scene
+    ///    still open, and pulling their new window across would move it out from under them;
+    /// 6. a window whose Home no Slot of this Scene serves, including every `personal` window — see below;
+    /// 7. a window with nowhere left to go — every serving Slot is full and none of them is a tab group.
     ///
-    /// Two of the architecture document's stated rules fall out of row 6 rather than being special cases,
+    /// The same seven, and what the two surviving rules do, are published in
+    /// `docs/design/scene-core-architecture.md` under "What v0.1.0 decides, in order".
+    ///
+    /// Two of the architecture document's stated rules fall out of guard 6 rather than being special cases,
     /// which is why they are hard to break by accident:
     ///
     /// - **A Chrome window is not a Playwright window.** Browsers are `personal` in the Home rules, `personal`
     ///   is served by no Slot role, so no rule here can put a browser window into a Scene. SceneMux has no
     ///   browser-session ownership in v0.1.0 and this is what "has none" looks like in code.
     /// - **An unrecognised normal user window is `ignore`.** An application nobody has classified resolves to
-    ///   `HomeRules.fallback`, which is `personal`, which row 6 declines.
+    ///   `HomeRules.fallback`, which is `personal`, which guard 6 declines.
     ///
     /// What it does *not* do is decide finely. A Home says a window is for development; it does not say whether
     /// it is an editor or a terminal, because nothing SceneMux is allowed to read does. So a development window
