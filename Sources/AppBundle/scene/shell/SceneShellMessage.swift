@@ -118,6 +118,50 @@ extension SceneCore {
             return messages
         }
 
+        /// What the user is owed when a Scene has just been closed and its steps carried out.
+        ///
+        /// Ordered the way the outcome matters: what went home first, because reversing the borrow is the thing
+        /// closing a Scene promised; then any window that did not go, named; then the count of windows that were
+        /// deliberately left alone. A `windowIsGone` says nothing at all — a window the user closed themselves
+        /// during a task is not news, and reporting it would make the list unreadable exactly when it matters.
+        ///
+        /// Restores are grouped by the Home they went back to, and the Home is resolved from the rules rather
+        /// than from the attachment: the line says where the windows are now, which is the only claim it can
+        /// make that the user can check by looking.
+        static func onClose(
+            _ plan: SceneTeardownPlan,
+            outcomes: [WindowRef: SceneTeardownOutcome],
+            homes: HomeRules,
+            naming: ApplicationNaming,
+        ) -> [SceneShellMessage] {
+            func name(_ windowRef: WindowRef) -> String {
+                naming(windowRef.bundleId) ?? windowRef.bundleId
+            }
+
+            var restoredByHome: [SemanticHome: [String]] = [:]
+            var homesInOrder: [SemanticHome] = []
+            var messages: [SceneShellMessage] = []
+            for step in plan.pending {
+                switch outcomes[step.windowRef] {
+                    case .restored:
+                        let home = homes.home(of: step.windowRef)
+                        if restoredByHome[home] == nil { homesInOrder.append(home) }
+                        restoredByHome[home, default: []].append(name(step.windowRef))
+                    case .leftInPlace, .failed:
+                        messages.append(.restoreDeclined(applicationName: name(step.windowRef)))
+                    case .windowIsGone, nil:
+                        continue
+                }
+            }
+            messages = homesInOrder.map {
+                .windowsRestored(home: $0, applications: restoredByHome[$0] ?? [])
+            } + messages
+            if !plan.cleanupCandidates.isEmpty {
+                messages.append(.windowsLeftInPlace(windows: plan.cleanupCandidates.count))
+            }
+            return messages
+        }
+
         private func count(_ n: Int, _ noun: String) -> String {
             "\(n) \(noun)\(n == 1 ? "" : "s")"
         }
