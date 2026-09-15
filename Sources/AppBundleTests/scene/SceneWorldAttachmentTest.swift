@@ -41,4 +41,22 @@ final class SceneWorldAttachmentTest: XCTestCase {
             XCTAssertEqual(error as? SceneCore.SceneLifecycleError, .windowAlreadyAttached(debug.id))
         }
     }
+
+    func testASceneBeingTornDownAcceptsNoMoreWindows() throws {
+        // While `ending`, a Scene's attachments have stopped describing what is on screen and become the list
+        // of restores it still owes. A window added to that list would be sent to a Home nobody took it from.
+        let slot = SceneCoreFixtures.slot(role: .terminal)
+        let closing = try SceneCoreFixtures.scene(slots: [slot], state: .ending)
+        let world = try SceneCore.SceneWorld(scenes: [closing])
+
+        XCTAssertThrowsError(try world.attaching(
+            SceneCoreFixtures.attachment(
+                windowRef: try SceneCoreFixtures.windowRef(SceneCoreFixtures.App.terminal),
+                slotId: slot.id,
+            ),
+            to: closing.id,
+        )) { error in
+            XCTAssertEqual(error as? SceneCore.SceneLifecycleError, .sceneIsClosing(closing.id))
+        }
+    }
 }
