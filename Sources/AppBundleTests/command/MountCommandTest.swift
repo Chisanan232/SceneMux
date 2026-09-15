@@ -86,7 +86,7 @@ final class MountCommandTest: XCTestCase {
         let result = try await parseCommand("unmount").cmdOrDie.run(.defaultEnv, .emptyStdin)
 
         XCTAssertEqual(result.stdout, [
-            "\(SceneCoreFixtures.App.line) went back to where it came from, a Communication window.",
+            "\(SceneCoreFixtures.App.line) went back to where it came from. Its Home is still Communication.",
         ])
         XCTAssertEqual(port.requestedMoves.map(\.binding), [SceneCoreFixtures.communicationSurface])
         XCTAssertEqual(SceneCore.SceneRuntime.shared.snapshot.activeScene?.slots.first?.windows, [])

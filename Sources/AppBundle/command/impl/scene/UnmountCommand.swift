@@ -23,8 +23,8 @@ struct UnmountCommand: Command {
             return switch outcome {
                 case .restored:
                     io.out(
-                        "\(window.applicationName) went back to where it came from, "
-                            + "a \(window.home.displayName) window.",
+                        "\(window.applicationName) went back to where it came from. "
+                            + "Its Home is still \(window.home.displayName).",
                     )
                 case .windowIsGone:
                     io.out("\(window.applicationName)'s window is gone. It is out of the Scene; nothing was moved.")
