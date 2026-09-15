@@ -62,6 +62,9 @@ final class HomeCommandTest: XCTestCase {
 
     /// `list` shows the rule that will actually apply, not the two halves it came from, and marks the ones the
     /// user wrote. Ordered by bundle id, so two runs — and two screenshots — say the same thing.
+    ///
+    /// No line ends in whitespace either. Almost every row has nothing in the marker column, and a line that
+    /// ended in the column separator would be invisible cruft until somebody pasted the table into a ticket.
     func testListShowsTheEffectiveRuleAndMarksTheUsersOwn() async throws {
         let listed = try await exec("home list")
 
@@ -70,9 +73,10 @@ final class HomeCommandTest: XCTestCase {
         let browser = listed.stdout.filter { $0.hasPrefix(SceneCoreFixtures.App.browser.lowercased()) }
         XCTAssertEqual(browser.count, 1)
         XCTAssertTrue(browser[0].contains("Development"), browser[0])
-        XCTAssertTrue(browser[0].trimmingCharacters(in: .whitespaces).hasSuffix("your config"), browser[0])
+        XCTAssertTrue(browser[0].hasSuffix("your config"), browser[0])
         XCTAssertEqual(listed.stdout, listed.stdout.sorted())
         XCTAssertFalse(listed.stdout.contains { $0.hasPrefix("com.example") })
+        XCTAssertEqual(listed.stdout.filter { $0 != $0.trimmingCharacters(in: .whitespaces) }, [])
     }
 
     /// With nothing focused there is no application to answer for, and the refusal says what to pass instead.
