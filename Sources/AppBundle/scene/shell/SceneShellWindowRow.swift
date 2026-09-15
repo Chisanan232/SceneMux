@@ -67,17 +67,18 @@ extension SceneCore {
         /// Only for a mounted row. A window the Scene owns has nothing to reverse, and inventing a sentence
         /// for it would make the borrowed case less noticeable rather than more.
         ///
-        /// When the Home changed under the window, this line is where that is said. The alternative is the
-        /// thing the architecture calls out by name — a silent divergence between what the row said when the
-        /// window was borrowed and where it actually goes back to — and the user finds out about it by
-        /// discovering a window somewhere they did not expect.
+        /// When the Home changed under the window, this line is where that is said — and what it says is that
+        /// the *destination did not move with it*. A restore replays the surface recorded when the window was
+        /// borrowed, so re-homing an application mid-Scene changes what its windows are called and nothing
+        /// about where this one is going. Naming the new Home without that clause would be the promise the
+        /// build cannot keep: the user would go looking for the window in the new Home's place.
         var reversibility: String? {
             guard isMounted else { return nil }
             guard homeChangedWhileBorrowed else {
                 return "Borrowed into this Scene. Goes back to \(home.displayName) when the Scene closes."
             }
-            return "Home changed to \(home.displayName) while borrowed; "
-                + "will go back to \(home.displayName), not \(recordedHome.displayName)."
+            return "Borrowed into this Scene. Its Home changed to \(home.displayName) while it was borrowed; "
+                + "it still goes back where it came from, in \(recordedHome.displayName)."
         }
 
         /// `"LINE, Communication, mounted"` — the same three facts the row shows, in the same order.
