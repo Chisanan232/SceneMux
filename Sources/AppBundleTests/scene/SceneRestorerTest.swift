@@ -62,4 +62,23 @@ final class SceneRestorerTest: XCTestCase {
             XCTAssertEqual(outcome.isFinal, isFinal, "\(answer)")
         }
     }
+
+    func testAWindowWithNoRecordedSurfaceIsLeftWhereItIsAndTheEngineIsNotAsked() throws {
+        // State written by an earlier build, or by a build that could not see where the window was. The
+        // temptation is to send it to the Home's usual workspace, and that is exactly the guess invariant I8
+        // forbids: the user would find a borrowed window on a surface it had never been on.
+        let port = RecordingSceneEnginePort()
+        let slot = SceneCoreFixtures.slot(role: .communication)
+        let step = SceneCore.SceneTeardownStep(SceneCoreFixtures.attachment(
+            windowRef: try SceneCoreFixtures.windowRef(App.line),
+            slotId: slot.id,
+            ownership: .borrowed,
+            homeAtAttachTime: .communication,
+        ))
+
+        let outcome = SceneCore.SceneRestorer(port: port).restore(step)
+
+        XCTAssertEqual(outcome, .leftInPlace(reason: "SceneMux has no record of where it came from"))
+        XCTAssertEqual(port.requestedMoves.count, 0)
+    }
 }
