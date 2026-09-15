@@ -125,13 +125,13 @@ extension SceneCore {
         /// deliberately left alone. A `windowIsGone` says nothing at all — a window the user closed themselves
         /// during a task is not news, and reporting it would make the list unreadable exactly when it matters.
         ///
-        /// Restores are grouped by the Home they went back to, and the Home is resolved from the rules rather
-        /// than from the attachment: the line says where the windows are now, which is the only claim it can
-        /// make that the user can check by looking.
+        /// Restores are grouped by the Home *recorded* when each window was borrowed, because that is the Home
+        /// the place it just went back to stood for. Grouping by the rules as they are now would name the new
+        /// Home of an application the user re-homed mid-Scene and send them looking for the window there, when
+        /// a restore replays a recorded surface and nothing about it followed the re-home.
         static func onClose(
             _ plan: SceneTeardownPlan,
             outcomes: [WindowRef: SceneTeardownOutcome],
-            homes: HomeRules,
             naming: ApplicationNaming,
         ) -> [SceneShellMessage] {
             func name(_ windowRef: WindowRef) -> String {
@@ -144,7 +144,7 @@ extension SceneCore {
             for step in plan.pending {
                 switch outcomes[step.windowRef] {
                     case .restored:
-                        let home = homes.home(of: step.windowRef)
+                        let home = step.recordedHome
                         if restoredByHome[home] == nil { homesInOrder.append(home) }
                         restoredByHome[home, default: []].append(name(step.windowRef))
                     case .leftInPlace, .failed:

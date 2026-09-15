@@ -139,7 +139,7 @@ extension SceneCore {
             var messages: [SceneShellMessage] = []
             for plan in orchestrator.unfinishedTeardowns {
                 let outcomes = carryOut(plan, with: orchestrator)
-                messages += SceneShellMessage.onClose(plan, outcomes: outcomes, homes: homes, naming: naming)
+                messages += SceneShellMessage.onClose(plan, outcomes: outcomes, naming: naming)
             }
             guard !messages.isEmpty else { return [] }
             refresh()
@@ -215,7 +215,7 @@ extension SceneCore {
             layoutDiagnostics = []
             let outcomes = carryOut(plan, with: orchestrator)
             refresh()
-            post(SceneShellMessage.onClose(plan, outcomes: outcomes, homes: homes, naming: naming))
+            post(SceneShellMessage.onClose(plan, outcomes: outcomes, naming: naming))
             return plan
         }
 
