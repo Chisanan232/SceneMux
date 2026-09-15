@@ -44,6 +44,10 @@ extension SceneCore {
         /// What the most recent projection had to say. Replaced, not accumulated: it describes the screen as it
         /// is now, and yesterday's normalization notice is not news.
         private var layoutDiagnostics: [String] = []
+        /// Why the last newly detected window did not end up in the Slot a rule chose for it. Replaced, not
+        /// accumulated, for the same reason: it describes the window that just appeared, not every window that
+        /// ever did.
+        private var admissionDiagnostics: [String] = []
 
         /// The real thing: state in Application Support, the inherited engine, and the desktop for names.
         ///
@@ -264,6 +268,59 @@ extension SceneCore {
             return SceneShellWindowRow(attachment: attachment, homes: homes, naming: naming)
         }
 
+        /// Decide what should happen to a window the engine has just detected, and carry the decision out.
+        ///
+        /// The whole of SceneMux's reactive window management, and it is deliberately the shortest method here
+        /// that changes anything. Everything worth arguing about is in `AdmissionRules`, which is a pure function
+        /// of a value; this assembles that value — the only layer that can see both the engine's report and
+        /// SceneMux's own Scenes — and then does exactly what `mount` does, so a window that arrived by rule and
+        /// a window the user dropped are the same kind of attachment afterwards. The only difference is the
+        /// origin recorded on it, which is how a person can later ask why their window moved.
+        ///
+        /// Fails safe in every direction. Scenes unavailable, no Scene on screen, a rule declining, or the
+        /// attachment being refused all end the same way: the window is left exactly where the inherited engine
+        /// put it. Nothing is closed, nothing is focused, and no Home is changed (invariants I1 and I6).
+        ///
+        /// The value returned is what *happened*, not what the rules said — a refused attachment reports
+        /// `ignore`, because that is what became of the window. A refusal is worth one line in the diagnostics,
+        /// since a window silently not arriving in a Slot is the kind of thing people otherwise report as the
+        /// Scene being broken.
+        @discardableResult
+        func admit(_ subject: AdmissionSubject) -> AdmissionDecision {
+            guard let orchestrator else { return .ignore }
+            let candidate = AdmissionCandidate(
+                subject: subject,
+                home: homes.home(of: subject.windowRef),
+                activeScene: orchestrator.world.activeScene,
+                isAlreadyInAScene: orchestrator.world.holder(of: subject.windowRef) != nil,
+            )
+            let decision = AdmissionRules.decide(candidate)
+            guard let placement = decision.attachment, let active = candidate.activeScene else { return decision }
+            do {
+                _ = try orchestrator.attach(
+                    subject.windowRef,
+                    to: placement.slotId,
+                    of: active.id,
+                    ownership: placement.ownership,
+                    home: candidate.home,
+                    originSurface: subject.surface,
+                    origin: .admission(ruleId: placement.ruleId),
+                )
+            } catch {
+                let name = naming(subject.windowRef.bundleId) ?? subject.windowRef.bundleId
+                admissionDiagnostics = [
+                    "SceneMux left the new \(name) window where it was, because adding it to the Scene "
+                        + "did not succeed (\(error.localizedDescription)).",
+                ]
+                refresh()
+                return .ignore
+            }
+            admissionDiagnostics = []
+            reproject()
+            refresh()
+            return decision
+        }
+
         /// Give a window back and take it out of its Scene.
         ///
         /// The move happens first and the state changes after, which is the opposite order from closing a Scene
@@ -431,6 +488,7 @@ extension SceneCore {
             var diagnostics = unavailability.map { [$0] } ?? []
             diagnostics += orchestrator?.diagnostics ?? []
             diagnostics += layoutDiagnostics
+            diagnostics += admissionDiagnostics
             snapshot = SceneShellSnapshot(
                 world: orchestrator?.world ?? .empty,
                 diagnostics: diagnostics,
