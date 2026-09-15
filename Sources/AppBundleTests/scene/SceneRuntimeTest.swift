@@ -239,4 +239,28 @@ final class SceneRuntimeTest: XCTestCase {
         }
         XCTAssertEqual(port.requestedMoves.count, 0)
     }
+
+    /// Invariant I7, from the surface a person actually touches. A window recorded as the desktop's — which is
+    /// also where every unreadable ownership degrades to — is not moved even when they explicitly ask for it
+    /// back, and the refusal is said out loud rather than swallowed. Silence here would read as "done".
+    func testASharedWindowIsRefusedOutLoudAndNeverMoved() throws {
+        let runtime = try runtime()
+        var said: [SceneCore.SceneShellMessage] = []
+        let subscription = runtime.$message.sink { if let message = $0 { said.append(message) } }
+        defer { subscription.cancel() }
+        let scene = try runtime.createScene(title: "Debug PROD-123", template: .empty)
+        try runtime.enter(scene.id)
+        let slot = try runtime.addSlot(role: .communication)
+        let windowRef = try SceneCoreFixtures.windowRef(SceneCoreFixtures.App.music)
+        port.focused = windowRef
+        port.surfaces[windowRef] = SceneCoreFixtures.communicationSurface
+        try runtime.mount(into: slot.id, ownership: .sharedPersistent)
+        said.removeAll()
+
+        XCTAssertEqual(try runtime.unmount(windowRef), .leftInPlace(reason: "it is shared"))
+
+        XCTAssertEqual(said.map(\.text), ["\(SceneCoreFixtures.App.music) is shared — left untouched"])
+        XCTAssertEqual(port.requestedMoves.count, 0)
+        XCTAssertEqual(runtime.snapshot.scenes.first?.slots.first?.windows.count, 1)
+    }
 }
