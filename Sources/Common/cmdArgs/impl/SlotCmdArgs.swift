@@ -41,8 +41,9 @@ public struct SlotCmdArgs: CmdArgs {
 
 /// What `slot` was asked to do.
 ///
-/// Sending a window to a Slot is deliberately absent: that is attaching, and attaching does not exist in this
-/// build. A `slot 2` that silently did nothing would be worse than a `slot 2` that is not a command yet.
+/// Sending a window to a Slot is deliberately absent *here*: it is `mount --slot <n>`, which acts on the
+/// focused window and has to record an ownership. Putting it under `slot` would have made the Slot the subject
+/// of a sentence whose real subject is the window, and would have needed a second way to say "borrowed".
 public enum SlotTarget: String, CaseIterable, Equatable, Sendable {
     case list
     case new
