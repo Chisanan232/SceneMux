@@ -183,7 +183,7 @@ a Scene ending months after it started still restores a window somewhere real. I
 too — the companion spec shows the Home *category* on a row, never the workspace number, because the
 category is the part that is stable and meaningful.
 
-#### What HORO-1107 implements of the three tiers, and what it does not
+#### What v0.1.0 implements of the three tiers, and what it does not
 
 Only the middle tier ships in v0.1.0, and the deviation is recorded here rather than left for the next
 person to infer from the code:
@@ -191,7 +191,7 @@ person to infer from the code:
 | Tier | In v0.1.0 | Why |
 | --- | --- | --- |
 | A workspace designated for that Home | **Deferred — HORO-1221** | There is no way for a user to designate one yet. A `[scene-home]` key naming a workspace per Home is a config change, a settings surface and a migration, and none of it is needed for a window to come back correctly |
-| The workspace the window was last in outside any Scene | **Ships.** Recorded as `Attachment.originSurface` at the moment of mounting, and it is the only thing `SceneRestorer` aims at | It is the one answer that is a *fact* rather than a policy: the window was observably there. Invariant I8 is satisfied by replaying an observation, not by resolving a rule |
+| The workspace the window was last in outside any Scene | **Ships.** Recorded as `Attachment.originSurface` at the moment of mounting, and it is what `SceneRestorer` aims at | It is the one answer that is a *fact* rather than a policy: the window was observably there. Invariant I8 is satisfied by replaying an observation, not by resolving a rule |
 | A workspace created for that Home | **Declined** | Creating a workspace is a visible change to somebody's desktop, made at the moment a task ends, to hold a window they did not ask to move there. A window whose recorded surface is gone is left where it is and the person is told — `leftInPlace(reason:)` — which is recoverable in a way an invented workspace is not |
 
 So the shipped resolution is narrower than the three tiers above, and deliberately more conservative: a
@@ -199,11 +199,20 @@ restore either replays where the window came from or does nothing at all. An att
 surface — written by an earlier build, or by a build that could not see the window's workspace — is
 therefore left in place rather than guessed at, which is `SceneRestorer`'s second refusal.
 
-A surface is *all* a restore replays, which is narrower than it sounds: a window that was floating before
-it was borrowed comes back to the right workspace **tiled**, because the recorded fact is a workspace and
-not an arrangement. HORO-1222 carries that, and until it is closed the `v0.1.0` evidence bar's "returned to
-their owner's arrangement" is an overstatement of what happens — see
-[`evidence/horo-1107/README.md`](evidence/horo-1107/README.md).
+A surface alone is not enough to put a window back, so a second observation is recorded beside it. HORO-1222
+adds `Attachment.originArrangement`: whether the engine was laying the window out with its neighbours or it
+was floating above them, asked at the same moment the surface is, and replayed when the window goes home. A
+window that was floating comes back floating; a window that was tiled comes back tiled.
+
+Both recordings are observations and both may be absent, and absent means the same thing in both places: no
+claim, rather than a default. An attachment with no recorded arrangement — written by a build from before
+HORO-1222, or taken from a window macOS had minimized, fullscreened or hidden — restores exactly as it did
+before, with the arrangement left to the engine. Guessing `tiled` because most windows are tiled would
+quietly flatten somebody's floating window on the strength of a value nobody observed.
+
+What is recorded is a *mode* and never a frame: no size, no position, no place among siblings. That is
+invariant I11, and it is the reason a window comes back floating at whatever size the Scene left it rather
+than at the size it had before it was borrowed — a known limitation of v0.1.0, not an oversight.
 
 ## Slot
 
@@ -308,6 +317,8 @@ only thing in the model that knows *why* a window is on screen:
 | `slotId: SlotId` | Which Scene Slot it participates in |
 | `ownership: Ownership` | What ending the Scene may do to it. See [Ownership](#ownership) |
 | `homeAtAttachTime: SemanticHome` | The window's Home when it was attached — recorded, never rewritten |
+| `originSurface: SubstrateBinding?` | The workspace it was observably on when it was borrowed, and the only place a restore aims at. Absent means SceneMux never saw one |
+| `originArrangement: WindowArrangement?` | Whether it was `tiled` or `floating` there, replayed when it goes home. Absent means no claim was recorded, never a default. A mode and never a frame (I11) |
 | `origin: AttachmentOrigin` | `.userAction`, `.admission(rule)` or `.restoredFromState` — how it got here |
 
 **Mount** is the interesting kind of attachment: a window whose Home is *elsewhere* temporarily
@@ -326,8 +337,9 @@ the user did. See [Ownership](#ownership).
 
 `homeAtAttachTime` exists for a specific failure mode: the user re-homes an application (say, moves
 Slack from `communication` to `development`) *while* a Scene that borrowed it is still open. What should
-ending the Scene do? Answer: **nothing differently.** A restore replays `originSurface`, the surface the
-window was actually on when it was borrowed, so the destination is the one thing a re-home cannot change
+ending the Scene do? Answer: **nothing differently.** A restore replays `originSurface` and
+`originArrangement`, where the window actually was and how it was actually sitting there when it was
+borrowed, so the destination is the one thing a re-home cannot change
 — and `homeAtAttachTime` is how the surfaces name that destination, both in the row's reversibility line
 and in the HUD line after a close. The recorded value is evidence, not a destination; the surface is the
 destination.
@@ -906,10 +918,13 @@ Projection is three of the port's methods, and the order they run in is the whol
 | 3 | `settle(_:)` | Run the engine's own normalization and read the resulting composition of each Slot back |
 
 The rest of the port answers what a single operation needs to know, and each entry was added by the ticket
-that had a caller for it: `currentSubstrate()` says whether there is anywhere to draw at all, `focusedWindow()` says which
-window the person means, `surface(of:)` says where it is right now — recorded as `Attachment.originSurface`
-at the one moment it is knowable — and `move(_:to:)` is the whole of "put this window there", used both to
-mount one and to send it back. None of them names a container, a frame or a monitor, for the reason the
+that had a caller for it: `currentSubstrate()` says whether there is anywhere to draw at all,
+`focusedWindow()` says which window the person means, `surface(of:)` says where it is right now and
+`arrangement(of:)` says how it is sitting there — recorded together as `Attachment.originSurface` and
+`Attachment.originArrangement` at the one moment either is knowable — and `move(_:to:as:)` is the whole of
+"put this window there, like that", used both to mount one and to send it back. The two questions answer
+`nil` in the same circumstances and for the same reason: a window the engine cannot describe is a window
+SceneMux makes no claim about. None of them names a container, a frame or a monitor, for the reason the
 seam exists.
 
 Two things follow from step 1 being separate. An empty Slot is never offered to the engine at all — there
@@ -948,7 +963,7 @@ the test.
 | I5 | `leave` moves, resizes, focuses and closes nothing |
 | I6 | No lifecycle transition closes a window. A close happens only from an explicit per-window user confirmation |
 | I7 | A `.sharedPersistent` window is never moved, resized, focused or closed by Scene Core |
-| I8 | A `.borrowed` window is restored to its Home surface exactly once when its Scene reaches `ended` |
+| I8 | A `.borrowed` window is restored to its Home surface — and, when one was recorded, to the arrangement it had there — exactly once when its Scene reaches `ended` |
 | I9 | Unreadable or unrecognised persisted state yields zero Scenes and zero window operations |
 | I10 | An unrecognised window receives `ignore`; SceneMux leaves it exactly where the inherited engine put it |
 | I11 | No Scene state contains a window title, a window frame, a monitor id or a `CGWindowID` |
