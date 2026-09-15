@@ -88,4 +88,23 @@ final class AdmissionRulesTest: XCTestCase {
         XCTAssertEqual(SceneCore.AdmissionRules.roles(serving: .personal), [])
         XCTAssertEqual(decision, .ignore)
     }
+
+    func testABrowserWindowIsNeverRoutedByARuleHoweverInvitingTheSceneLooks() throws {
+        // "A Chrome window is not a Playwright window." A Scene with an empty preview Slot and an empty terminal
+        // Slot is as inviting as a Scene gets, and a browser window still gets nothing: SceneMux has no
+        // browser-session ownership in v0.1.0, so it must not infer from a bundle id that a browser window is
+        // automation-owned, agent-owned or part of anybody's task. A person who wants it there mounts it.
+        let preview = SceneCoreFixtures.slot(role: .preview, order: 0)
+        let terminal = SceneCoreFixtures.slot(role: .terminal, order: 1)
+        let scene = try SceneCoreFixtures.scene(
+            slots: [preview, terminal],
+            state: .active(SceneCoreFixtures.activeSubstrate),
+        )
+
+        let decision = SceneCore.AdmissionRules.decide(
+            try SceneCoreFixtures.admissionCandidate(App.browser, in: scene),
+        )
+
+        XCTAssertEqual(decision, .ignore)
+    }
 }
