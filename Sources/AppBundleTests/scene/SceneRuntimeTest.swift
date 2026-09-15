@@ -131,4 +131,28 @@ final class SceneRuntimeTest: XCTestCase {
         XCTAssertEqual(try runtime.cycleComposition(of: slot.id).composition, .single)
         XCTAssertEqual(try runtime.slot(numbered: 1).trailing, "empty")
     }
+
+    /// Mounting borrows the window the user is looking at, and records the two things that will be gone a moment
+    /// later: what the application is for, and which surface it was on. Without the second one there is no way
+    /// home.
+    func testMountingBorrowsTheFocusedWindowAndRecordsWhereItCameFrom() throws {
+        let runtime = try runtime()
+        let windowRef = try SceneCoreFixtures.windowRef(SceneCoreFixtures.App.line)
+        port.focused = windowRef
+        port.surfaces[windowRef] = SceneCoreFixtures.communicationSurface
+        let scene = try runtime.createScene(title: "Debug PROD-123")
+        try runtime.enter(scene.id)
+        let slot = try runtime.slot(numbered: 1)
+
+        let row = try runtime.mount(into: slot.id)
+
+        XCTAssertEqual(row.windowRef, windowRef)
+        XCTAssertEqual(row.home, .communication)
+        XCTAssertTrue(row.isMounted)
+        XCTAssertEqual(runtime.snapshot.activeScene?.windowCount, 1)
+        XCTAssertEqual(
+            runtime.snapshot.activeScene?.slots.first?.windows.map(\.windowRef),
+            [windowRef],
+        )
+    }
 }
