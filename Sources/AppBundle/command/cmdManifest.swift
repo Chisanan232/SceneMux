@@ -17,6 +17,7 @@ extension CmdArgs {
             case let args as FocusBackAndForthCmdArgs: FocusBackAndForthCommand(args: args)
             case let args as FocusMonitorCmdArgs: FocusMonitorCommand(args: args)
             case let args as FullscreenCmdArgs: FullscreenCommand(args: args)
+            case let args as HomeCmdArgs: HomeCommand(args: args)
             case let args as JoinWithCmdArgs: JoinWithCommand(args: args)
             case let args as LayoutCmdArgs: LayoutCommand(args: args)
             case let args as ListAppsCmdArgs: ListAppsCommand(args: args)
