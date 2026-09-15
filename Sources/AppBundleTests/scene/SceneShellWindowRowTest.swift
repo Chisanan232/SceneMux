@@ -87,4 +87,25 @@ final class SceneShellWindowRowTest: XCTestCase {
         XCTAssertEqual(row.trailing, "Development · mounted")
         XCTAssertTrue(row.homeChangedWhileBorrowed)
     }
+
+    /// And says so where the user is looking. A row that quietly showed the new Home would leave them
+    /// wondering why their chat window came back somewhere else.
+    func testTheReversibilityLineNamesTheHomeChangeAndBothHomes() throws {
+        let row = SceneCore.SceneShellWindowRow(
+            attachment: SceneCoreFixtures.attachment(
+                windowRef: try SceneCoreFixtures.windowRef(App.slack),
+                slotId: .generate(),
+                ownership: .borrowed,
+                homeAtAttachTime: .communication,
+            ),
+            homes: SceneCore.HomeRules(overrides: [App.slack: .development]),
+            naming: naming,
+        )
+
+        XCTAssertEqual(
+            row.reversibility,
+            "Home changed to Development while borrowed; "
+                + "will go back to Development, not Communication.",
+        )
+    }
 }
