@@ -224,4 +224,19 @@ final class SceneRuntimeTest: XCTestCase {
         XCTAssertEqual(runtime.snapshot.scenes, [])
         XCTAssertEqual(runtime.unfinishedTeardowns, [])
     }
+
+    /// Asking for a window back that no Scene is holding is a mistake worth naming, not a silent no-op: the
+    /// caller is a person who believes SceneMux borrowed something, and "there was nothing to give back" is the
+    /// only answer that tells them it did not.
+    func testUnmountingAWindowNoSceneIsHoldingIsRefusedByThatName() throws {
+        let runtime = try runtime()
+        let scene = try runtime.createScene(title: "Debug PROD-123", template: .empty)
+        try runtime.enter(scene.id)
+        let windowRef = try SceneCoreFixtures.windowRef(SceneCoreFixtures.App.music)
+
+        XCTAssertThrowsError(try runtime.unmount(windowRef)) { error in
+            XCTAssertEqual(error as? SceneCore.SceneRuntimeError, .windowNotInAScene)
+        }
+        XCTAssertEqual(port.requestedMoves.count, 0)
+    }
 }
