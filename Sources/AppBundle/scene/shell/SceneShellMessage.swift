@@ -22,6 +22,13 @@ extension SceneCore {
         /// would leave the user checking which two; naming them is what makes the line verifiable at a glance,
         /// and an application name is the only window fact SceneMux is willing to show (invariant I11).
         case windowsRestored(home: SemanticHome, applications: [String])
+        /// A borrowed window was not sent home, and the user is told which one and that nothing broke.
+        ///
+        /// Covers both ways a restore can not happen: there was nowhere to put the window, or the attempt
+        /// failed and is still owed. The sentence is the same either way because from the user's side the fact
+        /// is the same — this window did not move, and nothing was closed to make it move. Which of the two it
+        /// was is visible where it belongs: a Scene that is still owed a restore stays `restoring…`.
+        case restoreDeclined(applicationName: String)
         /// State could not be read, so there are no Scenes and nothing was moved.
         case stateUnreadable(details: String)
 
@@ -33,6 +40,8 @@ extension SceneCore {
                 case .windowsRestored(let home, let applications):
                     "\(count(applications.count, "window")) went back to \(home.displayName)"
                         + " — \(applications.joined(separator: ", "))"
+                case .restoreDeclined(let applicationName):
+                    "\(applicationName) could not be found — nothing was closed or moved"
                 case .attachmentsDropped(let title, let windows):
                     "\(count(windows, "window")) from “\(title)” \(windows == 1 ? "is" : "are") no longer open"
                 case .stateUnreadable:
@@ -48,7 +57,7 @@ extension SceneCore {
         var details: String? {
             switch self {
                 case .stateUnreadable(let details): details
-                case .entered, .attachmentsDropped, .windowsRestored: nil
+                case .entered, .attachmentsDropped, .windowsRestored, .restoreDeclined: nil
             }
         }
 
@@ -62,7 +71,7 @@ extension SceneCore {
         var announces: Bool {
             switch self {
                 case .entered: false
-                case .attachmentsDropped, .stateUnreadable, .windowsRestored: true
+                case .attachmentsDropped, .stateUnreadable, .windowsRestored, .restoreDeclined: true
             }
         }
 
