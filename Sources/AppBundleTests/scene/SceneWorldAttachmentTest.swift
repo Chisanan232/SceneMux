@@ -21,7 +21,7 @@ final class SceneWorldAttachmentTest: XCTestCase {
 
     func testAWindowAnotherSceneAlreadyHoldsIsRefused() throws {
         // Invariant I4. Two Scenes each holding a promise about one window is how a window gets sent "home"
-        // by a Scene that never borrowed it — to the Home the second Scene recorded, which is wherever the
+        // by a Scene that never borrowed it — to the surface the second Scene recorded, which is wherever the
         // first Scene had already put it.
         let slot = SceneCoreFixtures.slot(role: .communication)
         let window = try SceneCoreFixtures.windowRef(SceneCoreFixtures.App.line)
