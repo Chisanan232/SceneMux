@@ -414,6 +414,27 @@ final class WinMuxSceneEngineAdapterTest: XCTestCase {
         XCTAssertNil(adapter.surface(of: try SceneCore.WindowRef(bundleId: App.slack, ordinalWithinApp: 0)))
     }
 
+    /// The other half of the same moment: what the window *was* there. Read off the engine's own tree, because
+    /// a window hanging on the workspace is what the engine means by floating and a window in the tiling tree
+    /// is what it means by tiled — there is no second opinion to disagree with.
+    func testTheArrangementOfAWindowIsWhetherTheEngineTiledIt() throws {
+        let workspace = Workspace.get(byName: "chat")
+        TestWindow.new(id: 1, parent: workspace.rootTilingContainer, app: TestApp(bundleId: App.line))
+        TestWindow.new(id: 2, parent: workspace, app: TestApp(bundleId: App.slack))
+        let adapter = SceneCore.WinMuxSceneEngineAdapter()
+
+        XCTAssertEqual(
+            adapter.arrangement(of: try SceneCore.WindowRef(bundleId: App.line, ordinalWithinApp: 0)),
+            .tiled,
+        )
+        XCTAssertEqual(
+            adapter.arrangement(of: try SceneCore.WindowRef(bundleId: App.slack, ordinalWithinApp: 0)),
+            .floating,
+        )
+        // A window the engine is not holding at all is not a window with a plausible arrangement.
+        XCTAssertNil(adapter.arrangement(of: try SceneCore.WindowRef(bundleId: App.ide, ordinalWithinApp: 0)))
+    }
+
     /// Sending one window home moves exactly that window, and does not bring the user with it. A restore that
     /// stole focus would drag somebody away from what they were doing at the end of every task.
     func testMovingAWindowHomeLeavesEveryOtherWindowAndTheFocusAlone() throws {
