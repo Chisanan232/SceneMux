@@ -435,6 +435,25 @@ final class WinMuxSceneEngineAdapterTest: XCTestCase {
         XCTAssertEqual(focus.windowOrNil?.windowId, 3)
     }
 
+    /// A surface that no longer exists is not a surface to create. The window stays exactly where it is and the
+    /// caller is told why, because a workspace conjured up to receive a restore would send somebody\'s window
+    /// somewhere they have never been — and call it home.
+    func testARestoreAimedAtAVanishedWorkspaceMovesNothing() throws {
+        let window = TestWindow.new(id: 1, parent: elsewhere, app: TestApp(bundleId: App.line))
+        let windowRef = try SceneCore.WindowRef(bundleId: App.line, ordinalWithinApp: 0)
+
+        let move = SceneCore.WinMuxSceneEngineAdapter().move(
+            windowRef,
+            to: SceneCore.SubstrateBinding(workspaceName: "a-workspace-nobody-registered"),
+        )
+
+        XCTAssertEqual(move, .surfaceIsGone(
+            reason: "workspace \"a-workspace-nobody-registered\" does not exist any more",
+        ))
+        XCTAssertEqual(window.nodeWorkspace?.name, "elsewhere")
+        XCTAssertNil(Workspace.existing(byName: "a-workspace-nobody-registered"))
+    }
+
     private func rect(ofWindowId id: UInt32) -> Rect {
         Window.get(byId: id).orDie().lastAppliedLayoutPhysicalRect.orDie()
     }
