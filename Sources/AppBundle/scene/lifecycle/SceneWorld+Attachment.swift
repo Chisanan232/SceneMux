@@ -13,9 +13,9 @@ extension SceneCore.SceneWorld {
     ///
     /// Refuses a window some *other* Scene already holds. Two attachments would mean two Scenes each holding
     /// a promise about the same window, and the one that ended second would move a window it had no claim on
-    /// — into a Home it recorded before the first Scene ever borrowed it. The same window twice in the *same*
-    /// Scene is refused one layer down, as `SceneCoreError.duplicateAttachment`, which says the more precise
-    /// thing.
+    /// — back to the surface it recorded, which is wherever the Scene that borrowed it first had already put
+    /// it. The same window twice in the *same* Scene is refused one layer down, as
+    /// `SceneCoreError.duplicateAttachment`, which says the more precise thing.
     ///
     /// Refuses a Scene that is closing, because that Scene's attachments have stopped being a description of
     /// what is on screen and become the list of restores it still owes. Adding to that list would tell the
