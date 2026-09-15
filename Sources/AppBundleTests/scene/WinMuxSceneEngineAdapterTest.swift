@@ -457,6 +457,32 @@ final class WinMuxSceneEngineAdapterTest: XCTestCase {
         XCTAssertEqual(focus.windowOrNil?.windowId, 3)
     }
 
+    /// The defect HORO-1107 found on a real Mac: a window lent to a Scene is tiled by the projection, so at
+    /// teardown the engine's own answer to "what is this" describes the Scene rather than the window, and a
+    /// window that had been floating came back as one more tile in its own workspace. Replaying the recorded
+    /// arrangement is what fixes it, and this is the fix against the real tree.
+    func testAWindowRecordedAsFloatingComesBackFloatingAndNotAsOneMoreTile() throws {
+        let workspace = Workspace.get(byName: "chat")
+        TestWindow.new(id: 1, parent: workspace.rootTilingContainer, app: TestApp(bundleId: App.slack))
+        let line = TestWindow.new(id: 2, parent: workspace, app: TestApp(bundleId: App.line))
+        // What the projection does to a borrowed window: it goes into the Scene's layout, and being tiled there
+        // is now the only thing the engine can say about it.
+        line.bind(to: elsewhere, adaptiveWeight: WEIGHT_AUTO, index: INDEX_BIND_LAST)
+        XCTAssertFalse(line.isFloating)
+
+        let move = SceneCore.WinMuxSceneEngineAdapter().move(
+            try SceneCore.WindowRef(bundleId: App.line, ordinalWithinApp: 0),
+            to: SceneCore.SubstrateBinding(workspaceName: "chat"),
+            as: .floating,
+        )
+
+        XCTAssertEqual(move, .moved)
+        XCTAssertEqual(line.nodeWorkspace?.name, "chat")
+        XCTAssertTrue(line.isFloating)
+        // And the window that stayed home is not now sharing its space with a returning guest.
+        XCTAssertEqual(workspace.rootTilingContainer.layoutDescription, .h_tiles([.window(1)]))
+    }
+
     /// A surface that no longer exists is not a surface to create. The window stays exactly where it is and the
     /// caller is told why, because a workspace conjured up to receive a restore would send somebody's window
     /// somewhere they have never been — and call it home.
