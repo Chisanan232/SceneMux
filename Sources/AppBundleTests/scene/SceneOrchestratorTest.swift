@@ -326,6 +326,11 @@ final class SceneOrchestratorTest: XCTestCase {
         let holder = try XCTUnwrap(relaunched.world.holder(of: windowRef))
         XCTAssertEqual(holder.scene.id, scene.id)
         XCTAssertEqual(holder.attachment, attachment)
+        // Named rather than left to the comparison above, because these two are the whole of the promise: a
+        // restore after a relaunch has to know where the window came from *and* what it was there. Either one
+        // lost in the file is a window that comes back changed.
+        XCTAssertEqual(holder.attachment.originSurface, SceneCoreFixtures.communicationSurface)
+        XCTAssertEqual(holder.attachment.originArrangement, .floating)
     }
 
     func testAFailedSaveLeavesTheWindowInNoSceneAtAll() throws {
