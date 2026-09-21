@@ -122,8 +122,14 @@ struct SceneCommand: Command {
         let summary = try runtime.closeSummary(for: row.id)
         let plan = try runtime.close(row.id)
         var lines = ["Closing \(row.title)."] + summary.groups.map(\.headline)
-        if !plan.pending.isEmpty {
-            lines.append("\(plan.pending.count) window(s) are still to be restored.")
+        // What is *still* owed, read back after the restores ran rather than counted from the plan that
+        // described them. The plan says what teardown set out to do; a Scene that finished owes nothing, and
+        // saying otherwise made a completed close read like a failed one.
+        let owed = runtime.unfinishedTeardowns
+            .filter { $0.sceneId == plan.sceneId }
+            .flatMap(\.pending)
+        if !owed.isEmpty {
+            lines.append("\(owed.count) window(s) could not be restored, and SceneMux will try again.")
         }
         return io.out(lines)
     }
