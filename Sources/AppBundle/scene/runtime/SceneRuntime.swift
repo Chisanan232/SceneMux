@@ -128,6 +128,15 @@ extension SceneCore {
             return messages
         }
 
+        /// What the most recent close had to say, for a caller that prints text instead of showing toasts.
+        ///
+        /// The same messages `close(_:)` posts, kept so that a command can report them too. A window that was
+        /// borrowed and did *not* go home is the one teardown outcome the design requires somebody to be told
+        /// about, and until this existed the only somebody was the HUD — so a person who closed a Scene from a
+        /// shell was told "1 borrowed window goes back to its Home" about a window that stayed exactly where it
+        /// was. Written from the outcomes, after they happened, for the reason `SceneCommand.close` explains.
+        private(set) var lastCloseReport: [SceneShellMessage] = []
+
         /// The teardowns a previous run did not finish.
         ///
         /// Read, not executed: a Scene that was closing when the app stopped is `restoring…` until somebody
@@ -233,7 +242,8 @@ extension SceneCore {
             layoutDiagnostics = []
             let outcomes = carryOut(plan, with: orchestrator)
             refresh()
-            post(SceneShellMessage.onClose(plan, outcomes: outcomes, naming: naming))
+            lastCloseReport = SceneShellMessage.onClose(plan, outcomes: outcomes, naming: naming)
+            post(lastCloseReport)
             return plan
         }
 
