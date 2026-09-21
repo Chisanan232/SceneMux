@@ -27,7 +27,11 @@ struct SlotCommand: Command {
                 case .compose:
                     let row = try runtime.slot(numbered: args.slotNumber.orDie())
                     let slot = try runtime.cycleComposition(of: row.id)
-                    return io.out("\(row.title) slot is now \(slot.composition).")
+                    // The composition that was asked for, and then whatever the engine's normalization made of
+                    // it. Printing only the first would claim a shape the screen may not have.
+                    return io.out(
+                        ["\(row.title) slot is now \(slot.composition)."] + runtime.projectionDiagnostics,
+                    )
                 case .remove:
                     let row = try runtime.slot(numbered: args.slotNumber.orDie())
                     try runtime.removeSlot(row.id)
