@@ -29,6 +29,19 @@ extension SceneCore {
         /// Slots whose windows went straight into the substrate root, and so are a single window by shape.
         private var flattenedSlots: Set<SlotId> = []
 
+        /// Which window each `WindowRef` was minted for, for as long as this process runs.
+        ///
+        /// A `WindowRef` is a position — an application and an ordinal — and a position is not an identity: when
+        /// a window closes, every window of that application behind it moves up one, and the ref that named the
+        /// closed window now points at its neighbour. Resolving it would hand a Scene a window it never took.
+        ///
+        /// So the ordinal is remembered alongside the window id it meant at the moment the ref was made, and
+        /// `resolve(_:)` refuses a window that disagrees. Deliberately *not* persisted: a window id means
+        /// nothing after a restart, and invariant I11 keeps ids out of Scene state. Across a restart there is
+        /// no claim to check against and resolution is positional again, which is the limitation
+        /// `docs/design/scene-core-architecture.md` records rather than hides.
+        private static var mintedIdentities: [WindowRef: UInt32] = [:]
+
         init() {}
 
         /// The focused workspace, which is where a Scene entered now would appear.
@@ -256,13 +269,20 @@ extension SceneCore {
         /// across a projection, it is the same order the engine assigns as windows appear, and it does not
         /// depend on the tree — which is the thing being rebuilt.
         ///
+        /// A ref this process made is checked against the window it was made for, and a different window at the
+        /// same ordinal is treated as absence rather than as a target. That is the whole of it: a borrowed
+        /// window whose lower-numbered sibling has closed is *gone*, and the sibling that inherited its ordinal
+        /// is not sent to a Home it never came from. Restoring the wrong window is worse than restoring none.
+        ///
         /// Nothing is created, launched or focused here. A window that is not there is simply not there, and
         /// invariant I10 has SceneMux leave it at that.
         private func resolve(_ windowRef: WindowRef) -> Window? {
             let candidates = Self.inventory
                 .filter { $0.app.rawAppBundleId == windowRef.bundleId }
                 .sorted { $0.windowId < $1.windowId }
-            return candidates.getOrNil(atIndex: windowRef.ordinalWithinApp)
+            guard let window = candidates.getOrNil(atIndex: windowRef.ordinalWithinApp) else { return nil }
+            if let minted = Self.mintedIdentities[windowRef], minted != window.windowId { return nil }
+            return window
         }
 
         /// Describes an engine window as a `WindowRef`, the exact inverse of `resolve(_:)`.
@@ -286,7 +306,19 @@ extension SceneCore {
                 .sorted { $0.windowId < $1.windowId }
                 .firstIndex { $0.windowId == window.windowId }
             guard let ordinal else { return nil }
-            return try? WindowRef(bundleId: bundleId, ordinalWithinApp: ordinal)
+            guard let ref = try? WindowRef(bundleId: bundleId, ordinalWithinApp: ordinal) else { return nil }
+            // The one moment this ordinal is known to mean this window. Recorded here so that `resolve(_:)`
+            // can tell later that it no longer does.
+            mintedIdentities[ref] = window.windowId
+            return ref
+        }
+
+        /// Forgets which window every ref meant, so one test's windows cannot answer another test's refs.
+        ///
+        /// Test-only, and the reason the map is not reset anywhere in the product: within one run, forgetting
+        /// is exactly the mistake — a forgotten ref resolves positionally again and can pick the wrong window.
+        static func forgetWindowIdentitiesForTests() {
+            mintedIdentities = [:]
         }
 
         /// Every window the engine currently knows about.
