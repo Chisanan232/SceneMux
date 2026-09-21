@@ -78,6 +78,50 @@ final class SceneCommandTest: XCTestCase {
         XCTAssertEqual(SceneCore.SceneRuntime.shared.snapshot.scenes.map(\.state), [.active])
     }
 
+    /// What `--yes` reports afterwards is what happened, not what it set out to do. The HORO-1109 golden journey
+    /// closed a Scene whose five borrowed windows all went home and was told that five windows were "still to be
+    /// restored", because the count came from the plan rather than from what the plan achieved. A completed close
+    /// reading like a failed one is the kind of report that teaches people to ignore reports.
+    func testClosingReportsWhatIsStillOwedRatherThanWhatItSetOutToDo() async throws {
+        try await exec("scene new --title 'Debug PROD-123' --template empty")
+        try await exec("scene 1")
+        try await exec("slot new --role communication")
+        let line = try SceneCoreFixtures.windowRef(SceneCoreFixtures.App.line)
+        port.focused = line
+        port.surfaces[line] = SceneCoreFixtures.communicationSurface
+        try await exec("mount --slot 1")
+
+        let closed = try await exec("scene close --yes")
+
+        XCTAssertEqual(closed.stdout, [
+            "Closing Debug PROD-123.",
+            "1 borrowed window goes back to its Home",
+        ])
+        XCTAssertEqual(SceneCore.SceneRuntime.shared.unfinishedTeardowns, [])
+    }
+
+    /// And the other direction, because a report that never says anything is no better: a restore the engine
+    /// refused is still owed, so it is counted — once, from the attachment that is still there.
+    func testClosingSaysSoWhenARestoreIsStillOwed() async throws {
+        try await exec("scene new --title 'Debug PROD-123' --template empty")
+        try await exec("scene 1")
+        try await exec("slot new --role communication")
+        let line = try SceneCoreFixtures.windowRef(SceneCoreFixtures.App.line)
+        port.focused = line
+        port.surfaces[line] = SceneCoreFixtures.communicationSurface
+        try await exec("mount --slot 1")
+        port.moveAnswers[line] = .failed(reason: "the application is not answering")
+
+        let closed = try await exec("scene close --yes")
+
+        XCTAssertEqual(closed.stdout, [
+            "Closing Debug PROD-123.",
+            "1 borrowed window goes back to its Home",
+            "1 window(s) could not be restored, and SceneMux will try again.",
+        ])
+        XCTAssertEqual(SceneCore.SceneRuntime.shared.unfinishedTeardowns.flatMap(\.pending).map(\.windowRef), [line])
+    }
+
     /// `scene next` walks the list and wraps, and it starts at the first Scene when none is on screen — so the
     /// binding is useful on a fresh desktop instead of refusing until a Scene has been entered by other means.
     func testNextAndPreviousWalkTheListAndWrap() async throws {
@@ -110,5 +154,9 @@ final class SceneCommandTest: XCTestCase {
 
         XCTAssertEqual(asked, [.switcher, .newScene])
         XCTAssertEqual(SceneCore.SceneRuntime.shared.snapshot.scenes, [])
+    }
+
+    private func exec(_ command: String) async throws -> CmdResult {
+        try await parseCommand(command).cmdOrDie.run(.defaultEnv, .emptyStdin)
     }
 }
