@@ -204,7 +204,7 @@ extension SceneCore {
             }
             guard !windows.isEmpty else { return .windowsMissing(missing) }
 
-            let root = Workspace.get(byName: binding.workspaceName).rootTilingContainer
+            let root = tilesRoot(of: Workspace.get(byName: binding.workspaceName))
             let composition: SlotComposition
             if group.needsContainer, windows.count > 1 {
                 // Built the way `JoinWithCommand` builds one, which is the only mechanism the engine
@@ -235,6 +235,34 @@ extension SceneCore {
             return missing.isEmpty
                 ? .realised(composition)
                 : .partlyRealised(composition, missing: missing)
+        }
+
+        /// The container a Slot may be bound into: a tiles container, never a tab group.
+        ///
+        /// A workspace whose only occupied Slot is tabbed ends up with nothing but that tab group, and
+        /// flatten-containers normalization then promotes it to *be* the root container. Everything bound to
+        /// the root after that becomes another tab, which is how a Slot came to be built inside somebody
+        /// else's tab group: on the real desktop the Scene's second window was left parked off-screen at the
+        /// inactive-tab position, still listed by `slot list`, and re-entering the Scene did not bring it
+        /// back. A Slot is a region of the screen, so it cannot be a tab of something else.
+        ///
+        /// The engine has the same problem with its own new windows and solves it the same way —
+        /// `ensureTabGroupAnchorHasWorkspaceRootContainer` in `NewWindowBinding.swift` — except that the tab
+        /// group is kept as the first tile of the new root here, because the windows in it are somebody's
+        /// windows and dropping them out of the tree is the failure this is fixing.
+        private func tilesRoot(of workspace: Workspace) -> TilingContainer {
+            let root = workspace.rootTilingContainer
+            guard root.layout == .tabGroup else { return root }
+            root.unbindFromParent()
+            let tiles = TilingContainer(
+                parent: workspace,
+                adaptiveWeight: WEIGHT_AUTO,
+                root.orientation.opposite,
+                .tiles,
+                index: 0,
+            )
+            root.bind(to: tiles, adaptiveWeight: WEIGHT_AUTO, index: INDEX_BIND_LAST)
+            return tiles
         }
 
         /// Lets the engine normalize what was just built, then reports the shape each Slot really has.
