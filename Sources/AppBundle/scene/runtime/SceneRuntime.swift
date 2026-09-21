@@ -44,6 +44,15 @@ extension SceneCore {
         /// What the most recent projection had to say. Replaced, not accumulated: it describes the screen as it
         /// is now, and yesterday's normalization notice is not news.
         private var layoutDiagnostics: [String] = []
+
+        /// What the most recent projection had to say, for a caller that has just caused one.
+        ///
+        /// The switcher shows every diagnostic the snapshot carries, but a command that composes a Slot and then
+        /// prints the composition it *asked for* is telling only half the story: the engine's normalization has
+        /// the last word, and `docs/design/scene-core-architecture.md` promises the user is told when it used
+        /// it. So the lines are readable on their own, beside the sentence they qualify, rather than only as
+        /// part of a snapshot nobody printed.
+        var projectionDiagnostics: [String] { layoutDiagnostics }
         /// Why the last newly detected window did not end up in the Slot a rule chose for it. Replaced, not
         /// accumulated, for the same reason: it describes the window that just appeared, not every window that
         /// ever did.
