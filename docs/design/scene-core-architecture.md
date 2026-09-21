@@ -565,6 +565,17 @@ one the Scene borrowed. So a mismatch is treated as absence, not as a target: th
 it never came from. Restoring the wrong window is worse than restoring none, and the layer that can tell
 the difference is the one holding the Accessibility handle.
 
+That is the adapter's job and it needs a memory to do it, because an ordinal on its own cannot report a
+mismatch: it always resolves to *somebody*. `WinMuxSceneEngineAdapter` therefore records which window each
+ref was minted for and refuses to resolve the ref to any other one, for as long as the process runs. The
+HORO-1109 golden journey is what made this concrete: a Terminal window at ordinal 1 inherited ordinal 0
+when the window in front of it was closed mid-Scene, and teardown moved *it* to the other window's Home.
+Two limits remain, and they are limits rather than bugs only because they are written down here. If every
+window of an application closes and a new one appears, the ref is minted afresh for it — there is no longer
+anything to contradict. And across a restart there is no claim to check against at all, so resolution is
+positional again, which is the cost of invariant I11 stated at the top of this paragraph. A session
+identity that survives a restart without persisting window ids is Phase 2 work.
+
 **State that cannot all be true.** A file can decode perfectly and still describe Scenes that contradict
 each other — two claiming one identity, two saved as being on screen. That is discovered above the store,
 by the world's own rules, and it is refused exactly as an unreadable file is: zero Scenes, zero window
