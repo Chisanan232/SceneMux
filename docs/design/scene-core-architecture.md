@@ -282,6 +282,16 @@ the terminal Slot of "Debug PROD-123" as a vertical split instead of a horizonta
 window engine normalized it."* The user can then change their configuration or ask for the other
 orientation, which are both things they can actually do; being quietly lied to is not.
 
+HORO-1109 exercised this on a real desktop and found the consequence worth stating plainly: under a
+horizontal root, `slot compose` cycling from `.split(.vertical)` to `.split(.horizontal)` changes nothing
+at all on screen, because both come out vertical. One of the two orientations is always unrealisable, and
+which one depends on the substrate's root — so a user cycling a Slot will pass through a step that looks
+like a command that did not work. The diagnostic is what distinguishes "did nothing" from "was normalized",
+which is why `slot compose`, `mount` and `scene <n>` all print the projection's diagnostics beside their own
+reply rather than leaving them for a panel nobody has open. Setting
+`enable-normalization-opposite-orientation-for-nested-containers = false` makes both orientations reachable,
+and is the user's own escape hatch rather than something SceneMux decides for them.
+
 ### A naming collision, stated so nobody trips on it
 
 The inherited engine already uses the word "slot" for something else: `WorkspaceRetainedEmptySlot.swift`
