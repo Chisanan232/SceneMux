@@ -123,6 +123,32 @@ final class SceneCommandTest: XCTestCase {
         XCTAssertEqual(SceneCore.SceneRuntime.shared.unfinishedTeardowns.flatMap(\.pending).map(\.windowRef), [line])
     }
 
+    /// A borrowed window whose Home surface is gone stays where it is — the Scene finishes anyway, so nothing
+    /// will ever mention that window again. It is therefore the one outcome that has to be named in the reply
+    /// itself: the headline above it says the window goes back to its Home, and it did not. Before HORO-1109
+    /// only the HUD said so, which meant a Scene closed from a shell reported a restore that never happened.
+    func testClosingNamesABorrowedWindowThatDidNotGoHome() async throws {
+        try await exec("scene new --title 'Debug PROD-123' --template empty")
+        try await exec("scene 1")
+        try await exec("slot new --role communication")
+        let line = try SceneCoreFixtures.windowRef(SceneCoreFixtures.App.line)
+        port.focused = line
+        port.surfaces[line] = SceneCoreFixtures.communicationSurface
+        try await exec("mount --slot 1")
+        port.moveAnswers[line] = .surfaceIsGone(reason: "the workspace it came from no longer exists")
+
+        let closed = try await exec("scene close --yes")
+
+        XCTAssertEqual(closed.stdout, [
+            "Closing Debug PROD-123.",
+            "1 borrowed window goes back to its Home",
+            "\(SceneCoreFixtures.App.line) did not go back — nothing was closed or moved",
+        ])
+        // Final, not owed: the Scene is over and the attachment is gone, so nothing is going to retry it.
+        XCTAssertEqual(SceneCore.SceneRuntime.shared.unfinishedTeardowns, [])
+        XCTAssertEqual(SceneCore.SceneRuntime.shared.snapshot.scenes, [])
+    }
+
     /// `scene next` walks the list and wraps, and it starts at the first Scene when none is on screen — so the
     /// binding is useful on a fresh desktop instead of refusing until a Scene has been entered by other means.
     func testNextAndPreviousWalkTheListAndWrap() async throws {
