@@ -75,6 +75,38 @@ final class SlotCommandTest: XCTestCase {
         XCTAssertEqual(SceneCore.SceneRuntime.shared.snapshot.activeScene?.slots.map(\.title), ["Review"])
     }
 
+    /// Composing says what the engine settled on, not only what was asked for. The HORO-1109 golden journey
+    /// cycled a Slot from a vertical split to a horizontal one, was told it was "now a horizontal split", and
+    /// watched nothing at all change on screen: the substrate's orientation normalization had turned the
+    /// second one straight back into the first. `docs/design/scene-core-architecture.md` promises the person
+    /// is told when the engine has the last word, and a reply that prints only the intent breaks that promise
+    /// in the one case where the intent is wrong.
+    func testComposingReportsWhatTheEngineSettledOnAndNotOnlyWhatWasAsked() async throws {
+        try await exec("scene new --title 'Debug PROD-123' --template empty")
+        try await exec("scene 1")
+        try await exec("slot new --role communication")
+        for app in [SceneCoreFixtures.App.line, SceneCoreFixtures.App.slack] {
+            let window = try SceneCoreFixtures.windowRef(app)
+            port.focused = window
+            port.surfaces[window] = SceneCoreFixtures.communicationSurface
+            try await exec("mount --slot 1")
+        }
+        let slot = try XCTUnwrap(SceneCore.SceneRuntime.shared.snapshot.activeScene?.slots.first?.id)
+        // The substrate this Slot lives on only ever comes out vertical, whatever it is asked for.
+        port.settledCompositions = [slot: .split(.vertical)]
+
+        let vertical = try await exec("slot compose --slot 1")
+        let horizontal = try await exec("slot compose --slot 1")
+
+        // Asked for what it got: one sentence, and no noise about a normalization that changed nothing.
+        XCTAssertEqual(vertical.stdout, ["communication slot is now a vertical split."])
+        XCTAssertEqual(horizontal.stdout, [
+            "communication slot is now a horizontal split.",
+            "SceneMux composed the communication Slot of \"Debug PROD-123\" as a vertical split instead of "
+                + "a horizontal split, because the window engine normalized it.",
+        ])
+    }
+
     /// A role the domain does not have is refused with the roles it does have. The check is here and not in the
     /// argument parser because the role vocabulary belongs to the Scene domain, which the parser cannot see —
     /// and a user should not have to learn that to get a usable error.
@@ -90,5 +122,9 @@ final class SlotCommandTest: XCTestCase {
             Possible values: editor|terminal|preview|observability|communication
             """])
         XCTAssertEqual(SceneCore.SceneRuntime.shared.snapshot.activeScene?.slots, [])
+    }
+
+    private func exec(_ command: String) async throws -> CmdResult {
+        try await parseCommand(command).cmdOrDie.run(.defaultEnv, .emptyStdin)
     }
 }
