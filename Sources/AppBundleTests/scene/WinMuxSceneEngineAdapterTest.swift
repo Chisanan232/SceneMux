@@ -627,4 +627,65 @@ final class WinMuxSceneEngineAdapterTest: XCTestCase {
         XCTAssertTrue(display.setActiveWorkspace(workspace))
         Workspace.reconcileWorkspaceState()
     }
+    /// A Slot is never built *inside* a tab group, even when the workspace root has become one.
+    ///
+    /// The shape that produced this is ordinary: a Scene whose only occupied Slot is tabbed leaves the
+    /// workspace with nothing but that tab group, and flatten-containers normalization then makes the tab
+    /// group the root container itself. Anything bound to the root from then on — the HORO-1109 pass C had
+    /// admission decline a Finder window, which the engine bound next to the most recent window — becomes
+    /// another *tab*, and re-entering the Scene built the Slot's new container inside that tab group. On the
+    /// real desktop the result was a Scene window parked off-screen at the inactive-tab position, still
+    /// listed by `slot list`, not reachable by `focus --window-id`, and not recovered by re-entering: only
+    /// `layout floating` brought it back, which is not something a person is going to guess.
+    ///
+    /// So the root a Slot is bound into has to be a tiles container. The engine solves the same problem the
+    /// same way for its own new windows — `ensureTabGroupAnchorHasWorkspaceRootContainer` in
+    /// `NewWindowBinding.swift` — and a Slot has at least as much right to a place of its own.
+    func testASlotIsNotBuiltInsideATabGroupThatBecameTheRoot() throws {
+        config.enableNormalizationFlattenContainers = true
+        config.enableNormalizationOppositeOrientationForNestedContainers = true
+        let line = TestApp(bundleId: App.line)
+        let slack = TestApp(bundleId: App.slack)
+        let music = TestApp(bundleId: App.music)
+        let first = TestWindow.new(id: 1, parent: elsewhere, app: line)
+        TestWindow.new(id: 2, parent: elsewhere, app: slack)
+        let stranger = TestWindow.new(id: 99, parent: elsewhere, app: music)
+        let comms = SceneCoreFixtures.slot(role: .communication, composition: .tabbed, order: 0)
+        let scene = try SceneCoreFixtures.scene(slots: [comms])
+            .attaching(SceneCoreFixtures.attachment(
+                windowRef: try .init(bundleId: App.line, ordinalWithinApp: 0),
+                slotId: comms.id,
+                ownership: .borrowed,
+                homeAtAttachTime: .communication,
+            ))
+            .attaching(SceneCoreFixtures.attachment(
+                windowRef: try .init(bundleId: App.slack, ordinalWithinApp: 0),
+                slotId: comms.id,
+                ownership: .borrowed,
+                homeAtAttachTime: .communication,
+            ))
+        _ = project(scene, onto: name)
+        // The Slot's tab group is now the whole workspace, so a window the engine binds beside the most
+        // recent one joins it — which is what happened to the Finder window admission had declined.
+        let tabGroup = try XCTUnwrap(first.parent as? TilingContainer)
+        XCTAssertTrue(tabGroup === Workspace.get(byName: name).rootTilingContainer)
+        stranger.bind(to: tabGroup, adaptiveWeight: WEIGHT_AUTO, index: INDEX_BIND_LAST)
+
+        let report = project(scene, onto: name)
+
+        // Side by side with the stranger, not hidden behind it: both of the Slot's windows are in the Slot's
+        // own tab group, and that tab group is a tile of the root rather than a tab of somebody else's.
+        XCTAssertEqual(
+            Workspace.get(byName: name).rootTilingContainer.layoutDescription,
+            .h_tiles([
+                .window(99),
+                .v_tab_group([
+                    .window(1),
+                    .window(2),
+                ]),
+            ]),
+        )
+        XCTAssertEqual(report.placement(for: comms.id), .realised(.tabbed))
+    }
+
 }
