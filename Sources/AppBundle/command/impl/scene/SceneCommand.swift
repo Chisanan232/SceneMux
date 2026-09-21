@@ -24,7 +24,9 @@ struct SceneCommand: Command {
                 case .enter(let number):
                     let row = try runtime.scene(numbered: number)
                     try runtime.enter(row.id)
-                    return io.out("Entered \(row.title)")
+                    // Entering projects the whole Scene, so this is where a person finds out that the engine
+                    // composed a Slot differently from the way the Scene describes it.
+                    return io.out(["Entered \(row.title)"] + runtime.projectionDiagnostics)
                 case .relative(let direction):
                     return try enterRelative(direction, runtime, io)
                 case .new:
@@ -92,7 +94,7 @@ struct SceneCommand: Command {
         }
         let row = scenes[next]
         try runtime.enter(row.id)
-        return io.out("Entered \(row.title)")
+        return io.out(["Entered \(row.title)"] + runtime.projectionDiagnostics)
     }
 
     @MainActor
