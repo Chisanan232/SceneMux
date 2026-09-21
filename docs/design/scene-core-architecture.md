@@ -648,6 +648,15 @@ SceneMux would be moving a dialog into a Slot. Only `managed` is eligible for a 
 whole of the conservative handling of dialogs and popups: they are not excluded by an editable rule, they
 arrive as a kind no rule can route.
 
+Reading the engine's classification rather than re-deriving it has one consequence that has to be said out
+loud, because HORO-1109 spent a live pass discovering it: eligibility depends on the user's own tiling
+setting. With `automatically-tile-new-windows = false` — which is exactly what
+[`baseline-verification.md`](../development/baseline-verification.md) asks for while observing a live
+system — the engine binds every new window as a floating one, so its kind is `floating`, so *nothing* is
+ever eligible and reactive admission never fires. That is the setting working, not admission failing.
+Anyone exercising G1 by hand has to turn new-window tiling back on first, and anyone reading a log where
+admission said nothing has to check that setting before concluding the rules are wrong.
+
 ### What v0.1.0 decides, in order
 
 `AdmissionRules.decide` is one function that decides by declining. Each row below is a reason to leave the
