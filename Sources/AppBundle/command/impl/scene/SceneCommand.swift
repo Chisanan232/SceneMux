@@ -124,6 +124,13 @@ struct SceneCommand: Command {
         let summary = try runtime.closeSummary(for: row.id)
         let plan = try runtime.close(row.id)
         var lines = ["Closing \(row.title)."] + summary.groups.map(\.headline)
+        // The headline above is what closing *set out* to do, so a borrowed window that did not go home has to
+        // be named here or the reply is wrong about it. These are the same sentences the HUD shows, because a
+        // Scene closed from a shell and a Scene closed from the switcher did not do different things.
+        lines += runtime.lastCloseReport.compactMap {
+            guard case .restoreDeclined = $0 else { return nil }
+            return $0.text
+        }
         // What is *still* owed, read back after the restores ran rather than counted from the plan that
         // described them. The plan says what teardown set out to do; a Scene that finished owes nothing, and
         // saying otherwise made a completed close read like a failed one.

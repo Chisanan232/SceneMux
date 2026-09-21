@@ -117,6 +117,7 @@ final class SceneCommandTest: XCTestCase {
         XCTAssertEqual(closed.stdout, [
             "Closing Debug PROD-123.",
             "1 borrowed window goes back to its Home",
+            "\(SceneCoreFixtures.App.line) did not go back — nothing was closed or moved",
             "1 window(s) could not be restored, and SceneMux will try again.",
         ])
         XCTAssertEqual(SceneCore.SceneRuntime.shared.unfinishedTeardowns.flatMap(\.pending).map(\.windowRef), [line])
