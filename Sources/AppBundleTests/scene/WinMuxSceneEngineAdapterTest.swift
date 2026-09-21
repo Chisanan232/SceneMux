@@ -545,6 +545,69 @@ final class WinMuxSceneEngineAdapterTest: XCTestCase {
         XCTAssertNil(Workspace.existing(byName: "a-workspace-nobody-registered"))
     }
 
+    /// The defect the HORO-1109 golden journey hit on a real Mac. Two Terminal windows, the first borrowed and
+    /// the second owned by the Scene; the user closes the borrowed one; the owned one moves up to ordinal 0 and
+    /// the borrowed attachment's ref now points at it. Closing the Scene then sent a window the Scene was told
+    /// to leave alone to a workspace it had never been on.
+    ///
+    /// The ref is a position, so the position alone cannot tell the two apart. What can is that the ref was made
+    /// for one window: a different window at the same ordinal is absence, and the Scene finishes owing nothing.
+    func testAWindowThatInheritedAClosedWindowsOrdinalIsNotMovedInItsPlace() throws {
+        _ = Workspace.get(byName: "chat").rootTilingContainer
+        let terminal = TestApp(bundleId: App.terminal)
+        let borrowed = TestWindow.new(id: 1, parent: elsewhere, app: terminal)
+        let sceneOwned = TestWindow.new(id: 2, parent: elsewhere, app: terminal)
+        let adapter = SceneCore.WinMuxSceneEngineAdapter()
+        // Both refs are minted the way a mount mints them: by asking the seam to describe the focused window.
+        XCTAssertTrue(borrowed.focusWindow())
+        let borrowedRef = try XCTUnwrap(adapter.focusedWindow())
+        XCTAssertTrue(sceneOwned.focusWindow())
+        let sceneOwnedRef = try XCTUnwrap(adapter.focusedWindow())
+        XCTAssertEqual(borrowedRef, try SceneCore.WindowRef(bundleId: App.terminal, ordinalWithinApp: 0))
+        XCTAssertEqual(sceneOwnedRef, try SceneCore.WindowRef(bundleId: App.terminal, ordinalWithinApp: 1))
+
+        borrowed.unbindFromParent() // the user closes it while the Scene is on screen
+
+        let move = adapter.move(
+            borrowedRef,
+            to: SceneCore.SubstrateBinding(workspaceName: "chat"),
+            as: .floating,
+        )
+
+        XCTAssertEqual(move, .windowIsGone)
+        XCTAssertEqual(sceneOwned.nodeWorkspace?.name, "elsewhere")
+        XCTAssertEqual(Workspace.get(byName: "chat").rootTilingContainer.layoutDescription, .h_tiles([]))
+        // And the same ref answers nothing about the window that inherited its ordinal, rather than describing
+        // that window as if it were the one the Scene borrowed.
+        XCTAssertNil(adapter.surface(of: borrowedRef))
+        XCTAssertNil(adapter.arrangement(of: borrowedRef))
+    }
+
+    /// The other side of the same guard, because a check that refuses too much is the more expensive mistake: a
+    /// window whose *later* sibling closes keeps its ordinal, so its ref still means it and a restore still runs.
+    func testAWindowKeepsItsRefWhenALaterWindowOfTheSameApplicationCloses() throws {
+        _ = Workspace.get(byName: "chat").rootTilingContainer
+        let terminal = TestApp(bundleId: App.terminal)
+        let borrowed = TestWindow.new(id: 1, parent: elsewhere, app: terminal)
+        let later = TestWindow.new(id: 2, parent: elsewhere, app: terminal)
+        let adapter = SceneCore.WinMuxSceneEngineAdapter()
+        XCTAssertTrue(borrowed.focusWindow())
+        let borrowedRef = try XCTUnwrap(adapter.focusedWindow())
+        XCTAssertTrue(later.focusWindow())
+        _ = adapter.focusedWindow()
+
+        later.unbindFromParent()
+
+        let move = adapter.move(
+            borrowedRef,
+            to: SceneCore.SubstrateBinding(workspaceName: "chat"),
+            as: .tiled,
+        )
+
+        XCTAssertEqual(move, .moved)
+        XCTAssertEqual(borrowed.nodeWorkspace?.name, "chat")
+    }
+
     private func rect(ofWindowId id: UInt32) -> Rect {
         Window.get(byId: id).orDie().lastAppliedLayoutPhysicalRect.orDie()
     }
