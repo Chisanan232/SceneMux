@@ -201,6 +201,31 @@ final class SceneAdmissionHookTest: XCTestCase {
         XCTAssertEqual(store.load().scenes.first?.attachments, [])
     }
 
+    /// A window SceneMux finds while it is starting up is left alone, because it was already open.
+    ///
+    /// The control for this is the first test in the file: the same Scene, the same Slot and the same window,
+    /// admitted. What HORO-1109 found on a real desktop is that the guard this exercises was unreachable in the
+    /// running application — the engine's `isStartup` is one refresh session, and nineteen of twenty windows were
+    /// detected after it — so a Scene left on screen collected five windows the person had open before SceneMux
+    /// was even launched. The flag is set here rather than awaited through `initAppBundle`, which cannot run in a
+    /// test process; what the test pins is that admission obeys it.
+    func testAWindowFoundWhileSceneMuxIsStartingUpIsLeftAlone() throws {
+        let (workspace, _) = try sceneOnScreen(with: .terminal)
+        let window = TestWindow.new(
+            id: 1,
+            parent: workspace.rootTilingContainer,
+            app: TestApp(bundleId: App.terminal),
+        )
+
+        isSceneMuxStartingUp = true
+        sceneAdmitDetectedWindow(window)
+        isSceneMuxStartingUp = false
+
+        XCTAssertEqual(workspace.rootTilingContainer.layoutDescription, .h_tiles([.window(1)]))
+        XCTAssertEqual(SceneCore.SceneRuntime.shared.snapshot.activeScene?.slots.first?.windows, [])
+        XCTAssertEqual(store.load().scenes.flatMap(\.attachments), [])
+    }
+
     /// Nothing happens when there is no Scene, which is the state SceneMux is in nearly all of the time. The
     /// inherited engine's own new-window behaviour is what remains, untouched — the window is still exactly
     /// where it bound it, and no Scene exists to have taken it.
