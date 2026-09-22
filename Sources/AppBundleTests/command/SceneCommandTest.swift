@@ -166,6 +166,33 @@ final class SceneCommandTest: XCTestCase {
         XCTAssertEqual(port.invisibleWindows, [])
     }
 
+    /// Entering projects the whole Scene, so entering is where a person finds out that the engine composed a
+    /// Slot differently from the way the Scene describes it. HORO-1109 left a Scene, entered it again, and was
+    /// told only "Entered Debug PROD-123" while a Slot came back a shape the Scene had not asked for.
+    func testEnteringReportsWhatTheProjectionHadToSay() async throws {
+        try await exec("scene new --title 'Debug PROD-123' --template empty")
+        try await exec("scene 1")
+        try await exec("slot new --role communication")
+        let slot = try XCTUnwrap(SceneCore.SceneRuntime.shared.snapshot.activeScene?.slots.first?.id)
+        // This substrate only ever comes out vertical, whatever the Slot is composed as.
+        port.settledCompositions = [slot: .split(.vertical)]
+        try await exec("slot compose --slot 1")
+        try await exec("slot compose --slot 1") // now asked for horizontal, and the engine will not give it
+        let line = try SceneCoreFixtures.windowRef(SceneCoreFixtures.App.line)
+        port.focused = line
+        port.surfaces[line] = SceneCoreFixtures.communicationSurface
+        try await exec("mount --slot 1")
+        try await exec("scene leave")
+
+        let entered = try await exec("scene 1")
+
+        XCTAssertEqual(entered.stdout, [
+            "Entered Debug PROD-123",
+            "SceneMux composed the communication Slot of \"Debug PROD-123\" as a vertical split instead of "
+                + "a horizontal split, because the window engine normalized it.",
+        ])
+    }
+
     /// A command that can only be carried out by a surface says so when there is no surface, rather than
     /// reporting success against a screen where nothing happened. `scene new` with no title is one of those:
     /// the name is typed into the switcher, so without one there is nowhere to type it.
