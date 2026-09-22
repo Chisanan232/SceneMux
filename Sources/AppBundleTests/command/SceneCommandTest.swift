@@ -78,6 +78,77 @@ final class SceneCommandTest: XCTestCase {
         XCTAssertEqual(SceneCore.SceneRuntime.shared.snapshot.scenes.map(\.state), [.active])
     }
 
+    /// What `--yes` reports afterwards is what happened, not what it set out to do. The HORO-1109 golden journey
+    /// closed a Scene whose five borrowed windows all went home and was told that five windows were "still to be
+    /// restored", because the count came from the plan rather than from what the plan achieved. A completed close
+    /// reading like a failed one is the kind of report that teaches people to ignore reports.
+    func testClosingReportsWhatIsStillOwedRatherThanWhatItSetOutToDo() async throws {
+        try await exec("scene new --title 'Debug PROD-123' --template empty")
+        try await exec("scene 1")
+        try await exec("slot new --role communication")
+        let line = try SceneCoreFixtures.windowRef(SceneCoreFixtures.App.line)
+        port.focused = line
+        port.surfaces[line] = SceneCoreFixtures.communicationSurface
+        try await exec("mount --slot 1")
+
+        let closed = try await exec("scene close --yes")
+
+        XCTAssertEqual(closed.stdout, [
+            "Closing Debug PROD-123.",
+            "1 borrowed window goes back to its Home",
+        ])
+        XCTAssertEqual(SceneCore.SceneRuntime.shared.unfinishedTeardowns, [])
+    }
+
+    /// And the other direction, because a report that never says anything is no better: a restore the engine
+    /// refused is still owed, so it is counted — once, from the attachment that is still there.
+    func testClosingSaysSoWhenARestoreIsStillOwed() async throws {
+        try await exec("scene new --title 'Debug PROD-123' --template empty")
+        try await exec("scene 1")
+        try await exec("slot new --role communication")
+        let line = try SceneCoreFixtures.windowRef(SceneCoreFixtures.App.line)
+        port.focused = line
+        port.surfaces[line] = SceneCoreFixtures.communicationSurface
+        try await exec("mount --slot 1")
+        port.moveAnswers[line] = .failed(reason: "the application is not answering")
+
+        let closed = try await exec("scene close --yes")
+
+        XCTAssertEqual(closed.stdout, [
+            "Closing Debug PROD-123.",
+            "1 borrowed window goes back to its Home",
+            "\(SceneCoreFixtures.App.line) did not go back — nothing was closed or moved",
+            "1 window(s) could not be restored, and SceneMux will try again.",
+        ])
+        XCTAssertEqual(SceneCore.SceneRuntime.shared.unfinishedTeardowns.flatMap(\.pending).map(\.windowRef), [line])
+    }
+
+    /// A borrowed window whose Home surface is gone stays where it is — the Scene finishes anyway, so nothing
+    /// will ever mention that window again. It is therefore the one outcome that has to be named in the reply
+    /// itself: the headline above it says the window goes back to its Home, and it did not. Before HORO-1109
+    /// only the HUD said so, which meant a Scene closed from a shell reported a restore that never happened.
+    func testClosingNamesABorrowedWindowThatDidNotGoHome() async throws {
+        try await exec("scene new --title 'Debug PROD-123' --template empty")
+        try await exec("scene 1")
+        try await exec("slot new --role communication")
+        let line = try SceneCoreFixtures.windowRef(SceneCoreFixtures.App.line)
+        port.focused = line
+        port.surfaces[line] = SceneCoreFixtures.communicationSurface
+        try await exec("mount --slot 1")
+        port.moveAnswers[line] = .surfaceIsGone(reason: "the workspace it came from no longer exists")
+
+        let closed = try await exec("scene close --yes")
+
+        XCTAssertEqual(closed.stdout, [
+            "Closing Debug PROD-123.",
+            "1 borrowed window goes back to its Home",
+            "\(SceneCoreFixtures.App.line) did not go back — nothing was closed or moved",
+        ])
+        // Final, not owed: the Scene is over and the attachment is gone, so nothing is going to retry it.
+        XCTAssertEqual(SceneCore.SceneRuntime.shared.unfinishedTeardowns, [])
+        XCTAssertEqual(SceneCore.SceneRuntime.shared.snapshot.scenes, [])
+    }
+
     /// `scene next` walks the list and wraps, and it starts at the first Scene when none is on screen — so the
     /// binding is useful on a fresh desktop instead of refusing until a Scene has been entered by other means.
     func testNextAndPreviousWalkTheListAndWrap() async throws {
@@ -95,6 +166,33 @@ final class SceneCommandTest: XCTestCase {
         XCTAssertEqual(port.invisibleWindows, [])
     }
 
+    /// Entering projects the whole Scene, so entering is where a person finds out that the engine composed a
+    /// Slot differently from the way the Scene describes it. HORO-1109 left a Scene, entered it again, and was
+    /// told only "Entered Debug PROD-123" while a Slot came back a shape the Scene had not asked for.
+    func testEnteringReportsWhatTheProjectionHadToSay() async throws {
+        try await exec("scene new --title 'Debug PROD-123' --template empty")
+        try await exec("scene 1")
+        try await exec("slot new --role communication")
+        let slot = try XCTUnwrap(SceneCore.SceneRuntime.shared.snapshot.activeScene?.slots.first?.id)
+        // This substrate only ever comes out vertical, whatever the Slot is composed as.
+        port.settledCompositions = [slot: .split(.vertical)]
+        try await exec("slot compose --slot 1")
+        try await exec("slot compose --slot 1") // now asked for horizontal, and the engine will not give it
+        let line = try SceneCoreFixtures.windowRef(SceneCoreFixtures.App.line)
+        port.focused = line
+        port.surfaces[line] = SceneCoreFixtures.communicationSurface
+        try await exec("mount --slot 1")
+        try await exec("scene leave")
+
+        let entered = try await exec("scene 1")
+
+        XCTAssertEqual(entered.stdout, [
+            "Entered Debug PROD-123",
+            "SceneMux composed the communication Slot of \"Debug PROD-123\" as a vertical split instead of "
+                + "a horizontal split, because the window engine normalized it.",
+        ])
+    }
+
     /// A command that can only be carried out by a surface says so when there is no surface, rather than
     /// reporting success against a screen where nothing happened. `scene new` with no title is one of those:
     /// the name is typed into the switcher, so without one there is nowhere to type it.
@@ -110,5 +208,9 @@ final class SceneCommandTest: XCTestCase {
 
         XCTAssertEqual(asked, [.switcher, .newScene])
         XCTAssertEqual(SceneCore.SceneRuntime.shared.snapshot.scenes, [])
+    }
+
+    private func exec(_ command: String) async throws -> CmdResult {
+        try await parseCommand(command).cmdOrDie.run(.defaultEnv, .emptyStdin)
     }
 }

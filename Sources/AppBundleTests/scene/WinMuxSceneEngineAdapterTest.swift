@@ -545,6 +545,69 @@ final class WinMuxSceneEngineAdapterTest: XCTestCase {
         XCTAssertNil(Workspace.existing(byName: "a-workspace-nobody-registered"))
     }
 
+    /// The defect the HORO-1109 golden journey hit on a real Mac. Two Terminal windows, the first borrowed and
+    /// the second owned by the Scene; the user closes the borrowed one; the owned one moves up to ordinal 0 and
+    /// the borrowed attachment's ref now points at it. Closing the Scene then sent a window the Scene was told
+    /// to leave alone to a workspace it had never been on.
+    ///
+    /// The ref is a position, so the position alone cannot tell the two apart. What can is that the ref was made
+    /// for one window: a different window at the same ordinal is absence, and the Scene finishes owing nothing.
+    func testAWindowThatInheritedAClosedWindowsOrdinalIsNotMovedInItsPlace() throws {
+        _ = Workspace.get(byName: "chat").rootTilingContainer
+        let terminal = TestApp(bundleId: App.terminal)
+        let borrowed = TestWindow.new(id: 1, parent: elsewhere, app: terminal)
+        let sceneOwned = TestWindow.new(id: 2, parent: elsewhere, app: terminal)
+        let adapter = SceneCore.WinMuxSceneEngineAdapter()
+        // Both refs are minted the way a mount mints them: by asking the seam to describe the focused window.
+        XCTAssertTrue(borrowed.focusWindow())
+        let borrowedRef = try XCTUnwrap(adapter.focusedWindow())
+        XCTAssertTrue(sceneOwned.focusWindow())
+        let sceneOwnedRef = try XCTUnwrap(adapter.focusedWindow())
+        XCTAssertEqual(borrowedRef, try SceneCore.WindowRef(bundleId: App.terminal, ordinalWithinApp: 0))
+        XCTAssertEqual(sceneOwnedRef, try SceneCore.WindowRef(bundleId: App.terminal, ordinalWithinApp: 1))
+
+        borrowed.unbindFromParent() // the user closes it while the Scene is on screen
+
+        let move = adapter.move(
+            borrowedRef,
+            to: SceneCore.SubstrateBinding(workspaceName: "chat"),
+            as: .floating,
+        )
+
+        XCTAssertEqual(move, .windowIsGone)
+        XCTAssertEqual(sceneOwned.nodeWorkspace?.name, "elsewhere")
+        XCTAssertEqual(Workspace.get(byName: "chat").rootTilingContainer.layoutDescription, .h_tiles([]))
+        // And the same ref answers nothing about the window that inherited its ordinal, rather than describing
+        // that window as if it were the one the Scene borrowed.
+        XCTAssertNil(adapter.surface(of: borrowedRef))
+        XCTAssertNil(adapter.arrangement(of: borrowedRef))
+    }
+
+    /// The other side of the same guard, because a check that refuses too much is the more expensive mistake: a
+    /// window whose *later* sibling closes keeps its ordinal, so its ref still means it and a restore still runs.
+    func testAWindowKeepsItsRefWhenALaterWindowOfTheSameApplicationCloses() throws {
+        _ = Workspace.get(byName: "chat").rootTilingContainer
+        let terminal = TestApp(bundleId: App.terminal)
+        let borrowed = TestWindow.new(id: 1, parent: elsewhere, app: terminal)
+        let later = TestWindow.new(id: 2, parent: elsewhere, app: terminal)
+        let adapter = SceneCore.WinMuxSceneEngineAdapter()
+        XCTAssertTrue(borrowed.focusWindow())
+        let borrowedRef = try XCTUnwrap(adapter.focusedWindow())
+        XCTAssertTrue(later.focusWindow())
+        _ = adapter.focusedWindow()
+
+        later.unbindFromParent()
+
+        let move = adapter.move(
+            borrowedRef,
+            to: SceneCore.SubstrateBinding(workspaceName: "chat"),
+            as: .tiled,
+        )
+
+        XCTAssertEqual(move, .moved)
+        XCTAssertEqual(borrowed.nodeWorkspace?.name, "chat")
+    }
+
     private func rect(ofWindowId id: UInt32) -> Rect {
         Window.get(byId: id).orDie().lastAppliedLayoutPhysicalRect.orDie()
     }
@@ -564,4 +627,65 @@ final class WinMuxSceneEngineAdapterTest: XCTestCase {
         XCTAssertTrue(display.setActiveWorkspace(workspace))
         Workspace.reconcileWorkspaceState()
     }
+    /// A Slot is never built *inside* a tab group, even when the workspace root has become one.
+    ///
+    /// The shape that produced this is ordinary: a Scene whose only occupied Slot is tabbed leaves the
+    /// workspace with nothing but that tab group, and flatten-containers normalization then makes the tab
+    /// group the root container itself. Anything bound to the root from then on — the HORO-1109 pass C had
+    /// admission decline a Finder window, which the engine bound next to the most recent window — becomes
+    /// another *tab*, and re-entering the Scene built the Slot's new container inside that tab group. On the
+    /// real desktop the result was a Scene window parked off-screen at the inactive-tab position, still
+    /// listed by `slot list`, not reachable by `focus --window-id`, and not recovered by re-entering: only
+    /// `layout floating` brought it back, which is not something a person is going to guess.
+    ///
+    /// So the root a Slot is bound into has to be a tiles container. The engine solves the same problem the
+    /// same way for its own new windows — `ensureTabGroupAnchorHasWorkspaceRootContainer` in
+    /// `NewWindowBinding.swift` — and a Slot has at least as much right to a place of its own.
+    func testASlotIsNotBuiltInsideATabGroupThatBecameTheRoot() throws {
+        config.enableNormalizationFlattenContainers = true
+        config.enableNormalizationOppositeOrientationForNestedContainers = true
+        let line = TestApp(bundleId: App.line)
+        let slack = TestApp(bundleId: App.slack)
+        let music = TestApp(bundleId: App.music)
+        let first = TestWindow.new(id: 1, parent: elsewhere, app: line)
+        TestWindow.new(id: 2, parent: elsewhere, app: slack)
+        let stranger = TestWindow.new(id: 99, parent: elsewhere, app: music)
+        let comms = SceneCoreFixtures.slot(role: .communication, composition: .tabbed, order: 0)
+        let scene = try SceneCoreFixtures.scene(slots: [comms])
+            .attaching(SceneCoreFixtures.attachment(
+                windowRef: try .init(bundleId: App.line, ordinalWithinApp: 0),
+                slotId: comms.id,
+                ownership: .borrowed,
+                homeAtAttachTime: .communication,
+            ))
+            .attaching(SceneCoreFixtures.attachment(
+                windowRef: try .init(bundleId: App.slack, ordinalWithinApp: 0),
+                slotId: comms.id,
+                ownership: .borrowed,
+                homeAtAttachTime: .communication,
+            ))
+        _ = project(scene, onto: name)
+        // The Slot's tab group is now the whole workspace, so a window the engine binds beside the most
+        // recent one joins it — which is what happened to the Finder window admission had declined.
+        let tabGroup = try XCTUnwrap(first.parent as? TilingContainer)
+        XCTAssertTrue(tabGroup === Workspace.get(byName: name).rootTilingContainer)
+        stranger.bind(to: tabGroup, adaptiveWeight: WEIGHT_AUTO, index: INDEX_BIND_LAST)
+
+        let report = project(scene, onto: name)
+
+        // Side by side with the stranger, not hidden behind it: both of the Slot's windows are in the Slot's
+        // own tab group, and that tab group is a tile of the root rather than a tab of somebody else's.
+        XCTAssertEqual(
+            Workspace.get(byName: name).rootTilingContainer.layoutDescription,
+            .h_tiles([
+                .window(99),
+                .v_tab_group([
+                    .window(1),
+                    .window(2),
+                ]),
+            ]),
+        )
+        XCTAssertEqual(report.placement(for: comms.id), .realised(.tabbed))
+    }
+
 }

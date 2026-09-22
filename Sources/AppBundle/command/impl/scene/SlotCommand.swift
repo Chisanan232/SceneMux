@@ -27,7 +27,11 @@ struct SlotCommand: Command {
                 case .compose:
                     let row = try runtime.slot(numbered: args.slotNumber.orDie())
                     let slot = try runtime.cycleComposition(of: row.id)
-                    return io.out("\(row.title) slot is now \(slot.composition).")
+                    // The composition that was asked for, and then whatever the engine's normalization made of
+                    // it. Printing only the first would claim a shape the screen may not have.
+                    return io.out(
+                        ["\(row.title) slot is now \(slot.composition)."] + runtime.projectionDiagnostics,
+                    )
                 case .remove:
                     let row = try runtime.slot(numbered: args.slotNumber.orDie())
                     try runtime.removeSlot(row.id)
@@ -66,7 +70,10 @@ struct SlotCommand: Command {
         let rows: [[String]] = scene.slots.map { row in
             ["\(row.index)", row.title, row.trailing]
         }
-        return io.out(rows.toPaddingTable(columnSeparator: "   "))
+        // A count is of the windows attached to the Slot, and an attachment can outlive the window — that is the
+        // persistence model, not a bug. What is a bug is the person having no way to tell: HORO-1109 quit an
+        // application mid-Scene and the table went on saying "2 windows" about a Slot with one window in it.
+        return io.out(rows.toPaddingTable(columnSeparator: "   ") + runtime.unseenWindowDiagnostics)
     }
 
     @MainActor

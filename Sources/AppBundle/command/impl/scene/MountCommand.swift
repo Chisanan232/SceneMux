@@ -21,15 +21,19 @@ struct MountCommand: Command {
         do {
             let slot = try runtime.slot(numbered: args.slotNumber.orDie())
             let window = try runtime.mount(into: slot.id, ownership: args.own ? .sceneOwned : .borrowed)
+            // A mount reprojects, so the engine may have composed the Slot into something other than what it
+            // says it is. Whatever it had to say about that belongs with the sentence about the mount.
             guard args.own else {
                 return io.out(
-                    "Mounted \(window.applicationName) into the \(slot.title) slot. "
-                        + "Its Home is still \(window.home.displayName), and it goes back when the Scene closes.",
+                    ["Mounted \(window.applicationName) into the \(slot.title) slot. "
+                        + "Its Home is still \(window.home.displayName), and it goes back when the Scene closes."]
+                        + runtime.projectionDiagnostics,
                 )
             }
             return io.out(
-                "Attached \(window.applicationName) to the \(slot.title) slot. "
-                    + "This Scene owns it; its Home is still \(window.home.displayName).",
+                ["Attached \(window.applicationName) to the \(slot.title) slot. "
+                    + "This Scene owns it; its Home is still \(window.home.displayName)."]
+                    + runtime.projectionDiagnostics,
             )
         } catch let error as SceneCore.SceneRuntimeError {
             return io.err(error.description)

@@ -29,6 +29,19 @@ extension SceneCore {
         /// Slots whose windows went straight into the substrate root, and so are a single window by shape.
         private var flattenedSlots: Set<SlotId> = []
 
+        /// Which window each `WindowRef` was minted for, for as long as this process runs.
+        ///
+        /// A `WindowRef` is a position — an application and an ordinal — and a position is not an identity: when
+        /// a window closes, every window of that application behind it moves up one, and the ref that named the
+        /// closed window now points at its neighbour. Resolving it would hand a Scene a window it never took.
+        ///
+        /// So the ordinal is remembered alongside the window id it meant at the moment the ref was made, and
+        /// `resolve(_:)` refuses a window that disagrees. Deliberately *not* persisted: a window id means
+        /// nothing after a restart, and invariant I11 keeps ids out of Scene state. Across a restart there is
+        /// no claim to check against and resolution is positional again, which is the limitation
+        /// `docs/design/scene-core-architecture.md` records rather than hides.
+        private static var mintedIdentities: [WindowRef: UInt32] = [:]
+
         init() {}
 
         /// The focused workspace, which is where a Scene entered now would appear.
@@ -191,7 +204,7 @@ extension SceneCore {
             }
             guard !windows.isEmpty else { return .windowsMissing(missing) }
 
-            let root = Workspace.get(byName: binding.workspaceName).rootTilingContainer
+            let root = tilesRoot(of: Workspace.get(byName: binding.workspaceName))
             let composition: SlotComposition
             if group.needsContainer, windows.count > 1 {
                 // Built the way `JoinWithCommand` builds one, which is the only mechanism the engine
@@ -222,6 +235,34 @@ extension SceneCore {
             return missing.isEmpty
                 ? .realised(composition)
                 : .partlyRealised(composition, missing: missing)
+        }
+
+        /// The container a Slot may be bound into: a tiles container, never a tab group.
+        ///
+        /// A workspace whose only occupied Slot is tabbed ends up with nothing but that tab group, and
+        /// flatten-containers normalization then promotes it to *be* the root container. Everything bound to
+        /// the root after that becomes another tab, which is how a Slot came to be built inside somebody
+        /// else's tab group: on the real desktop the Scene's second window was left parked off-screen at the
+        /// inactive-tab position, still listed by `slot list`, and re-entering the Scene did not bring it
+        /// back. A Slot is a region of the screen, so it cannot be a tab of something else.
+        ///
+        /// The engine has the same problem with its own new windows and solves it the same way —
+        /// `ensureTabGroupAnchorHasWorkspaceRootContainer` in `NewWindowBinding.swift` — except that the tab
+        /// group is kept as the first tile of the new root here, because the windows in it are somebody's
+        /// windows and dropping them out of the tree is the failure this is fixing.
+        private func tilesRoot(of workspace: Workspace) -> TilingContainer {
+            let root = workspace.rootTilingContainer
+            guard root.layout == .tabGroup else { return root }
+            root.unbindFromParent()
+            let tiles = TilingContainer(
+                parent: workspace,
+                adaptiveWeight: WEIGHT_AUTO,
+                root.orientation.opposite,
+                .tiles,
+                index: 0,
+            )
+            root.bind(to: tiles, adaptiveWeight: WEIGHT_AUTO, index: INDEX_BIND_LAST)
+            return tiles
         }
 
         /// Lets the engine normalize what was just built, then reports the shape each Slot really has.
@@ -256,13 +297,20 @@ extension SceneCore {
         /// across a projection, it is the same order the engine assigns as windows appear, and it does not
         /// depend on the tree — which is the thing being rebuilt.
         ///
+        /// A ref this process made is checked against the window it was made for, and a different window at the
+        /// same ordinal is treated as absence rather than as a target. That is the whole of it: a borrowed
+        /// window whose lower-numbered sibling has closed is *gone*, and the sibling that inherited its ordinal
+        /// is not sent to a Home it never came from. Restoring the wrong window is worse than restoring none.
+        ///
         /// Nothing is created, launched or focused here. A window that is not there is simply not there, and
         /// invariant I10 has SceneMux leave it at that.
         private func resolve(_ windowRef: WindowRef) -> Window? {
             let candidates = Self.inventory
                 .filter { $0.app.rawAppBundleId == windowRef.bundleId }
                 .sorted { $0.windowId < $1.windowId }
-            return candidates.getOrNil(atIndex: windowRef.ordinalWithinApp)
+            guard let window = candidates.getOrNil(atIndex: windowRef.ordinalWithinApp) else { return nil }
+            if let minted = Self.mintedIdentities[windowRef], minted != window.windowId { return nil }
+            return window
         }
 
         /// Describes an engine window as a `WindowRef`, the exact inverse of `resolve(_:)`.
@@ -286,7 +334,19 @@ extension SceneCore {
                 .sorted { $0.windowId < $1.windowId }
                 .firstIndex { $0.windowId == window.windowId }
             guard let ordinal else { return nil }
-            return try? WindowRef(bundleId: bundleId, ordinalWithinApp: ordinal)
+            guard let ref = try? WindowRef(bundleId: bundleId, ordinalWithinApp: ordinal) else { return nil }
+            // The one moment this ordinal is known to mean this window. Recorded here so that `resolve(_:)`
+            // can tell later that it no longer does.
+            mintedIdentities[ref] = window.windowId
+            return ref
+        }
+
+        /// Forgets which window every ref meant, so one test's windows cannot answer another test's refs.
+        ///
+        /// Test-only, and the reason the map is not reset anywhere in the product: within one run, forgetting
+        /// is exactly the mistake — a forgotten ref resolves positionally again and can pick the wrong window.
+        static func forgetWindowIdentitiesForTests() {
+            mintedIdentities = [:]
         }
 
         /// Every window the engine currently knows about.
@@ -348,6 +408,22 @@ func sceneAdmitDetectedWindow(_ window: Window) {
         windowRef: windowRef,
         kind: SceneCore.WinMuxSceneEngineAdapter.kind(of: window),
         surface: SceneCore.WinMuxSceneEngineAdapter.surface(of: window),
-        detectedDuringStartup: isStartup,
+        detectedDuringStartup: isStartup || isSceneMuxStartingUp,
     ))
 }
+
+/// Whether SceneMux itself is still starting up, which is not the same question as the engine's `isStartup`.
+///
+/// `isStartup` is a property of the *refresh session*: it is true only inside the one session `initAppBundle`
+/// runs with the `.startup` event. Almost no window is first seen there. Counted on a real desktop of twenty
+/// windows under HORO-1109 — with an `on-window-detected` callback per case — one window was detected while
+/// `isStartup` was true and nineteen after it, because the bulk of the discovery happens in the
+/// `MonitorConfigurationObserver.prepareForStartup` session that runs before it. Admission's startup guard was
+/// therefore reading a flag that is false exactly when it matters, and a Scene that had been left on screen
+/// swallowed five windows the person already had open, with nobody touching anything.
+///
+/// So the signal admission needs is the application's own launch, which `initAppBundle` brackets. It is off by
+/// default because every other caller — the tests, and the engine at any other moment — is by definition not
+/// starting up, and a latch that defaulted the other way would be a latch that turns admission off in a process
+/// that never sets it.
+@MainActor var isSceneMuxStartingUp = false

@@ -24,7 +24,9 @@ struct SceneCommand: Command {
                 case .enter(let number):
                     let row = try runtime.scene(numbered: number)
                     try runtime.enter(row.id)
-                    return io.out("Entered \(row.title)")
+                    // Entering projects the whole Scene, so this is where a person finds out that the engine
+                    // composed a Slot differently from the way the Scene describes it.
+                    return io.out(["Entered \(row.title)"] + runtime.projectionDiagnostics)
                 case .relative(let direction):
                     return try enterRelative(direction, runtime, io)
                 case .new:
@@ -92,7 +94,7 @@ struct SceneCommand: Command {
         }
         let row = scenes[next]
         try runtime.enter(row.id)
-        return io.out("Entered \(row.title)")
+        return io.out(["Entered \(row.title)"] + runtime.projectionDiagnostics)
     }
 
     @MainActor
@@ -122,8 +124,21 @@ struct SceneCommand: Command {
         let summary = try runtime.closeSummary(for: row.id)
         let plan = try runtime.close(row.id)
         var lines = ["Closing \(row.title)."] + summary.groups.map(\.headline)
-        if !plan.pending.isEmpty {
-            lines.append("\(plan.pending.count) window(s) are still to be restored.")
+        // The headline above is what closing *set out* to do, so a borrowed window that did not go home has to
+        // be named here or the reply is wrong about it. These are the same sentences the HUD shows, because a
+        // Scene closed from a shell and a Scene closed from the switcher did not do different things.
+        lines += runtime.lastCloseReport.compactMap {
+            guard case .restoreDeclined = $0 else { return nil }
+            return $0.text
+        }
+        // What is *still* owed, read back after the restores ran rather than counted from the plan that
+        // described them. The plan says what teardown set out to do; a Scene that finished owes nothing, and
+        // saying otherwise made a completed close read like a failed one.
+        let owed = runtime.unfinishedTeardowns
+            .filter { $0.sceneId == plan.sceneId }
+            .flatMap(\.pending)
+        if !owed.isEmpty {
+            lines.append("\(owed.count) window(s) could not be restored, and SceneMux will try again.")
         }
         return io.out(lines)
     }

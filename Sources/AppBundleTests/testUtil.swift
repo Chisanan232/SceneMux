@@ -31,6 +31,7 @@ func setUpWorkspacesForTests() {
     configUrl = defaultConfigUrl
     resetWorkspaceNameGenerationStateForTests()
     resetCachedWindowTitles()
+    SceneCore.WinMuxSceneEngineAdapter.forgetWindowIdentitiesForTests()
     config.enableNormalizationFlattenContainers = false // Make layout tests more predictable
     config.enableNormalizationOppositeOrientationForNestedContainers = false // Make layout tests more predictable
     config.defaultRootContainerOrientation = .horizontal // Make default layout predictable
