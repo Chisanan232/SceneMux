@@ -73,6 +73,32 @@ final class MountCommandTest: XCTestCase {
             == false)
     }
 
+    /// A mount reprojects the Scene, so whatever the engine had to say about the shape it settled on belongs
+    /// with the sentence about the mount. HORO-1109 mounted a window into a Slot the substrate could not
+    /// compose as described and was told only that the mount had happened: the screen and the reply disagreed,
+    /// and nothing in the reply admitted it.
+    func testMountingReportsWhatTheProjectionHadToSay() async throws {
+        try await exec("scene new --title 'Debug PROD-123' --template empty")
+        try await exec("scene 1")
+        try await exec("slot new --role communication")
+        let slot = try XCTUnwrap(SceneCore.SceneRuntime.shared.snapshot.activeScene?.slots.first?.id)
+        // This substrate only ever comes out vertical, whatever the Slot is composed as.
+        port.settledCompositions = [slot: .split(.vertical)]
+        try await exec("slot compose --slot 1")
+        try await exec("slot compose --slot 1") // now asked for horizontal, and the engine will not give it
+        port.focused = try SceneCoreFixtures.windowRef(SceneCoreFixtures.App.line)
+        port.surfaces[port.focused!] = SceneCoreFixtures.communicationSurface
+
+        let result = try await exec("mount --slot 1")
+
+        XCTAssertEqual(result.stdout, [
+            "Mounted \(SceneCoreFixtures.App.line) into the communication slot. "
+                + "Its Home is still Communication, and it goes back when the Scene closes.",
+            "SceneMux composed the communication Slot of \"Debug PROD-123\" as a vertical split instead of "
+                + "a horizontal split, because the window engine normalized it.",
+        ])
+    }
+
     /// Giving one window back, before the task ends. It goes to the workspace it was borrowed from — the
     /// recorded one, not a Home's usual place — and it leaves the Scene, so the Slot is empty again.
     func testUnmountingGivesTheWindowBackAndSaysWhereItWent() async throws {
