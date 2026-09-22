@@ -754,7 +754,10 @@ Stated rather than fixed, because each of these is a decision to decline rather 
   browsers are `personal`. Filling it would mean a rule deciding that somebody's browser is part of a task.
 - **No `personal` window is ever admitted**, which includes every application SceneMux has not classified.
 - **Nothing is admitted during startup.** Windows that already existed when SceneMux launched are never swept
-  into the Scene that happened to be open when it last stopped.
+  into the Scene that happened to be open when it last stopped. *Which* startup is the whole of it: the
+  engine's own `isStartup` is one refresh session, and on a desktop of twenty windows HORO-1109 counted one
+  window detected inside it and nineteen after it — so the guard has to be SceneMux's own launch, which is
+  what `isSceneMuxStartingUp` is and why `initAppBundle` brackets its whole startup task with it.
 - **Nothing is admitted onto a workspace the Scene is not on.** A window opened after switching away stays
   where it was opened.
 - **A full Slot does not overflow.** With no empty serving Slot and no tab group, the answer is `ignore` —
@@ -1094,6 +1097,39 @@ reversible and does not redefine what a window is for; ending a Scene is safe by
 
 Does not prove, and must not be claimed: any form of session ownership, any agent integration, any browser
 control, any pre-creation containment. See [Non-goals](#non-goals).
+
+## What interactive verification found, and what stays a limit
+
+HORO-1109 ran the journey above on a real Mac, repeatedly, on a desktop of twenty windows that were already
+open — which is the condition none of the unit tests can create. The record is
+[`evidence/horo-1109/README.md`](evidence/horo-1109/README.md), text only by policy. Most of what it found
+was fixed, with a test each; the paragraphs below are what was found and deliberately **not** fixed, written
+down here so that nothing above reads as a promise it does not make.
+
+- **A window a rule declined can still sit inside the region a Slot occupies.** Admission's "no" means *the
+  Scene does not take it* — the window is left exactly where the inherited engine bound it, per I1 — and the
+  engine may well have bound it into the same tiling node a Slot is projected onto. So a Slot's rectangle can
+  contain a window the Scene does not own, while `slot list` reports only the attachments, correctly. The
+  alternative is admission moving windows it has refused, which is a worse product: a refusal that rearranges
+  the desktop is not a refusal. Containment before placement is G2, and G2 is not in v0.1.0.
+- **A Slot counts attachments, and an attachment outlives its window.** That is the persistence model working
+  — intent, not window identity — and it is what lets a Scene survive quitting an application or quitting
+  SceneMux. What v0.1.0 does is *say so*: `slot list` names the windows the engine cannot currently see, and
+  says in the same breath that nothing was removed and nothing was moved. What it cannot do is tell a quit
+  application apart from one macOS is holding minimized or hidden, because `surface(of:)` answers nothing for
+  both — so the sentence names both possibilities instead of guessing. The related sharp edge is that a
+  relaunched application's window can take an ordinal a Scene already recorded; that is the `WindowRef`
+  identity limit already written down under [Persistence](#persistence-intent-not-window-identity).
+- **`agent query` under-reports nested tab groups.** A tab group that is a child of another container was
+  missing from `inventory.tabGroups` and from `reasoning.rawTrees` in one pass, while the same group was
+  reported correctly by `slot list` and visible on screen. The Scene state was right and the projection was
+  right; the *reporting surface an agent reads* was wrong, which is its own defect and is carried as a
+  follow-up rather than patched inside this ticket's scope.
+- **The inherited engine may make the whole workspace a tab group at startup.** `smartLayoutAtStartup` sets
+  the workspace root to `.tabGroup` whenever it has more than three children, so on any busy desktop the root
+  *is* a tab group — which is exactly the condition that stranded a Slot's window off-screen until the
+  adapter learned to find the tiling root. Scene Core now copes with it; it does not change it, because
+  changing an inherited startup behaviour is a decision about the window manager, not about Scenes.
 
 ## How this design is verified
 
