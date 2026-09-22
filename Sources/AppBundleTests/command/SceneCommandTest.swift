@@ -210,6 +210,7 @@ final class SceneCommandTest: XCTestCase {
         XCTAssertEqual(SceneCore.SceneRuntime.shared.snapshot.scenes, [])
     }
 
+    @discardableResult
     private func exec(_ command: String) async throws -> CmdResult {
         try await parseCommand(command).cmdOrDie.run(.defaultEnv, .emptyStdin)
     }
