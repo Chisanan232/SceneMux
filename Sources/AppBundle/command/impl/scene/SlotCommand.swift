@@ -70,7 +70,10 @@ struct SlotCommand: Command {
         let rows: [[String]] = scene.slots.map { row in
             ["\(row.index)", row.title, row.trailing]
         }
-        return io.out(rows.toPaddingTable(columnSeparator: "   "))
+        // A count is of the windows attached to the Slot, and an attachment can outlive the window — that is the
+        // persistence model, not a bug. What is a bug is the person having no way to tell: HORO-1109 quit an
+        // application mid-Scene and the table went on saying "2 windows" about a Slot with one window in it.
+        return io.out(rows.toPaddingTable(columnSeparator: "   ") + runtime.unseenWindowDiagnostics)
     }
 
     @MainActor

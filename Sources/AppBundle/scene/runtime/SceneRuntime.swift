@@ -53,6 +53,37 @@ extension SceneCore {
         /// it. So the lines are readable on their own, beside the sentence they qualify, rather than only as
         /// part of a snapshot nobody printed.
         var projectionDiagnostics: [String] { layoutDiagnostics }
+
+        /// The windows a Slot still holds that the engine cannot currently see, one sentence per Slot.
+        ///
+        /// A Slot counts the windows *attached* to it, which is the model working as designed — Scene state is
+        /// intent, and an attachment outliving the window is what lets a Scene survive quitting SceneMux. But a
+        /// listing that says "2 windows" about a Slot with one window on the screen is a listing a person cannot
+        /// act on. HORO-1109 quit an application mid-Scene: nothing moved, nothing was lost, and `slot list`
+        /// went on reporting the window that had left with it, because the diagnostic that says so
+        /// (`SceneProjector`) is only produced by a projection and quitting an application does not cause one.
+        ///
+        /// Computed when asked rather than kept in the snapshot, because the answer changes without Scene state
+        /// changing at all: it is a question about the desktop at the moment somebody asks it.
+        ///
+        /// "Cannot see" is the honest verb. `surface(of:)` answers nothing both for a window that is gone and
+        /// for one macOS is holding minimized or hidden, and SceneMux cannot tell those apart — so the sentence
+        /// names both possibilities rather than picking one.
+        var unseenWindowDiagnostics: [String] {
+            guard let active = snapshot.activeScene else { return [] }
+            return active.slots.compactMap { slot in
+                let unseen = slot.windows.filter { engine.surface(of: $0.windowRef) == nil }
+                guard !unseen.isEmpty else { return nil }
+                let subject = unseen.count == slot.windows.count
+                    ? (unseen.count == 1 ? "the window" : "all \(unseen.count) windows")
+                    : "\(unseen.count) of the \(slot.windows.count) windows"
+                let names = unseen.map(\.applicationName).joined(separator: ", ")
+                return "SceneMux cannot see \(subject) in the \(slot.title) slot (\(names)) — the application "
+                    + "may have quit, or macOS may be holding it minimized or hidden. Nothing was removed from "
+                    + "the Scene, and nothing was moved."
+            }
+        }
+
         /// Why the last newly detected window did not end up in the Slot a rule chose for it. Replaced, not
         /// accumulated, for the same reason: it describes the window that just appeared, not every window that
         /// ever did.
