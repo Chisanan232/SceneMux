@@ -150,6 +150,25 @@ or macOS may be holding it minimized or hidden. Nothing was removed from the Sce
 
 The attachment stays, on purpose: Scene state is intent. What was missing was the sentence.
 
+### Admission v1 (G1), as the passes found it
+
+Three boundaries, all observed rather than reasoned about, and all of them intended:
+
+* **It is reactive only.** A window is considered when the engine detects it, so a window that was already
+  open when a Slot appeared is not swept into that Slot. Pass F is the measurement: 19 windows already on the
+  desktop, 0 admissions, and the TextEdit window opened *after* launch admitted as the only detection that
+  arrived while a Slot was waiting. Populating a Slot from what is already open is `mount`, deliberately.
+* **It never sees the window.** A rule receives an `AdmissionSubject` — a `WindowRef`, the kind the engine
+  already decided on, the surface the window is on, and whether this was startup. No title and no content, so
+  nothing in it could classify a Chrome window as a Playwright window. The G2 and G3 gates are not in v0.1.0
+  and nothing here pretends otherwise.
+* **A declined window is left exactly where it is**, which means it can sit inside a Slot's region looking
+  like a member of the Scene while the Scene has no record of it. That is containment, it is G2, and it is
+  [HORO-1332](https://lightning-dust-mite.atlassian.net/browse/HORO-1332).
+
+And the one that is a trap rather than a boundary: with `automatically-tile-new-windows = false`, admission is
+silently inert (F1), because the engine floats the new window and a floating window is never routed.
+
 ## Pass D — persisted state, tampered with by hand
 
 Two edits to `~/Library/Application Support/SceneMux-Debug/scene-state.json` with the app stopped: one
