@@ -4,6 +4,12 @@ import Foundation
 
 @MainActor public func initAppBundle() {
     Task {
+        // The windows SceneMux finds while it is coming up were already open, so nobody opened them and no rule
+        // may claim them for a Scene that was left on screen. Cleared however this Task ends: a latch stuck
+        // closed would be admission switched off for the rest of the session, which is a worse failure than the
+        // one it prevents.
+        isSceneMuxStartingUp = true
+        defer { isSceneMuxStartingUp = false }
         initTerminationHandler()
         isCli = false
         initServerArgs()

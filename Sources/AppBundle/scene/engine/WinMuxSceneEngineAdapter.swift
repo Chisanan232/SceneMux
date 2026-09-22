@@ -408,6 +408,22 @@ func sceneAdmitDetectedWindow(_ window: Window) {
         windowRef: windowRef,
         kind: SceneCore.WinMuxSceneEngineAdapter.kind(of: window),
         surface: SceneCore.WinMuxSceneEngineAdapter.surface(of: window),
-        detectedDuringStartup: isStartup,
+        detectedDuringStartup: isStartup || isSceneMuxStartingUp,
     ))
 }
+
+/// Whether SceneMux itself is still starting up, which is not the same question as the engine's `isStartup`.
+///
+/// `isStartup` is a property of the *refresh session*: it is true only inside the one session `initAppBundle`
+/// runs with the `.startup` event. Almost no window is first seen there. Counted on a real desktop of twenty
+/// windows under HORO-1109 — with an `on-window-detected` callback per case — one window was detected while
+/// `isStartup` was true and nineteen after it, because the bulk of the discovery happens in the
+/// `MonitorConfigurationObserver.prepareForStartup` session that runs before it. Admission's startup guard was
+/// therefore reading a flag that is false exactly when it matters, and a Scene that had been left on screen
+/// swallowed five windows the person already had open, with nobody touching anything.
+///
+/// So the signal admission needs is the application's own launch, which `initAppBundle` brackets. It is off by
+/// default because every other caller — the tests, and the engine at any other moment — is by definition not
+/// starting up, and a latch that defaulted the other way would be a latch that turns admission off in a process
+/// that never sets it.
+@MainActor var isSceneMuxStartingUp = false
