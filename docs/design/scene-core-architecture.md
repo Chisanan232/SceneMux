@@ -1111,7 +1111,8 @@ down here so that nothing above reads as a promise it does not make.
   engine may well have bound it into the same tiling node a Slot is projected onto. So a Slot's rectangle can
   contain a window the Scene does not own, while `slot list` reports only the attachments, correctly. The
   alternative is admission moving windows it has refused, which is a worse product: a refusal that rearranges
-  the desktop is not a refusal. Containment before placement is G2, and G2 is not in v0.1.0.
+  the desktop is not a refusal. Containment before placement is G2, and G2 is not in v0.1.0 —
+  [HORO-1332](https://lightning-dust-mite.atlassian.net/browse/HORO-1332) carries the decision.
 - **A Slot counts attachments, and an attachment outlives its window.** That is the persistence model working
   — intent, not window identity — and it is what lets a Scene survive quitting an application or quitting
   SceneMux. What v0.1.0 does is *say so*: `slot list` names the windows the engine cannot currently see, and
@@ -1119,17 +1120,21 @@ down here so that nothing above reads as a promise it does not make.
   application apart from one macOS is holding minimized or hidden, because `surface(of:)` answers nothing for
   both — so the sentence names both possibilities instead of guessing. The related sharp edge is that a
   relaunched application's window can take an ordinal a Scene already recorded; that is the `WindowRef`
-  identity limit already written down under [Persistence](#persistence-intent-not-window-identity).
+  identity limit already written down under [Persistence](#persistence-intent-not-window-identity). Both halves
+  wait on a durable window session identity,
+  [HORO-1334](https://lightning-dust-mite.atlassian.net/browse/HORO-1334).
 - **`agent query` under-reports nested tab groups.** A tab group that is a child of another container was
   missing from `inventory.tabGroups` and from `reasoning.rawTrees` in one pass, while the same group was
   reported correctly by `slot list` and visible on screen. The Scene state was right and the projection was
-  right; the *reporting surface an agent reads* was wrong, which is its own defect and is carried as a
-  follow-up rather than patched inside this ticket's scope.
+  right; the *reporting surface an agent reads* was wrong, which is its own defect and is carried as
+  [HORO-1330](https://lightning-dust-mite.atlassian.net/browse/HORO-1330) rather than patched inside this
+  ticket's scope.
 - **The inherited engine may make the whole workspace a tab group at startup.** `smartLayoutAtStartup` sets
   the workspace root to `.tabGroup` whenever it has more than three children, so on any busy desktop the root
   *is* a tab group — which is exactly the condition that stranded a Slot's window off-screen until the
   adapter learned to find the tiling root. Scene Core now copes with it; it does not change it, because
-  changing an inherited startup behaviour is a decision about the window manager, not about Scenes.
+  changing an inherited startup behaviour is a decision about the window manager, not about Scenes —
+  [HORO-1333](https://lightning-dust-mite.atlassian.net/browse/HORO-1333).
 
 ## How this design is verified
 
